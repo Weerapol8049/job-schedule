@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คู่มือ Job Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f8; --surface:#ffffff; --surface-2:#f8f9fb; --surface-3:#eef0f4;
+  --text:#141923; --text-2:#475066; --muted:#8a92a3; --border:#e6e9ef; --border-strong:#d4d9e2;
+  --accent:#4f46e5; --accent-soft:#eef0ff; --accent-soft-text:#4338ca; --accent-text:#fff;
+  --danger:#e11d48; --danger-soft:#fff0f3; --ok:#059669; --ok-soft:#e7f7f0; --warn:#d97706; --warn-soft:#fff5e5;
+  --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0e13; --surface:#131821; --surface-2:#171d27; --surface-3:#1e2531;
+    --text:#e9ecf2; --text-2:#b3bbca; --muted:#7b8496; --border:#232b37; --border-strong:#313b4a;
+    --accent:#7c83ff; --accent-soft:#1d2042; --accent-soft-text:#b0b5ff; --accent-text:#0b0d1a;
+    --danger:#fb7185; --danger-soft:#2b141a; --ok:#34d399; --ok-soft:#0f261d; --warn:#fbbf24; --warn-soft:#2a210c;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0e13; --surface:#131821; --surface-2:#171d27; --surface-3:#1e2531;
+  --text:#e9ecf2; --text-2:#b3bbca; --muted:#7b8496; --border:#232b37; --border-strong:#313b4a;
+  --accent:#7c83ff; --accent-soft:#1d2042; --accent-soft-text:#b0b5ff; --accent-text:#0b0d1a;
+  --danger:#fb7185; --danger-soft:#2b141a; --ok:#34d399; --ok-soft:#0f261d; --warn:#fbbf24; --warn-soft:#2a210c;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.75 "IBM Plex Sans Thai",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+code,kbd,.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;font-size:.88em}
+code{background:var(--surface-3);padding:1px 6px;border-radius:5px}
+kbd{padding:1px 6px;border-radius:5px;border:1px solid var(--border-strong);border-bottom-width:2px;background:var(--surface);font-size:.8em}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb, var(--surface) 88%, transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.top-in{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 20px}
+.logo-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#a855f7);display:grid;place-items:center;color:#fff;flex:none}
+.top b{font-size:15px;line-height:1.2;display:block}
+.top small{color:var(--muted);font-size:12px}
+.badge-draft{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--warn-soft);color:var(--warn);white-space:nowrap}
+.top .sp{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:9px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font:inherit;font-size:13.5px;font-weight:500;text-decoration:none;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--surface-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* layout */
+.wrap{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:250px minmax(0,1fr);gap:40px;padding:28px 20px 80px}
+.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:13.5px;padding-right:6px}
+.toc input{width:100%;height:34px;padding:0 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;font-size:13px;margin-bottom:12px}
+.toc input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent)}
+.toc .grp{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:16px 0 4px 10px}
+.toc a{display:block;padding:5px 10px;border-radius:7px;color:var(--text-2);text-decoration:none;border-left:2px solid transparent}
+.toc a:hover{background:var(--surface-3);color:var(--text)}
+.toc a.active{background:var(--accent-soft);color:var(--accent-soft-text);font-weight:600}
+.toc a.hide{display:none}
+
+main{min-width:0;max-width:860px}
+.hero{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;box-shadow:var(--shadow);margin-bottom:28px}
+.hero h1{margin:0 0 6px;font-size:28px;line-height:1.3}
+.hero p{margin:0;color:var(--text-2)}
+.quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:20px}
+.quick a{display:block;padding:12px 14px;border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);background:var(--surface-2)}
+.quick a:hover{border-color:var(--accent)}
+.quick a b{display:block;font-size:14px}
+.quick a span{font-size:12.5px;color:var(--muted)}
+
+section{padding-top:8px;margin-bottom:44px}
+section.hide{display:none}
+h2{font-size:22px;margin:0 0 4px;display:flex;align-items:center;gap:10px;line-height:1.35}
+h2 .num{font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:2px 8px}
+.lead{color:var(--muted);margin:0 0 16px}
+h3{font-size:16.5px;margin:26px 0 8px}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:3px 0}
+
+.steps{list-style:none;padding:0;counter-reset:s}
+.steps>li{position:relative;padding:2px 0 10px 40px;counter-increment:s}
+.steps>li::before{content:counter(s);position:absolute;left:0;top:2px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-text);font-weight:700;font-size:13px;display:grid;place-items:center}
+
+.callout{display:flex;gap:10px;padding:12px 14px;border-radius:12px;margin:14px 0;font-size:14px;border:1px solid}
+.callout .ic{font-weight:700;flex:none}
+.callout p:last-child{margin:0}
+.tip{background:var(--ok-soft);border-color:color-mix(in srgb, var(--ok) 30%, transparent)}
+.tip .ic{color:var(--ok)}
+.warn{background:var(--warn-soft);border-color:color-mix(in srgb, var(--warn) 30%, transparent)}
+.warn .ic{color:var(--warn)}
+.info{background:var(--accent-soft);border-color:color-mix(in srgb, var(--accent) 25%, transparent)}
+.info .ic{color:var(--accent)}
+
+figure{margin:16px 0 20px}
+figure a{display:block;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface)}
+figure img{display:block;width:100%;height:auto}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:6px;text-align:center}
+
+.tbl{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);margin:12px 0 18px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+th{background:var(--surface-2);font-weight:600;color:var(--text-2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.nw{white-space:nowrap}
+
+.pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:color-mix(in srgb, var(--c) 14%, transparent);color:color-mix(in srgb, var(--c) 78%, var(--text))}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:1px 8px;border-radius:6px;white-space:nowrap}
+.chip.bad{background:var(--danger-soft);color:var(--danger)}
+.chip.soon{background:var(--warn-soft);color:var(--warn)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.neutral{background:var(--surface-3);color:var(--text-2)}
+.ui{display:inline-block;padding:0 7px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-size:.9em;font-weight:500;white-space:nowrap}
+
+.faq details{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0 16px;margin-bottom:8px}
+.faq summary{cursor:pointer;padding:12px 0;font-weight:600;list-style:none;display:flex;gap:8px}
+.faq summary::before{content:"+";color:var(--accent);font-weight:700;width:14px}
+.faq details[open] summary::before{content:"–"}
+.faq details>div{padding:0 0 12px 22px;color:var(--text-2)}
+
+.foot{color:var(--muted);font-size:13px;border-top:1px solid var(--border);padding-top:16px}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:minmax(0,1fr);gap:0;padding:16px 16px 60px}
+  .toc{position:static;max-height:none;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+  .toc nav{display:flex;flex-wrap:wrap;gap:4px}
+  .toc .grp{display:none}
+  .toc a{border:1px solid var(--border);font-size:12.5px;padding:3px 9px}
+  .top small,.badge-draft{display:none}
+  .hero{padding:20px}
+  .hero h1{font-size:23px}
+}
+@media print{
+  .top,.toc{display:none}
+  .wrap{display:block;padding:0}
+  section.hide{display:block}
+  figure a{box-shadow:none}
+  section{break-inside:avoid-page}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="top-in">
+    <div class="logo-mark"><svg class="i" style="width:18px;height:18px"><use href="#i-cal"/></svg></div>
+    <div><b>คู่มือการใช้งาน Job Schedule</b><small>บันทึกงาน &amp; ติดตามสถานะ</small></div>
+    <span class="badge-draft">ฉบับร่าง · prototype</span>
+    <span class="sp"></span>
+    <button class="btn" onclick="window.print()" title="พิมพ์ / บันทึกเป็น PDF"><svg class="i"><use href="#i-print"/></svg>พิมพ์</button>
+    <a class="btn primary" href="./"><svg class="i"><use href="#i-ext"/></svg>เปิดแอป</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside class="toc">
+    <input type="search" id="tocSearch" placeholder="ค้นหาในคู่มือ…" autocomplete="off">
+    <nav id="toc">
+      <div class="grp">เริ่มต้น</div>
+      <a href="#start">1. เข้าสู่ระบบ &amp; หน้าจอหลัก</a>
+      <a href="#add">2. บันทึกงานใหม่</a>
+      <a href="#fields">3. ความหมายของแต่ละช่อง</a>
+      <div class="grp">ใช้งานประจำวัน</div>
+      <a href="#table">4. ตารางงาน</a>
+      <a href="#bulk">5. เลือกหลายงานพร้อมกัน</a>
+      <a href="#filter">6. ค้นหา &amp; ตัวกรอง</a>
+      <a href="#kanban">7. บอร์ด Kanban</a>
+      <a href="#calendar">8. ปฏิทิน</a>
+      <a href="#dashboard">9. ภาพรวม (Dashboard)</a>
+      <a href="#deploy">10. ขึ้น STD66 / LIVE &amp; Release note</a>
+      <div class="grp">ข้อมูล</div>
+      <a href="#import">11. Import จาก Excel</a>
+      <a href="#export">12. Export &amp; Backup</a>
+      <a href="#team">13. ทำงานพร้อมกันหลายคน</a>
+      <a href="#settings">14. ตั้งค่าตัวเลือก</a>
+      <div class="grp">อื่น ๆ</div>
+      <a href="#shortcuts">15. คีย์ลัด</a>
+      <a href="#admin">16. สำหรับผู้ดูแลระบบ</a>
+      <a href="#faq">17. คำถามที่พบบ่อย</a>
+      <a href="#changelog">18. ประวัติการปรับปรุง</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <h1>Job Schedule — คู่มือการใช้งาน</h1>
+      <p>ระบบบันทึกงานและติดตามสถานะงานพัฒนา Odoo / AX แทนตาราง Excel เดิม ทั้งทีมเห็นข้อมูลชุดเดียวกันแบบ realtime ตั้งแต่รับงาน → พัฒนา → ขึ้น STD66 → ขึ้น LIVE</p>
+      <div class="quick">
+        <a href="#add"><b>บันทึกงานใหม่</b><span>กด <kbd>N</kbd> หรือปุ่ม + เพิ่มงาน</span></a>
+        <a href="#deploy"><b>แจ้ง deploy</b><span>สร้าง Release note แล้ว copy ไปวาง</span></a>
+        <a href="#import"><b>ย้ายข้อมูลจาก Excel</b><span>รองรับหลาย sheet</span></a>
+        <a href="#faq"><b>มีปัญหา?</b><span>คำถามที่พบบ่อย</span></a>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <section id="start">
+      <h2><span class="num">1</span>เข้าสู่ระบบ &amp; หน้าจอหลัก</h2>
+      <p class="lead">เว็บ: <a href="https://job-schedule-cyan.vercel.app">job-schedule-cyan.vercel.app</a> — ใช้ได้ทั้งคอมพิวเตอร์และมือถือ</p>
+      <ol class="steps">
+        <li>เปิดเว็บ แล้วกรอก <b>อีเมล</b> และ <b>รหัสผ่าน</b> ที่ผู้ดูแลระบบสร้างให้ → กด <span class="ui">เข้าสู่ระบบ</span></li>
+        <li>ระบบจำการ login ไว้ ครั้งต่อไปเปิดเว็บก็เข้าได้เลย — ออกจากระบบได้ที่ไอคอนท้ายอีเมลมุมซ้ายล่าง</li>
+      </ol>
+      <div class="callout info"><span class="ic">i</span><p>ระบบ<b>ไม่เปิดให้สมัครเอง</b> — ถ้ายังไม่มีบัญชีหรือลืมรหัสผ่าน ติดต่อผู้ดูแลระบบ (ดูหัวข้อ <a href="#admin">16</a>)</p></div>
+      <figure><a href="manual/login.png" target="_blank"><img src="manual/login.png" alt="หน้าเข้าสู่ระบบ" loading="lazy"></a><figcaption>หน้าเข้าสู่ระบบ</figcaption></figure>
+
+      <h3>ส่วนประกอบของหน้าจอ</h3>
+      <div class="tbl"><table>
+        <tr><th>ส่วน</th><th>ใช้ทำอะไร</th></tr>
+        <tr><td class="nw">เมนูด้านซ้าย</td><td><b>ภาพรวม</b> · <b>ตารางงาน</b> · <b>บอร์ด Kanban</b> · <b>ปฏิทิน</b> · <b>ข้อมูล &amp; ตั้งค่า</b> — ตัวเลขข้างเมนูคือจำนวนงาน (สีแดงที่ "ภาพรวม" = งานเลยกำหนด)</td></tr>
+        <tr><td class="nw">การ์ดความคืบหน้า</td><td>% งานที่เสร็จของเดือนนี้ (มุมซ้ายล่าง)</td></tr>
+        <tr><td class="nw">ปุ่มธีม</td><td>สว่าง / ตามระบบ / มืด</td></tr>
+        <tr><td class="nw">แถบค้นหา &amp; ตัวกรอง</td><td>ใช้ร่วมกันทุกหน้า — กรองแล้วทั้งตาราง Kanban ปฏิทิน และกราฟเปลี่ยนตาม</td></tr>
+      </table></div>
+    </section>
+
+    <!-- 2 -->
+    <section id="add">
+      <h2><span class="num">2</span>บันทึกงานใหม่</h2>
+      <p class="lead">ฟอร์มจะเลื่อนออกมาจากด้านขวา — กรอกเท่าที่รู้ก่อน แล้วค่อยเติมทีหลังได้</p>
+      <ol class="steps">
+        <li>กดปุ่ม <span class="ui">+ เพิ่มงาน</span> มุมขวาบน หรือกดคีย์ <kbd>N</kbd></li>
+        <li>พิมพ์ <b>ชื่องาน</b> สั้น ๆ ในช่องบนสุด (เช่น "Sync Sales order จาก AX")</li>
+        <li>เลือก <b>สถานะ</b> และ <b>ความสำคัญ</b> โดยคลิกปุ่มสี</li>
+        <li>กรอก <b>ผู้มอบหมายงาน</b> — ระบบจะแนะนำชื่อที่เคยกรอก</li>
+        <li>กรอก <b>วันที่รับงาน</b> (บังคับ) วันที่เริ่ม และวันที่ส่ง</li>
+        <li>เลือก <b>Module</b> (เลือกได้หลายตัว / พิมพ์ชื่อใหม่แล้วกด <kbd>Enter</kbd>), <b>ประเภทงาน</b> Odoo/AX, <b>Server</b>, <b>ProjectName</b>, <b>Form/Report</b></li>
+        <li>เขียนรายละเอียดงานใน <b>หมายเหตุ</b> → กด <span class="ui">บันทึก</span></li>
+      </ol>
+      <figure><a href="manual/form.png" target="_blank"><img src="manual/form.png" alt="ฟอร์มรายละเอียดงาน" loading="lazy"></a><figcaption>ฟอร์มรายละเอียดงาน — ประวัติการเปลี่ยนสถานะอยู่ด้านล่างสุดของฟอร์ม</figcaption></figure>
+      <div class="callout tip"><span class="ic">✓</span><p><b>งานคล้ายงานเดิม?</b> ในตารางเอาเมาส์ชี้แถว → กดไอคอน <b>Duplicate</b> (⧉) จะได้ฟอร์มที่ copy ข้อมูลมาให้ (สถานะ วันที่ และ deploy ถูกล้างให้ใหม่)</p></div>
+      <h3>กฎการตรวจสอบตอนบันทึก</h3>
+      <ul>
+        <li>ต้องมีวันที่รับงาน และต้องมี <b>ชื่องาน หรือ ProjectName หรือ หมายเหตุ</b> อย่างน้อย 1 ช่อง</li>
+        <li>วันที่เริ่ม ≥ วันที่รับ · วันที่ส่ง ≥ วันที่เริ่ม · วันที่เสร็จจริง ≥ วันที่รับ</li>
+        <li>เปลี่ยนสถานะเป็น <span class="pill" style="--c:#10b981">เสร็จ</span> แล้วระบบเติม "วันที่เสร็จจริง" เป็นวันนี้ให้ (แก้ได้)</li>
+        <li>เปิดสวิตช์ STD66 / LIVE แล้วระบบเติมวันที่ขึ้นระบบเป็นวันนี้ให้</li>
+        <li><b>Job No</b> (เช่น <code>JOB-2026-0145</code>) ระบบออกให้อัตโนมัติ ไม่ซ้ำกัน</li>
+      </ul>
+    </section>
+
+    <!-- 3 -->
+    <section id="fields">
+      <h2><span class="num">3</span>ความหมายของแต่ละช่อง</h2>
+      <p class="lead">เทียบกับคอลัมน์ในตาราง Excel เดิม</p>
+      <div class="tbl"><table>
+        <tr><th>ช่อง</th><th>ความหมาย / ค่าที่ใช้</th><th>Excel เดิม</th></tr>
+        <tr><td class="nw">ชื่องาน</td><td>หัวข้อสั้น ๆ ใช้แสดงใน Kanban / ปฏิทิน (ถ้าว่าง ใช้บรรทัดแรกของ ProjectName)</td><td>ใหม่</td></tr>
+        <tr><td class="nw">สถานะงาน</td><td>
+          <span class="pill" style="--c:#64748b">ใหม่</span> <span class="pill" style="--c:#3b82f6">กำลังทำ</span> <span class="pill" style="--c:#f59e0b">รอทดสอบ</span> <span class="pill" style="--c:#a855f7">รอตอบกลับ</span> <span class="pill" style="--c:#10b981">เสร็จ</span> <span class="pill" style="--c:#94a3b8">ยกเลิก</span><br>
+          "เสร็จ" และ "ยกเลิก" นับเป็นงานที่ปิดแล้ว (ไม่ขึ้นเลยกำหนด)</td><td>สีช่อง</td></tr>
+        <tr><td class="nw">ความสำคัญ</td><td>ต่ำ · ปกติ · สูง · ด่วน</td><td>ใหม่</td></tr>
+        <tr><td class="nw">ชื่อผู้มอบหมายงาน</td><td>คนที่สั่ง/แจ้งงาน เช่น พี่มะลิ</td><td>✓</td></tr>
+        <tr><td class="nw">แผนก</td><td>แผนกของผู้มอบหมาย</td><td>✓</td></tr>
+        <tr><td class="nw">ผู้รับผิดชอบ</td><td>คนในทีมที่ทำงานนี้</td><td>ใหม่</td></tr>
+        <tr><td class="nw">ลักษณะงาน</td><td>New feature · Bug fix · Change request · Report · Support</td><td>ใหม่</td></tr>
+        <tr><td class="nw">วันที่รับ / เริ่ม / ส่งงาน</td><td>วันที่ส่งงาน = กำหนดส่ง ใช้คำนวณ "เลยกำหนด"</td><td>✓</td></tr>
+        <tr><td class="nw">วันที่เสร็จจริง</td><td>วันที่ปิดงานจริง (เติมเองเมื่อเปลี่ยนเป็นเสร็จ)</td><td>ใหม่</td></tr>
+        <tr><td class="nw">ชั่วโมงประมาณ / จริง</td><td>ใช้ประเมินงานครั้งต่อไป</td><td>ใหม่</td></tr>
+        <tr><td class="nw">Module</td><td>Sales, Purchase, Project, AP … เลือกได้หลายตัว</td><td>✓</td></tr>
+        <tr><td class="nw">ประเภทงาน (ระบบ)</td><td>Odoo · AX · อื่นๆ</td><td>✓</td></tr>
+        <tr><td class="nw">Server / DB</td><td>stmdev · c1stmdev · stmm.work …</td><td>คอลัมน์ไม่มีหัว</td></tr>
+        <tr><td class="nw">ProjectName</td><td>ชื่อ module / API — หลายบรรทัดได้ เช่น <code>biz_sales_order_ax</code> + <code>API: GenSalesOrderAxOdoo</code></td><td>✓</td></tr>
+        <tr><td class="nw">Form / Report / Job / Other</td><td>เมนูหรือหน้าจอที่เกี่ยวข้อง เช่น <code>Sales &gt; Order AX &gt; Sales order</code></td><td>✓</td></tr>
+        <tr><td class="nw">Button Work</td><td>ปุ่มที่เกี่ยวข้อง</td><td>✓</td></tr>
+        <tr><td class="nw">Tags · ลิงก์อ้างอิง</td><td>คำค้นเพิ่มเติม · ลิงก์ ticket / เอกสาร / Git</td><td>ใหม่</td></tr>
+        <tr><td class="nw">STD66 / LIVE</td><td>ขึ้นระบบทดสอบ / ระบบจริงแล้วหรือยัง + วันที่ขึ้น</td><td>✓ (+วันที่)</td></tr>
+        <tr><td class="nw">หมายเหตุ</td><td>รายละเอียดงาน ปัญหา เงื่อนไขที่ผู้ใช้แจ้ง</td><td>✓</td></tr>
+      </table></div>
+    </section>
+
+    <!-- 4 -->
+    <section id="table">
+      <h2><span class="num">4</span>ตารางงาน</h2>
+      <p class="lead">หน้าหลักสำหรับดูและแก้งานทั้งหมด หน้าตาคล้าย Excel เดิม</p>
+      <figure><a href="manual/table.png" target="_blank"><img src="manual/table.png" alt="ตารางงาน" loading="lazy"></a><figcaption>ตารางงาน — คอลัมน์ "งาน" รวมชื่องาน ProjectName และหมายเหตุไว้ในช่องเดียว</figcaption></figure>
+      <div class="tbl"><table>
+        <tr><th>ต้องการ</th><th>ทำอย่างไร</th></tr>
+        <tr><td class="nw">ดู/แก้รายละเอียด</td><td>คลิกที่แถว</td></tr>
+        <tr><td class="nw">เปลี่ยนสถานะ / ความสำคัญ</td><td>คลิกป้ายสีในแถว → เลือกค่าใหม่ — บันทึกทันที</td></tr>
+        <tr><td class="nw">ติ๊กขึ้น STD66 / LIVE</td><td>คลิกวงกลมในคอลัมน์ STD66 / LIVE (คลิกซ้ำ = ยกเลิก)</td></tr>
+        <tr><td class="nw">เรียงลำดับ</td><td>คลิกหัวคอลัมน์ (คลิกซ้ำ = กลับลำดับ)</td></tr>
+        <tr><td class="nw">ซ่อน/แสดงคอลัมน์</td><td>ปุ่ม <span class="ui">คอลัมน์</span> — ตั้งแยกได้แต่ละคน</td></tr>
+        <tr><td class="nw">Duplicate / ลบ</td><td>เอาเมาส์ชี้แถว → ไอคอนด้านขวาสุด</td></tr>
+        <tr><td class="nw">เลื่อนดูคอลัมน์ขวา</td><td>เลื่อนแนวนอน — Job No และ "งาน" จะค้างอยู่ด้านซ้าย</td></tr>
+      </table></div>
+      <h3>สัญลักษณ์กำหนดส่ง</h3>
+      <p><span class="chip bad">● เลย 2 วัน</span> เลยกำหนดแล้ว (แถวมีแถบแดงด้านซ้าย) &nbsp; <span class="chip soon">● วันนี้ / อีก 3 วัน</span> ใกล้ครบกำหนด &nbsp; <span class="chip ok">✓ 9 ต.ค.</span> เสร็จแล้ว</p>
+    </section>
+
+    <!-- 5 -->
+    <section id="bulk">
+      <h2><span class="num">5</span>เลือกหลายงานพร้อมกัน</h2>
+      <p class="lead">ใช้เมื่อต้องเปลี่ยนสถานะหรือขึ้นระบบทีละหลายงาน</p>
+      <ol class="steps">
+        <li>ติ๊ก ☐ หน้าแถวที่ต้องการ (ช่องบนหัวตาราง = เลือกทุกงานที่แสดงอยู่ตามตัวกรอง)</li>
+        <li>แถบเครื่องมือจะลอยขึ้นด้านล่าง: <span class="ui">เปลี่ยนสถานะ…</span> <span class="ui">ขึ้น STD66</span> <span class="ui">ขึ้น LIVE</span> <span class="ui">Release note</span> <span class="ui">ลบ</span></li>
+        <li>เลือกคำสั่ง — ระบบบันทึกทีละงานแล้วแจ้งจำนวนที่สำเร็จ</li>
+        <li>กด ✕ บนแถบเพื่อยกเลิกการเลือก</li>
+      </ol>
+      <div class="callout tip"><span class="ic">✓</span><p>ใช้คู่กับตัวกรอง เช่น กรอง "รอขึ้น LIVE" → ติ๊กหัวตาราง → <b>ขึ้น LIVE</b> = ปิดงานรอบ deploy ได้ในคลิกเดียว</p></div>
+    </section>
+
+    <!-- 6 -->
+    <section id="filter">
+      <h2><span class="num">6</span>ค้นหา &amp; ตัวกรอง</h2>
+      <ul>
+        <li><b>ช่องค้นหา</b> (<kbd>/</kbd>) — ค้นจาก Job No, ชื่องาน, ProjectName, Form, หมายเหตุ, ผู้มอบหมาย, Server, Module, Tags</li>
+        <li><b>ปุ่มลัด</b>: ทั้งหมด · สัปดาห์นี้ · เดือนนี้ · เลยกำหนด · รอขึ้น LIVE</li>
+        <li><b>ตัวกรองเพิ่มเติม</b> (ปุ่ม <span class="ui">ตัวกรอง</span>): ช่วงวันที่ (เลือกได้ว่ากรองตามวันรับ/เริ่ม/ส่ง/เสร็จ), ผู้มอบหมาย, Module, ประเภทงาน, Server, สถานะ, ความสำคัญ, STD66, LIVE</li>
+        <li>ตัวกรองที่ใช้อยู่แสดงเป็นป้ายใต้แถบ — กด ✕ เพื่อเอาออกทีละตัว หรือ "ล้างตัวกรองทั้งหมด"</li>
+      </ul>
+      <div class="callout info"><span class="ic">i</span><p>"สัปดาห์นี้ / เดือนนี้" หมายถึงงานที่ <b>ช่วงวันที่เริ่ม → วันที่ส่ง</b> คาบเกี่ยวกับสัปดาห์/เดือนปัจจุบัน · Export Excel จะส่งออกเฉพาะงานตามตัวกรองที่ใช้อยู่</p></div>
+    </section>
+
+    <!-- 7 -->
+    <section id="kanban">
+      <h2><span class="num">7</span>บอร์ด Kanban</h2>
+      <figure><a href="manual/kanban.png" target="_blank"><img src="manual/kanban.png" alt="บอร์ด Kanban" loading="lazy"></a><figcaption>แต่ละคอลัมน์คือสถานะ — ลากการ์ดเพื่อเปลี่ยนสถานะ</figcaption></figure>
+      <ul>
+        <li><b>ลากการ์ด</b> ไปวางอีกคอลัมน์ = เปลี่ยนสถานะ (ลากไป "เสร็จ" จะเติมวันที่เสร็จจริงให้)</li>
+        <li><b>คลิกการ์ด</b> = เปิดรายละเอียด · ปุ่ม <b>+</b> ที่หัวคอลัมน์ = เพิ่มงานในสถานะนั้น</li>
+        <li>การ์ดเรียงตามวันที่ส่ง — แสดง Job No, ความสำคัญ (ถ้าไม่ใช่ปกติ), Module, ผู้มอบหมาย, กำหนดส่ง, ป้าย STD66/LIVE</li>
+      </ul>
+    </section>
+
+    <!-- 8 -->
+    <section id="calendar">
+      <h2><span class="num">8</span>ปฏิทิน</h2>
+      <figure><a href="manual/calendar.png" target="_blank"><img src="manual/calendar.png" alt="ปฏิทินงาน" loading="lazy"></a><figcaption>งานแสดงเป็นแถบยาวตั้งแต่วันที่เริ่มถึงวันที่ส่ง สีตามสถานะ</figcaption></figure>
+      <ul>
+        <li>แถบที่ขอบตัดตรง = งานต่อเนื่องจาก/ไปสัปดาห์อื่น</li>
+        <li>วันที่มีงานเกิน 3 แถว จะมี <b>+n เพิ่มเติม</b> → กดเพื่อขยายทั้งสัปดาห์</li>
+        <li>คลิกแถบ = เปิดงาน · คลิกช่องว่างในวัน = เพิ่มงานใหม่ของวันนั้น · ปุ่ม ◀ วันนี้ ▶ เปลี่ยนเดือน</li>
+      </ul>
+    </section>
+
+    <!-- 9 -->
+    <section id="dashboard">
+      <h2><span class="num">9</span>ภาพรวม (Dashboard)</h2>
+      <figure><a href="manual/dashboard.png" target="_blank"><img src="manual/dashboard.png" alt="ภาพรวม" loading="lazy"></a><figcaption>ภาพรวม — ทุกตัวเลขคำนวณตามตัวกรองที่ใช้อยู่</figcaption></figure>
+      <div class="tbl"><table>
+        <tr><th>การ์ด</th><th>นับอะไร</th></tr>
+        <tr><td class="nw">งานทั้งหมด</td><td>ทุกงานตามตัวกรอง + % ที่เสร็จแล้ว</td></tr>
+        <tr><td class="nw">ยังไม่เสร็จ</td><td>สถานะที่ไม่ใช่ เสร็จ / ยกเลิก (คลิกเพื่อไป Kanban)</td></tr>
+        <tr><td class="nw">เลยกำหนด</td><td>ยังไม่เสร็จ และวันที่ส่ง &lt; วันนี้</td></tr>
+        <tr><td class="nw">เสร็จเดือนนี้</td><td>งานที่วันที่เสร็จจริง (หรือวันที่ส่ง) อยู่ในเดือนนี้</td></tr>
+        <tr><td class="nw">รอขึ้น LIVE</td><td>STD66 ✓ แต่ LIVE ยังไม่ขึ้น</td></tr>
+      </table></div>
+      <p>ใต้การ์ดมีรายการ <b>เลยกำหนด · ใกล้ครบกำหนด (7 วัน) · รอขึ้น LIVE</b> (คลิกเพื่อเปิดงาน) และกราฟตามสถานะ, รับเข้า/เสร็จรายสัปดาห์, ตาม Module, ตามผู้มอบหมาย — คลิกการ์ดตัวเลขเพื่อไปดูรายการในตาราง</p>
+    </section>
+
+    <!-- 10 -->
+    <section id="deploy">
+      <h2><span class="num">10</span>ขึ้น STD66 / LIVE &amp; Release note</h2>
+      <p class="lead">ขั้นตอนประจำรอบ deploy — สร้างข้อความแจ้งทีม แล้วติ๊ก LIVE ให้ทุกงานในคลิกเดียว</p>
+      <ol class="steps">
+        <li>ระหว่างพัฒนา: เมื่องานขึ้นระบบทดสอบ ติ๊ก <b>STD66</b> (ในตาราง ฟอร์ม หรือแถบเลือกหลายงาน) และเปลี่ยนสถานะเป็น <span class="pill" style="--c:#f59e0b">รอทดสอบ</span></li>
+        <li>วัน deploy: กด <span class="ui">Release note</span> (หัวตาราง / การ์ด "รอขึ้น LIVE" ในภาพรวม / แถบเลือกหลายงาน)</li>
+        <li>ถ้า<b>ไม่ได้เลือกงาน</b> ระบบใช้งานที่ STD66 ✓ แต่ยังไม่ขึ้น LIVE ให้อัตโนมัติ · ถ้าเลือกงานไว้ ใช้เฉพาะที่เลือก</li>
+        <li>เลือก <b>LIVE / STD66</b>, วันที่ deploy, รูปแบบ <b>ข้อความ</b> (LINE/Teams) หรือ <b>Markdown</b> และจะใส่รายละเอียดหรือไม่ — แก้ข้อความในกล่องได้</li>
+        <li>กด <span class="ui">Copy ข้อความ</span> → วางในกลุ่มแชท / อีเมล</li>
+        <li>หลัง deploy สำเร็จ กด <span class="ui">ติ๊ก LIVE ให้ N งาน</span> — ใส่วันที่ LIVE และ (ถ้าเลือกไว้) เปลี่ยนสถานะเป็น "เสร็จ" ให้ทุกงาน</li>
+      </ol>
+      <figure><a href="manual/release.png" target="_blank"><img src="manual/release.png" alt="Release note" loading="lazy"></a><figcaption>Release note — จัดกลุ่มตามระบบ Odoo / AX</figcaption></figure>
+    </section>
+
+    <!-- 11 -->
+    <section id="import">
+      <h2><span class="num">11</span>Import จาก Excel</h2>
+      <p class="lead">เมนู <b>ข้อมูล &amp; ตั้งค่า → Import Excel / CSV</b> หรือปุ่ม <span class="ui">Import</span> ในหน้าตาราง</p>
+      <ol class="steps">
+        <li>เลือกไฟล์ <code>.xlsx</code> / <code>.xls</code> / <code>.csv</code></li>
+        <li>ระบบอ่าน<b>ทุก sheet</b> และหาแถวหัวตารางเองใน 15 แถวแรก — sheet ที่ไม่มีหัวตาราง (เช่น หน้าสรุป) จะเป็นสีจาง เลือกไม่ได้</li>
+        <li>เลือก/ไม่เลือก sheet · ติ๊ก <b>ใส่ชื่อ sheet เป็น Tag</b> ถ้าต้องการรู้ว่างานมาจาก sheet ไหน</li>
+        <li>ตรวจตัวอย่าง 30 แถวแรก → กด <span class="ui">เพิ่มต่อท้าย</span> หรือ <span class="ui">แทนที่ข้อมูลทั้งหมด</span></li>
+      </ol>
+      <figure><a href="manual/import.png" target="_blank"><img src="manual/import.png" alt="ตรวจสอบก่อนนำเข้า" loading="lazy"></a><figcaption>หน้าตรวจสอบก่อนนำเข้า — เลือก sheet ได้</figcaption></figure>
+      <h3>หัวคอลัมน์ที่ระบบรู้จัก</h3>
+      <p>วันที่รับงาน · วันที่เริ่มงาน · วันที่ส่งงาน · ชื่อผู้มอบหมายงาน · แผนก · สถานะงาน · Module · ประเภทงาน · <i>(คอลัมน์ไม่มีหัวถัดจากประเภทงาน = Server)</i> · ProjectName · Form / Report / Job / Other · Button Work · หมายเหตุ · STD66 · LIVE · และคอลัมน์ที่ Export ออกจากระบบนี้ทั้งหมด</p>
+      <h3>กติกาการแปลงข้อมูล</h3>
+      <ul>
+        <li><b>STD66 / LIVE</b>: ✓ ✔ ☑ x yes y 1 true = ติ๊ก</li>
+        <li><b>วันที่</b>: อ่านได้ทั้งช่องวันที่ของ Excel, <code>2026-10-01</code>, <code>01/10/2026</code> — ปี <b>พ.ศ.</b> (เกิน 2400) แปลงเป็น ค.ศ. อัตโนมัติ</li>
+        <li><b>สถานะว่าง</b>: ถ้า STD66 หรือ LIVE ติ๊กแล้ว → "เสร็จ" · ไม่ติ๊ก → "ใหม่" (ระบบอ่านสีช่องใน Excel ไม่ได้)</li>
+        <li><b>Job No</b>: ใช้ของเดิมถ้าไม่ซ้ำ · ซ้ำหรือว่าง → ออกเลขใหม่</li>
+      </ul>
+      <div class="callout warn"><span class="ic">!</span><p><b>"แทนที่ข้อมูลทั้งหมด" จะลบงานทุกงานของทั้งทีม</b> ก่อนนำเข้า — Backup ก่อนทุกครั้ง และระวัง sheet สรุปที่ copy งานซ้ำจาก sheet อื่น (เอาออกก่อนนำเข้า)</p></div>
+    </section>
+
+    <!-- 12 -->
+    <section id="export">
+      <h2><span class="num">12</span>Export &amp; Backup</h2>
+      <figure><a href="manual/settings.png" target="_blank"><img src="manual/settings.png" alt="ข้อมูลและตั้งค่า" loading="lazy"></a><figcaption>เมนู ข้อมูล &amp; ตั้งค่า</figcaption></figure>
+      <div class="tbl"><table>
+        <tr><th>คำสั่ง</th><th>ได้อะไร</th></tr>
+        <tr><td class="nw">Export Excel</td><td>ไฟล์ <code>.xlsx</code> หัวคอลัมน์ภาษาไทยแบบเดิม — เฉพาะงานตามตัวกรอง (Import กลับได้)</td></tr>
+        <tr><td class="nw">Export CSV</td><td>ไฟล์ <code>.csv</code> UTF-8 เปิดใน Excel ภาษาไทยไม่เพี้ยน</td></tr>
+        <tr><td class="nw">Backup JSON</td><td>สำรองงานทั้งหมด + การตั้งค่า</td></tr>
+        <tr><td class="nw">Restore JSON</td><td>กู้คืนจากไฟล์ Backup — <b>แทนที่ข้อมูลทั้งหมดของทั้งทีม</b> (ควรให้ผู้ดูแลระบบทำ)</td></tr>
+      </table></div>
+      <div class="callout info"><span class="ic">i</span><p>นอกจากนี้ระบบ <b>backup อัตโนมัติทุกวัน 01:00 น.</b> เก็บย้อนหลัง 90 วัน (ไฟล์เข้ารหัส — ผู้ดูแลระบบเป็นคนกู้คืน)</p></div>
+    </section>
+
+    <!-- 13 -->
+    <section id="team">
+      <h2><span class="num">13</span>ทำงานพร้อมกันหลายคน</h2>
+      <ul>
+        <li><b>Realtime</b> — เมื่อเพื่อนร่วมทีมเพิ่ม แก้ หรือลากการ์ด หน้าจอของคุณอัปเดตเองภายในไม่กี่วินาที ไม่ต้อง refresh</li>
+        <li><b>กันบันทึกทับกัน</b> — ถ้าคุณเปิดงานค้างไว้ แล้วมีคนอื่นบันทึกงานเดียวกันก่อน ตอนกดบันทึกจะขึ้นเตือน
+          <br><i>"JOB-xxxx ถูกแก้ไขโดย ชื่อ@อีเมล เมื่อ …"</i>
+          <ul>
+            <li><b>OK</b> = บันทึกทับด้วยข้อมูลของคุณ</li>
+            <li><b>Cancel</b> = ไม่บันทึก แล้วเปิดข้อมูลล่าสุดของเพื่อนให้ดู (แก้ต่อได้)</li>
+          </ul>
+        </li>
+        <li><b>ประวัติสถานะ</b> — ทุกการเปลี่ยนสถานะบันทึกเวลาและอีเมลคนเปลี่ยน ดูได้ท้ายฟอร์ม</li>
+      </ul>
+    </section>
+
+    <!-- 14 -->
+    <section id="settings">
+      <h2><span class="num">14</span>ตั้งค่าตัวเลือก</h2>
+      <p>เมนู <b>ข้อมูล &amp; ตั้งค่า → Master list</b> — แก้ตัวเลือกที่ใช้ในฟอร์มและตัวกรอง (บรรทัดละ 1 รายการ) แล้วกด <span class="ui">บันทึกการตั้งค่า</span> · <b>มีผลกับทุกคนในทีม</b></p>
+      <ul>
+        <li><b>สถานะงาน</b> ใช้รูปแบบ <code>ชื่อ|สี|done</code> เช่น <code>รอ UAT|#0ea5e9</code> หรือ <code>ปิดงาน|#10b981|done</code> — ใส่ <code>done</code> เมื่อสถานะนั้นนับว่างานปิดแล้ว</li>
+        <li>Module · ประเภทงาน · Server · ผู้มอบหมาย · แผนก · ความสำคัญ · ลักษณะงาน</li>
+        <li>ค่าที่เคยกรอกในงานจะถูกแนะนำอัตโนมัติด้วย แม้ไม่ได้อยู่ใน master list</li>
+      </ul>
+      <div class="callout warn"><span class="ic">!</span><p>เปลี่ยน<b>ชื่อ</b>สถานะ งานเดิมที่ใช้ชื่อเก่าจะไม่เปลี่ยนตาม (ยังแสดงเป็นคอลัมน์แยกใน Kanban) — ใช้การเลือกหลายงานเปลี่ยนสถานะให้งานเหล่านั้น</p></div>
+    </section>
+
+    <!-- 15 -->
+    <section id="shortcuts">
+      <h2><span class="num">15</span>คีย์ลัด</h2>
+      <div class="tbl"><table>
+        <tr><th>คีย์</th><th>ทำอะไร</th></tr>
+        <tr><td><kbd>N</kbd></td><td>เพิ่มงานใหม่ (ใช้ได้แม้แป้นพิมพ์เป็นภาษาไทย)</td></tr>
+        <tr><td><kbd>/</kbd></td><td>ไปที่ช่องค้นหา</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>ปิดฟอร์ม / หน้าต่าง</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>ในช่อง "+ เพิ่ม Module" = เพิ่ม Module ใหม่</td></tr>
+      </table></div>
+    </section>
+
+    <!-- 16 -->
+    <section id="admin">
+      <h2><span class="num">16</span>สำหรับผู้ดูแลระบบ</h2>
+      <p class="lead">รายละเอียดเชิงเทคนิคทั้งหมดอยู่ใน <a href="https://github.com/Weerapol8049/job-schedule/blob/main/SETUP.md" target="_blank" rel="noopener">SETUP.md</a></p>
+      <div class="tbl"><table>
+        <tr><th>งาน</th><th>ทำที่</th></tr>
+        <tr><td class="nw">เพิ่มผู้ใช้</td><td>Supabase → Authentication → Users → <b>Add user → Create new user</b> → ติ๊ก <b>Auto Confirm User</b></td></tr>
+        <tr><td class="nw">รีเซ็ตรหัสผ่าน / ลบผู้ใช้</td><td>Supabase → Authentication → Users → เมนู ⋯ ของผู้ใช้</td></tr>
+        <tr><td class="nw">แก้หน้าเว็บ</td><td>แก้โค้ด → push ขึ้น GitHub branch <code>main</code> → Vercel deploy เอง (~1 นาที)</td></tr>
+        <tr><td class="nw">แก้โครงสร้างตาราง</td><td>แก้ <code>supabase/schema.sql</code> → รันใน SQL Editor (รันซ้ำได้)</td></tr>
+        <tr><td class="nw">ดู backup อัตโนมัติ</td><td>GitHub → Actions → <b>Daily Supabase backup</b> → Artifacts</td></tr>
+        <tr><td class="nw">กู้คืนจาก backup อัตโนมัติ</td><td>ดาวน์โหลด artifact → แตก zip → Git Bash: <code>gpg -d ไฟล์.json.gpg &gt; backup.json</code> → ในแอป Restore JSON</td></tr>
+      </table></div>
+      <div class="callout warn"><span class="ic">!</span><p>ห้ามใส่ <code>service_role</code> key หรือ passphrase ของ backup ในไฟล์ใด ๆ ของ repo (repo เป็น public) · Supabase แผน Free จะ pause ถ้าไม่มีการใช้งาน 7 วัน (backup รายวันช่วยกันไว้)</p></div>
+    </section>
+
+    <!-- 17 -->
+    <section id="faq" class="faq">
+      <h2><span class="num">17</span>คำถามที่พบบ่อย</h2>
+      <details><summary>เข้าสู่ระบบไม่ได้ — "อีเมลหรือรหัสผ่านไม่ถูกต้อง"</summary><div>ตรวจตัวพิมพ์เล็ก/ใหญ่ของรหัสผ่าน · ถ้ายังไม่ได้ ให้ผู้ดูแลระบบตรวจว่าบัญชีถูกสร้างและติ๊ก Auto Confirm แล้ว</div></details>
+      <details><summary>ไม่เห็นปุ่ม / ฟีเจอร์ใหม่ที่คู่มือพูดถึง</summary><div>browser อาจจำหน้าเก่าไว้ — กด <kbd>Ctrl</kbd>+<kbd>F5</kbd> (Mac: <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>)</div></details>
+      <details><summary>เปิดเว็บแล้วขึ้น "โหลดข้อมูลไม่สำเร็จ"</summary><div>ฐานข้อมูลอาจถูก pause (แผน Free ไม่มีใช้งาน 7 วัน) — แจ้งผู้ดูแลระบบให้เข้า Supabase Dashboard กด Restore project แล้วรอ 1–2 นาที</div></details>
+      <details><summary>เพื่อนแก้งานแล้ว แต่หน้าจอฉันไม่เปลี่ยน</summary><div>ปกติจะอัปเดตเองภายในไม่กี่วินาที ถ้าเปิดค้างไว้นานหรือเน็ตหลุด ให้ refresh หน้าเว็บ</div></details>
+      <details><summary>Import แล้วขึ้น "ไม่พบแถวหัวตาราง"</summary><div>หัวคอลัมน์ต้องอยู่ใน 15 แถวแรก และสะกดตรงกับที่ระบบรู้จัก (ดูหัวข้อ <a href="#import">11</a>) อย่างน้อย 2 คอลัมน์</div></details>
+      <details><summary>Import แล้วสถานะเป็น "ใหม่" เกือบทั้งหมด</summary><div>Excel เดิมใช้สีบอกสถานะ ระบบอ่านไม่ได้ — กรองงานเก่า → ติ๊กหัวตาราง → เปลี่ยนสถานะเป็น "เสร็จ" ทีเดียว (หัวข้อ <a href="#bulk">5</a>)</div></details>
+      <details><summary>วันที่หรือ Job No เป็นปี พ.ศ. (เช่น 2567)</summary><div>ไฟล์ที่ import ก่อน 17 ต.ค. 2026 อาจเป็นแบบนี้ — ผู้ดูแลระบบรัน <code>supabase/fix-buddhist-years.sql</code> ครั้งเดียว · import ใหม่หลังจากนั้นแปลงให้อัตโนมัติ</div></details>
+      <details><summary>ลบงานผิด กู้คืนได้ไหม?</summary><div>ตอนนี้ยังไม่มีถังขยะ — ผู้ดูแลระบบกู้จาก backup รายวันได้ (ข้อมูลย้อนไปถึงเวลา 01:00 น. ของวันนั้น) จึงควรตรวจก่อนกดลบทุกครั้ง</div></details>
+    </section>
+
+    <!-- 18 -->
+    <section id="changelog">
+      <h2><span class="num">18</span>ประวัติการปรับปรุง</h2>
+      <div class="tbl"><table>
+        <tr><th>วันที่</th><th>รายการ</th></tr>
+        <tr><td class="nw">17 ต.ค. 2026</td><td>เปิดใช้งาน: ตาราง / Kanban / ปฏิทิน / ภาพรวม · Import-Export Excel (หลาย sheet) · ฐานข้อมูล Supabase + login + realtime · เลือกหลายงาน · Release note · กันบันทึกทับกัน · backup อัตโนมัติรายวัน · แปลงปี พ.ศ. ตอน Import</td></tr>
+      </table></div>
+      <p class="foot">คู่มือฉบับร่าง (prototype) — ภาพประกอบใช้ข้อมูลตัวอย่าง · มีข้อเสนอแนะแจ้งผู้ดูแลระบบได้</p>
+    </section>
+  </main>
+</div>
+
+<script>
+// highlight current section in the TOC
+const links = [...document.querySelectorAll('#toc a')];
+const byId = Object.fromEntries(links.map(a => [a.getAttribute('href').slice(1), a]));
+const spy = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    links.forEach(a => a.classList.remove('active'));
+    byId[e.target.id]?.classList.add('active');
+  });
+}, {rootMargin:'-80px 0px -70% 0px'});
+document.querySelectorAll('main section[id]').forEach(s => spy.observe(s));
+
+// search: hide sections (and TOC links) that don't contain the text
+const sections = [...document.querySelectorAll('main section[id]')];
+document.getElementById('tocSearch').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  sections.forEach(s => {
+    const show = !q || s.textContent.toLowerCase().includes(q);
+    s.classList.toggle('hide', !show);
+    byId[s.id]?.classList.toggle('hide', !show);
+  });
+  document.querySelectorAll('.faq details').forEach(d => { if (q) d.open = d.textContent.toLowerCase().includes(q); });
+  // hide TOC group labels that have no visible links left
+  document.querySelectorAll('#toc .grp').forEach(g => {
+    let el = g.nextElementSibling, any = false;
+    while (el && !el.classList.contains('grp')){ if (!el.classList.contains('hide')) any = true; el = el.nextElementSibling; }
+    g.style.display = any ? '' : 'none';
+  });
+});
+
+// follow the theme chosen in the app (stored per browser)
+try { const t = (JSON.parse(localStorage.getItem('jobSchedule.prefs')) || {}).theme; if (t && t !== 'auto') document.documentElement.dataset.theme = t; } catch(e){}
+</script>
+</body>
+</html>
