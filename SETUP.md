@@ -43,6 +43,18 @@
 
 หมายเหตุ: GitHub จะปิด scheduled workflow อัตโนมัติถ้า repo public ไม่มีความเคลื่อนไหว 60 วัน — ถ้าได้อีเมลแจ้ง ให้เข้าแท็บ Actions กด Enable
 
+### แจ้งเตือนข้อจำกัดแผน Free
+| เหตุการณ์ | แจ้งทาง |
+|---|---|
+| ฐานข้อมูลเกิน 80% ของ 500 MB | GitHub Issue ป้าย `db-alert` (อีเมลถึงเจ้าของ repo) + แถบเตือนในแอป (แดงเมื่อเกิน 90%) — ปิด issue เองเมื่อต่ำกว่า 80% |
+| Backup รายวันล้มเหลว | GitHub Issue ป้าย `backup-failed` + อีเมล workflow failed ของ GitHub + แถบเตือนในแอป — ปิด issue เองเมื่อรันสำเร็จ |
+| ไม่มี backup สำเร็จเกิน 36 ชม. (เช่น GitHub ปิด schedule) | แถบเตือนในแอป |
+| เชื่อมต่อฐานข้อมูลไม่ได้ (project ถูก pause) | แถบเตือนในแอป + backup รายวันล้มเหลว → issue |
+
+ต้องรัน `supabase/schema.sql` (v3 — เพิ่มฟังก์ชัน `db_usage()`) ก่อน จึงจะวัดขนาดฐานข้อมูลได้ ·
+ตั้งค่าใน `config.js`: `GITHUB_REPO` (repo ที่รัน backup) และ `DB_LIMIT_MB` (เปลี่ยนเมื่ออัปเกรดแผน)
+ให้แน่ใจว่าได้รับอีเมล: GitHub → Settings → Notifications → Actions = "Only notify for failed workflows" และ Watch repo นี้ (ค่าเริ่มต้นของเจ้าของ repo)
+
 ### อัปเดต schema (v2 — 17 ต.ค. 2026)
 รัน `supabase/schema.sql` ซ้ำใน SQL Editor 1 ครั้ง (ไม่ทำข้อมูลหาย) — เพิ่มคอลัมน์ `updated_by_email` เพื่อให้คำเตือน "มีคนแก้งานนี้ไปก่อน" บอกได้ว่าใครแก้
 

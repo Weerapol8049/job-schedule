@@ -350,6 +350,27 @@ dialog.modal[open]{animation:pop .18s ease-out}
 .bb-count{display:inline-flex;align-items:center;gap:6px;font-weight:600;margin-right:4px;color:var(--accent-soft-text)}
 .bb-status{height:32px}
 
+/* system health (Supabase Free limits) */
+#sysAlert:empty{display:none}
+#sysAlert{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.sys-alert{display:flex;align-items:flex-start;gap:10px;padding:11px 12px 11px 14px;border-radius:12px;border:1px solid;font-size:13.5px;line-height:1.5}
+.sys-alert.warn{background:var(--warn-soft);border-color:color-mix(in srgb, var(--warn) 35%, transparent)}
+.sys-alert.bad{background:var(--danger-soft);border-color:color-mix(in srgb, var(--danger) 35%, transparent)}
+.sys-alert>.i{margin-top:2px}
+.sys-alert.warn>.i{color:var(--warn)}
+.sys-alert.bad>.i{color:var(--danger)}
+.sys-alert .msg{flex:1}
+.sys-alert .msg small{display:block;color:var(--text-2);font-size:12.5px}
+.sys-alert .icon-btn{width:26px;height:26px;margin:-2px -4px 0 0}
+.health-rows{display:grid;gap:14px}
+.health-row{display:grid;grid-template-columns:170px minmax(0,1fr);gap:4px 16px;align-items:start}
+.health-row>b{font-weight:600;font-size:13.5px}
+.health-row .bar{height:8px;margin:6px 0 4px;max-width:420px}
+.health-row .bar.warn>i{background:var(--warn)}
+.health-row .bar.bad>i{background:var(--danger)}
+.health-row small{color:var(--muted);font-size:12.5px}
+@media (max-width:640px){.health-row{grid-template-columns:1fr}}
+
 /* release note */
 .rn-opts{display:flex;gap:14px 20px;flex-wrap:wrap;align-items:flex-end;padding:14px 0 12px}
 .rn-opts .field{flex:none}
@@ -486,6 +507,7 @@ dialog.modal[open]{animation:pop .18s ease-out}
   </aside>
 
   <main class="content">
+    <div id="sysAlert"></div>
     <div class="page-head" id="pageHead"></div>
 
     <div id="toolbar">
@@ -1117,6 +1139,7 @@ function render(){
   $('#toolbar').hidden = view === 'settings';
   renderSideStats();
   renderBulkBar();
+  renderHealthBanner();
   renderPageHead();
   refreshOptions();
   syncFilterUI();
@@ -1573,6 +1596,7 @@ function renderSettings(){
   const ta = (key, label, hint, val, extra='') => `<div class="card"><div class="card-head"><h3>${label}</h3><span class="sub">${hint}</span></div>
     <div class="card-body"><label class="field"><textarea id="set_${key}" spellcheck="false">${esc(val)}</textarea></label>${extra}</div></div>`;
   $('#view').innerHTML = `
+    ${healthCardHtml()}
     <div class="card" style="margin-bottom:14px">
       <div class="card-head">${icon('database','sm')}<h3>ข้อมูล</h3><span class="sub">${db.jobs.length} งาน · ${CLOUD ? 'เก็บบน Supabase (ซิงก์ realtime ทั้งทีม)' : 'เก็บใน browser นี้ (localStorage)'}</span></div>
       <div class="card-body"><div class="tiles">
@@ -1928,6 +1952,97 @@ applyTheme(theme);
 $$('[data-theme-set]').forEach(b => b.onclick = () => { theme = b.dataset.themeSet; applyTheme(theme); setPref('theme', theme); if (view === 'dashboard') render(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (view === 'dashboard') render(); });
 
+/* ================= System health (Supabase Free limits) ================= */
+// DB size via rpc db_usage (schema v3), backup status via the public GitHub API, load errors (paused project)
+const DB_LIMIT_MB = +CFG.DB_LIMIT_MB || 500;
+const HEALTH = {db:null, dbError:'', backup:null, loadError:''};
+const BACKUP_STALE_HOURS = 36;
+async function checkHealth(){
+  if (!CLOUD) return;
+  try {
+    const {data, error} = await sb.rpc('db_usage');
+    if (error) throw error;
+    HEALTH.db = data; HEALTH.dbError = '';
+  } catch(err){ HEALTH.dbError = err.message || String(err); }
+  if (CFG.GITHUB_REPO){
+    try {
+      let runs = null;
+      try { const c = JSON.parse(sessionStorage.getItem('jobSchedule.backupRuns')); if (c && Date.now() - c.t < 30 * 60 * 1000) runs = c.runs; } catch(e){}
+      if (!runs){
+        const r = await fetch(`https://api.github.com/repos/${CFG.GITHUB_REPO}/actions/workflows/backup.yml/runs?per_page=10`);
+        if (r.ok){
+          runs = (await r.json()).workflow_runs.map(w => ({status:w.status, conclusion:w.conclusion, at:w.updated_at, url:w.html_url}));
+          try { sessionStorage.setItem('jobSchedule.backupRuns', JSON.stringify({t:Date.now(), runs})); } catch(e){}
+        }
+      }
+      if (runs){
+        const done = runs.filter(x => x.status === 'completed');
+        HEALTH.backup = {last:done[0] || null, lastOk:done.find(x => x.conclusion === 'success') || null,
+          url:`https://github.com/${CFG.GITHUB_REPO}/actions/workflows/backup.yml`};
+      }
+    } catch(e){ /* GitHub API unreachable or rate-limited: skip silently */ }
+  }
+  renderHealthBanner();
+  if (view === 'settings' && !$('#app').hidden) render();
+}
+const dbStats = () => {
+  if (!HEALTH.db) return null;
+  const mb = HEALTH.db.db_bytes / 1048576;
+  return {mb, pct: mb / DB_LIMIT_MB * 100, jobs: HEALTH.db.jobs};
+};
+const fmtDateTime = s => new Date(s).toLocaleString('th-TH-u-ca-gregory', {dateStyle:'medium', timeStyle:'short'});
+function healthAlerts(){
+  const out = [];
+  if (HEALTH.loadError) out.push({id:'load', level:'bad', text:'เชื่อมต่อฐานข้อมูลไม่ได้',
+    sub:'Supabase แผน Free จะหยุดชั่วคราว (pause) เมื่อไม่มีการใช้งาน 7 วัน — แจ้งผู้ดูแลระบบให้เข้า Supabase Dashboard แล้วกด Restore project'});
+  const s = dbStats();
+  if (s && s.pct >= 80) out.push({id:'db' + Math.floor(s.pct / 5), level:s.pct >= 90 ? 'bad' : 'warn',
+    text:`ฐานข้อมูลใกล้เต็ม: ใช้ไป ${s.mb.toFixed(0)} MB จาก ${DB_LIMIT_MB} MB (${s.pct.toFixed(0)}%)`,
+    sub:'ถ้าเต็ม จะบันทึกงานใหม่ไม่ได้ — แจ้งผู้ดูแลระบบ (Export งานเก่าเก็บเป็น Excel แล้วลบ หรืออัปเกรดแผน)'});
+  const b = HEALTH.backup;
+  if (b){
+    const hrs = b.lastOk ? (Date.now() - new Date(b.lastOk.at)) / 3600000 : Infinity;
+    if (b.last && b.last.conclusion !== 'success') out.push({id:'bk-fail', level:'warn', text:'Backup อัตโนมัติครั้งล่าสุดล้มเหลว',
+      sub:`เมื่อ ${fmtDateTime(b.last.at)} — แจ้งผู้ดูแลระบบให้ตรวจ GitHub Actions`, link:b.last.url});
+    else if (hrs > BACKUP_STALE_HOURS) out.push({id:'bk-stale', level:'warn',
+      text: b.lastOk ? `ไม่มี backup อัตโนมัติมา ${Math.floor(hrs / 24)} วัน` : 'ยังไม่มี backup อัตโนมัติที่สำเร็จ',
+      sub:'workflow อาจถูกปิด (GitHub ปิดตารางเวลาเมื่อ repo ไม่มีความเคลื่อนไหว 60 วัน) — เมื่อไม่มี backup ช่วยเรียกใช้ Supabase อาจถูก pause ภายใน 7 วัน', link:b.url});
+  }
+  return out;
+}
+function renderHealthBanner(){
+  const box = $('#sysAlert');
+  let dismissed = [];
+  try { dismissed = JSON.parse(sessionStorage.getItem('jobSchedule.dismissedAlerts')) || []; } catch(e){}
+  const list = healthAlerts().filter(a => !dismissed.includes(a.id));
+  box.innerHTML = list.map(a => `<div class="sys-alert ${a.level}">${icon('alert')}
+    <div class="msg"><b>${esc(a.text)}</b><small>${esc(a.sub)}${a.link ? ` · <a href="${esc(a.link)}" target="_blank" rel="noopener">ดูรายละเอียด</a>` : ''}</small></div>
+    <button class="icon-btn" data-dismiss-alert="${a.id}" title="ซ่อนจนกว่าจะเปิดเว็บใหม่">${icon('x','sm')}</button></div>`).join('');
+  box.querySelectorAll('[data-dismiss-alert]').forEach(btn => btn.onclick = () => {
+    try { sessionStorage.setItem('jobSchedule.dismissedAlerts', JSON.stringify([...dismissed, btn.dataset.dismissAlert])); } catch(e){}
+    renderHealthBanner();
+  });
+}
+function healthCardHtml(){
+  const head = `<div class="card-head">${icon('activity','sm')}<h3>สถานะระบบ</h3><span class="sub">${CLOUD ? 'Supabase แผน Free · ตรวจทุก 1 ชั่วโมง' : 'โหมดเก็บในเครื่อง'}</span></div>`;
+  if (!CLOUD) return `<div class="card" style="margin-bottom:14px">${head}<div class="card-body"><small class="muted">ข้อมูลอยู่ใน browser นี้เท่านั้น — กด Backup JSON เป็นประจำ</small></div></div>`;
+  const s = dbStats(), b = HEALTH.backup;
+  const lvl = p => p >= 90 ? 'bad' : p >= 80 ? 'warn' : '';
+  const dbRow = s
+    ? `<div><div class="bar ${lvl(s.pct)}"><i style="width:${Math.min(100, s.pct).toFixed(1)}%"></i></div>
+       <small>${s.mb.toFixed(1)} MB จาก ${DB_LIMIT_MB} MB (${s.pct.toFixed(1)}%) · ${s.jobs} งาน · เตือนเมื่อเกิน 80%</small></div>`
+    : `<small>${HEALTH.dbError ? 'อ่านขนาดไม่ได้ — ผู้ดูแลระบบต้องรัน supabase/schema.sql (v3)' : 'กำลังตรวจ…'}</small>`;
+  const bkRow = !CFG.GITHUB_REPO ? '<small>ไม่ได้ตั้งค่า GITHUB_REPO ใน config.js</small>'
+    : !b ? '<small>กำลังตรวจ… (หรือเรียก GitHub API ไม่ได้)</small>'
+    : `<div>${b.last ? (b.last.conclusion === 'success' ? `<span class="due ok">${icon('check','sm')}สำเร็จ</span>` : `<span class="due bad">${icon('alert','sm')}ล้มเหลว</span>`) : ''}
+       <small>${b.lastOk ? ` สำเร็จล่าสุด ${fmtDateTime(b.lastOk.at)}` : ' ยังไม่มีครั้งที่สำเร็จ'} · ทุกวัน 01:00 น. เก็บ 90 วัน · <a href="${esc(b.url)}" target="_blank" rel="noopener">GitHub Actions</a></small></div>`;
+  return `<div class="card" style="margin-bottom:14px">${head}<div class="card-body"><div class="health-rows">
+    <div class="health-row"><b>พื้นที่ฐานข้อมูล</b>${dbRow}</div>
+    <div class="health-row"><b>Backup อัตโนมัติ</b>${bkRow}</div>
+    <div class="health-row"><b>การเชื่อมต่อ</b><small>${HEALTH.loadError ? `<span class="due bad">${icon('alert','sm')}เชื่อมต่อไม่ได้</span> ${esc(HEALTH.loadError)}` : '<span class="due ok">ปกติ</span> · แผน Free จะ pause เมื่อไม่มีการใช้งาน 7 วัน (backup รายวันช่วยกันไว้)'}</small></div>
+  </div></div></div>`;
+}
+
 /* ================= Auth & boot ================= */
 function renderUserBox(){
   const email = currentUser?.email || '';
@@ -1941,10 +2056,12 @@ async function enterApp(user){
   currentUser = user;
   showApp();
   $('#view').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลดข้อมูล…</div>';
-  try { db = await apiLoad(); }
-  catch(err){ toast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'alert'); }
+  try { db = await apiLoad(); HEALTH.loadError = ''; }
+  catch(err){ HEALTH.loadError = err.message || String(err); toast('โหลดข้อมูลไม่สำเร็จ: ' + HEALTH.loadError, 'alert'); }
   render();
   subscribeRealtime();
+  checkHealth();
+  setInterval(checkHealth, 60 * 60 * 1000);
 }
 $('#loginForm').onsubmit = async e => {
   e.preventDefault();

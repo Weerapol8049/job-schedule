@@ -105,6 +105,17 @@ create policy "team can read settings"   on public.app_settings for select to au
 create policy "team can write settings"  on public.app_settings for insert to authenticated with check (true);
 create policy "team can update settings" on public.app_settings for update to authenticated using (true) with check (true);
 
+-- ---------- v3: ขนาดฐานข้อมูล (แจ้งเตือนเมื่อใกล้เต็ม 500 MB ของแผน Free) ----------
+create or replace function public.db_usage() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'db_bytes',   pg_database_size(current_database()),
+    'jobs',       (select count(*) from public.jobs),
+    'checked_at', now())
+$$;
+revoke all on function public.db_usage() from public, anon;
+grant execute on function public.db_usage() to authenticated, service_role;
+
 -- ---------- realtime: เห็นการแก้ไขของเพื่อนร่วมทีมทันที ----------
 do $$
 begin

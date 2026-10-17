@@ -1,4 +1,5 @@
 # สำรองข้อมูล Supabase ทุกวัน → เก็บเป็นไฟล์เข้ารหัส (.json.gpg) ใน Actions artifacts 90 วัน
+# + ตรวจขนาดฐานข้อมูล (แผน Free จำกัด 500 MB) และแจ้งเตือนผ่าน GitHub Issue (GitHub ส่งอีเมลให้เจ้าของ repo)
 # ต้องตั้ง repository secrets: SUPABASE_SERVICE_ROLE_KEY, BACKUP_PASSPHRASE (ดู SETUP.md)
 # ผลพลอยได้: มีการเรียกฐานข้อมูลทุกวัน project แผน Free จึงไม่ถูก pause
 name: Daily Supabase backup
@@ -10,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  issues: write             # เปิด/ปิด issue แจ้งเตือน
 
 jobs:
   backup:
@@ -19,6 +21,9 @@ jobs:
       SUPABASE_URL: https://raqwyoatasstnadwxkro.supabase.co
       SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      GH_TOKEN: ${{ github.token }}
+      DB_LIMIT_MB: 500      # แผน Free
+      DB_WARN_PCT: 80       # เตือนเมื่อใช้เกิน 80% (400 MB)
     steps:
       - name: Check secrets
         run: |
@@ -61,3 +66,54 @@ jobs:
           path: job-schedule-backup-*.json.gpg
           retention-days: 90
           if-no-files-found: error
+
+      - name: Check database size
+        id: health
+        run: |
+          if ! usage=$(curl -sS --fail-with-body -X POST "$SUPABASE_URL/rest/v1/rpc/db_usage" \
+                -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY" -H "Content-Type: application/json" -d '{}'); then
+            echo "::warning::อ่านขนาดฐานข้อมูลไม่ได้ — รัน supabase/schema.sql (v3) ใน SQL Editor ก่อน"
+            echo "pct=-1" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          bytes=$(jq -r .db_bytes <<<"$usage"); jobs=$(jq -r .jobs <<<"$usage")
+          mb=$(( bytes / 1048576 )); pct=$(( bytes * 100 / (DB_LIMIT_MB * 1048576) ))
+          echo "### ฐานข้อมูล: ${mb} MB จาก ${DB_LIMIT_MB} MB (${pct}%) · ${jobs} งาน" >> "$GITHUB_STEP_SUMMARY"
+          echo "DB ${mb} MB / ${DB_LIMIT_MB} MB (${pct}%), jobs=${jobs}"
+          { echo "pct=$pct"; echo "mb=$mb"; echo "jobs=$jobs"; } >> "$GITHUB_OUTPUT"
+
+      # ---------- alerts (GitHub emails the repo owner when an issue is opened) ----------
+      - name: Alert — database almost full
+        if: steps.health.outputs.pct != '' && fromJSON(steps.health.outputs.pct) >= fromJSON(env.DB_WARN_PCT)
+        run: |
+          gh label create db-alert --color D93F0B --description "แจ้งเตือนฐานข้อมูลใกล้เต็ม" --force -R "$GITHUB_REPOSITORY"
+          msg="ฐานข้อมูล Supabase ใช้ไป **${{ steps.health.outputs.mb }} MB จาก ${DB_LIMIT_MB} MB (${{ steps.health.outputs.pct }}%)** · ${{ steps.health.outputs.jobs }} งาน
+          ถ้าเต็ม 500 MB แผน Free จะบันทึกข้อมูลไม่ได้ — ทางเลือก: Export งานเก่าเก็บเป็น Excel แล้วลบออก หรืออัปเกรด Supabase Pro
+          รายละเอียด: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          n=$(gh issue list -R "$GITHUB_REPOSITORY" --label db-alert --state open --json number -q '.[0].number')
+          if [ -n "$n" ]; then gh issue comment "$n" -R "$GITHUB_REPOSITORY" --body "$msg"
+          else gh issue create -R "$GITHUB_REPOSITORY" --label db-alert --title "⚠️ ฐานข้อมูลใกล้เต็ม (${{ steps.health.outputs.pct }}%)" --body "$msg"; fi
+
+      - name: Resolve — database size back to normal
+        if: steps.health.outputs.pct != '' && fromJSON(steps.health.outputs.pct) >= 0 && fromJSON(steps.health.outputs.pct) < fromJSON(env.DB_WARN_PCT)
+        run: |
+          for n in $(gh issue list -R "$GITHUB_REPOSITORY" --label db-alert --state open --json number -q '.[].number'); do
+            gh issue close "$n" -R "$GITHUB_REPOSITORY" --comment "กลับมาปกติ: ${{ steps.health.outputs.mb }} MB (${{ steps.health.outputs.pct }}%)"
+          done
+
+      - name: Alert — backup failed
+        if: failure()
+        run: |
+          gh label create backup-failed --color B60205 --description "backup อัตโนมัติล้มเหลว" --force -R "$GITHUB_REPOSITORY"
+          msg="Backup อัตโนมัติวันที่ $(TZ=Asia/Bangkok date '+%F %H:%M') **ล้มเหลว**
+          สาเหตุที่พบบ่อย: Supabase ถูก pause (ไม่มีการใช้งาน 7 วัน) → เข้า Supabase Dashboard กด Restore · secret หมดอายุ/ผิด
+          log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          n=$(gh issue list -R "$GITHUB_REPOSITORY" --label backup-failed --state open --json number -q '.[0].number')
+          if [ -n "$n" ]; then gh issue comment "$n" -R "$GITHUB_REPOSITORY" --body "$msg"
+          else gh issue create -R "$GITHUB_REPOSITORY" --label backup-failed --title "❌ Backup อัตโนมัติล้มเหลว" --body "$msg"; fi
+
+      - name: Resolve — backup ok again
+        if: success()
+        run: |
+          for n in $(gh issue list -R "$GITHUB_REPOSITORY" --label backup-failed --state open --json number -q '.[].number' 2>/dev/null); do
+            gh issue close "$n" -R "$GITHUB_REPOSITORY" --comment "Backup กลับมาสำเร็จแล้ว: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          done
