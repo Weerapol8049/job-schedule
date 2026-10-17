@@ -330,6 +330,32 @@ dialog.modal[open]{animation:pop .18s ease-out}
 .timeline li::before{content:"";position:absolute;left:-20px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
 .timeline small{display:block;color:var(--muted);font-size:12px}
 .preview-wrap{overflow:auto;max-height:56vh;border:1px solid var(--border);border-radius:12px}
+
+/* inline pill dropdowns (status / priority in table, bulk bar) */
+.pill-select{appearance:none;-webkit-appearance:none;border:0;cursor:pointer;height:26px;padding:0 24px 0 11px;border-radius:999px;font:inherit;font-size:12px;font-weight:600;
+  background-color:color-mix(in srgb, var(--c) 14%, transparent);color:color-mix(in srgb, var(--c) 78%, var(--text));
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a92a3' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;background-size:11px;transition:background-color .12s}
+.pill-select:hover{background-color:color-mix(in srgb, var(--c) 24%, transparent)}
+.pill-select:focus-visible{outline:none;box-shadow:var(--ring)}
+.pill-select option{color:var(--text);background:var(--surface);font-weight:500}
+.jobs .c-sel{width:40px;min-width:40px;max-width:40px;text-align:center;padding-left:0;padding-right:0}
+.jobs .c-sel input,.rn-check input{accent-color:var(--accent);width:16px;height:16px;cursor:pointer;vertical-align:middle}
+.jobs tr.selected td{background:color-mix(in srgb, var(--accent) 7%, var(--surface))}
+.jobs tr.selected:hover td{background:color-mix(in srgb, var(--accent) 11%, var(--surface))}
+
+/* bulk action bar */
+.bulkbar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+  padding:8px 10px 8px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-lg);max-width:calc(100vw - 32px);animation:pop .18s ease-out}
+.bb-count{display:inline-flex;align-items:center;gap:6px;font-weight:600;margin-right:4px;color:var(--accent-soft-text)}
+.bb-status{height:32px}
+
+/* release note */
+.rn-opts{display:flex;gap:14px 20px;flex-wrap:wrap;align-items:flex-end;padding:14px 0 12px}
+.rn-opts .field{flex:none}
+.rn-opts input[type=date]{width:160px}
+.rn-check{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--text-2);cursor:pointer;height:36px}
+#rnText{min-height:300px;font-size:12.5px;line-height:1.6;white-space:pre}
 #sheetPick:not(:empty){padding:14px 0 4px}
 .sheet-head{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
 .sheet-head label{margin-left:auto;display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--text-2);cursor:pointer}
@@ -570,6 +596,31 @@ dialog.modal[open]{animation:pop .18s ease-out}
   </form>
 </dialog>
 
+<!-- Release note -->
+<dialog id="releaseDialog" class="modal">
+  <div class="dlg">
+    <header><h2>Release note</h2><span class="chip-no" id="rnCount"></span><button type="button" class="icon-btn" data-close><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="body">
+      <div class="rn-opts">
+        <div class="field"><span class="lbl">ขึ้นระบบ</span><div class="segmented" id="rnEnv"><button data-env="LIVE">LIVE</button><button data-env="STD66">STD66</button></div></div>
+        <label class="field"><span>วันที่ deploy</span><input type="date" id="rnDate"></label>
+        <div class="field"><span class="lbl">รูปแบบ</span><div class="segmented" id="rnFmt"><button data-fmt="text">ข้อความ (LINE / Teams)</button><button data-fmt="md">Markdown</button></div></div>
+        <label class="rn-check"><input type="checkbox" id="rnNote" checked> ใส่รายละเอียดงาน</label>
+      </div>
+      <textarea id="rnText" class="input mono" rows="15" spellcheck="false"></textarea>
+      <p class="muted" id="rnHint" style="margin:8px 0 0;font-size:12.5px"></p>
+    </div>
+    <footer>
+      <label class="rn-check" id="rnDoneWrap"><input type="checkbox" id="rnDone" checked> เปลี่ยนสถานะเป็น "เสร็จ" ด้วย</label>
+      <span class="spacer"></span>
+      <button class="btn" id="rnCopy"><svg class="i sm"><use href="#i-copy"/></svg>Copy ข้อความ</button>
+      <button class="btn primary" id="rnMark"></button>
+    </footer>
+  </div>
+</dialog>
+
+<div class="bulkbar" id="bulkBar" hidden></div>
+
 <!-- Import preview -->
 <dialog id="importDialog" class="modal">
   <div class="dlg">
@@ -745,6 +796,7 @@ function rowToJob(r){
     else if (BOOL_KEYS.has(k)) j[k] = !!v;
     else j[k] = v == null ? '' : NUM_KEYS.has(k) ? String(v) : v;
   }
+  j.updatedByEmail = r.updated_by_email || '';
   return j;
 }
 async function fetchAllJobs(){
@@ -762,16 +814,27 @@ async function apiLoad(){
   if (setRes.error) throw setRes.error;
   return {jobs, settings:{...clone(DEFAULT_SETTINGS), ...(setRes.data?.data || {})}, seq:0};
 }
-async function apiSaveJob(job){
+// expectedUpdatedAt: optimistic lock — the update only applies if nobody saved the row since we loaded it
+async function apiSaveJob(job, expectedUpdatedAt){
   if (!CLOUD){
     if (!job.id){ job.id = uid(); if (!job.jobNo) job.jobNo = nextJobNo(job.receivedDate); }
     return job;
   }
   const row = jobToRow(job);
-  const q = job.id ? sb.from('jobs').update(row).eq('id', job.id) : sb.from('jobs').insert(row);
-  const {data, error} = await q.select().single();
+  let q;
+  if (job.id){
+    q = sb.from('jobs').update(row).eq('id', job.id);
+    if (expectedUpdatedAt) q = q.eq('updated_at', expectedUpdatedAt);
+  } else q = sb.from('jobs').insert(row);
+  const {data, error} = await q.select();
   if (error) throw error;
-  return rowToJob(data);
+  if (!data.length){ const err = new Error('ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น'); err.conflict = true; throw err; }
+  return rowToJob(data[0]);
+}
+async function apiFetchJob(id){
+  const {data, error} = await sb.from('jobs').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? rowToJob(data) : null;
 }
 async function apiInsertMany(jobs){
   if (!CLOUD) return jobs.map(j => ({...j, id:uid()}));
@@ -839,17 +902,35 @@ function stampNew(job, now = new Date().toISOString()){
   job.history = [{at:now, from:'', to:job.status, by:currentUser?.email || ''}];
   return job;
 }
-async function upsertJob(job){
+async function upsertJob(job, {force = false} = {}){
+  job = {...job};
   const now = new Date().toISOString();
   const old = job.id ? db.jobs.find(j => j.id === job.id) : null;
+  const expected = old && !force ? (job.updatedAt || old.updatedAt) : '';
   if (old){
-    if (old.status !== job.status) job.history = [...(old.history || []), {at:now, from:old.status, to:job.status, by:currentUser?.email || ''}];
+    // history always builds on the latest known copy so other users' entries are kept
+    job.history = old.status !== job.status ? [...(old.history || []), {at:now, from:old.status, to:job.status, by:currentUser?.email || ''}] : (old.history || []);
     job.updatedAt = now;
   } else stampNew(job, now);
-  const saved = await apiSaveJob(job);
+  const saved = await apiSaveJob(job, expected);
   mergeJob(saved);
   persistLocal();
   return saved;
+}
+// Save with conflict handling: if someone else saved this job first, ask whether to overwrite or reload theirs.
+async function saveJob(job, onReload){
+  try { return await upsertJob(job); }
+  catch(err){
+    if (!err.conflict) throw err;
+    const latest = await apiFetchJob(job.id);
+    if (!latest){ db.jobs = db.jobs.filter(j => j.id !== job.id); render(); throw new Error(`${job.jobNo} ถูกลบโดยผู้ใช้อื่นไปแล้ว`); }
+    mergeJob(latest);
+    const when = new Date(latest.updatedAt).toLocaleString('th-TH-u-ca-gregory', {dateStyle:'medium', timeStyle:'short'});
+    if (confirm(`${job.jobNo} ถูกแก้ไขโดย ${latest.updatedByEmail || 'ผู้ใช้อื่น'} เมื่อ ${when} หลังจากที่คุณเปิดดู\n\nOK = บันทึกทับด้วยข้อมูลของคุณ\nCancel = ไม่บันทึก แล้วโหลดข้อมูลล่าสุดมาแสดง`))
+      return upsertJob(job, {force:true});
+    render(); onReload?.(latest);
+    return undefined;
+  }
 }
 // Bulk insert (import / sample / restore / migrate). Keeps incoming Job No unless it already exists.
 async function insertJobs(jobs){
@@ -1015,7 +1096,8 @@ function renderPageHead(){
       <div class="menu">${TABLE_COLS.map(c => `<label><input type="checkbox" data-col="${c.key}" ${hidden.has(c.key) ? '' : 'checked'}> ${esc(c.label)}</label>`).join('')}</div>
     </details>
     <button class="btn" data-io="import">${icon('upload','sm')}Import</button>
-    <button class="btn" data-io="xlsx">${icon('download','sm')}Export Excel</button>` : '';
+    <button class="btn" data-io="xlsx">${icon('download','sm')}Export Excel</button>
+    <button class="btn" data-release>${icon('file','sm')}Release note</button>` : '';
   $('#pageHead').innerHTML = `<div><h1>${esc(title)}</h1><p>${esc(sub())}</p></div>
     <div class="page-actions">${tableTools}${view !== 'settings' ? `<button class="btn primary" data-new>${icon('plus','sm')}เพิ่มงาน</button>` : ''}</div>`;
   $$('[data-col]').forEach(cb => cb.onchange = () => {
@@ -1033,6 +1115,7 @@ function render(){
   $('[data-count="kanban"]').textContent = db.jobs.filter(j => !isDone(j)).length || '';
   $('#toolbar').hidden = view === 'settings';
   renderSideStats();
+  renderBulkBar();
   renderPageHead();
   refreshOptions();
   syncFilterUI();
@@ -1089,7 +1172,7 @@ function renderDashboard(jobs){
   const doneMonth = jobs.filter(j => isDone(j) && doneDate(j) >= mFrom && doneDate(j) <= mTo).length;
   const li = j => `<li data-id="${j.id}">${person(j.assigner, false)}<span class="grow"><b>${esc(displayTitle(j))}</b><small>${esc(j.jobNo)} · ${esc((j.modules||[]).join(', ') || j.system || '-')}</small></span>${dueChip(j)}</li>`;
   const liLive = j => `<li data-id="${j.id}">${person(j.assigner, false)}<span class="grow"><b>${esc(displayTitle(j))}</b><small>${esc(j.jobNo)} · STD66 ${fmtDate(j.deploySTD66Date) || '✓'}</small></span><span class="dep on">STD66</span></li>`;
-  const listCard = (title, ic, items, fn, empty) => `<div class="card"><div class="card-head">${icon(ic,'sm')}<h3>${title}</h3><span class="sub">${items.length} งาน</span></div>
+  const listCard = (title, ic, items, fn, empty, action = '') => `<div class="card"><div class="card-head">${icon(ic,'sm')}<h3>${title}</h3><span class="sub">${items.length} งาน</span>${action}</div>
     <div class="card-body"><ul class="list">${items.slice(0, 8).map(fn).join('') || `<li class="list-empty">${empty}</li>`}</ul></div></div>`;
 
   $('#view').innerHTML = !jobs.length ? noMatch() : `
@@ -1103,7 +1186,7 @@ function renderDashboard(jobs){
     <div class="grid3" style="margin-bottom:14px">
       ${listCard('เลยกำหนด', 'alert', overdue, li, 'ไม่มีงานเลยกำหนด')}
       ${listCard('ใกล้ครบกำหนด (7 วัน)', 'clock', upcoming, li, 'ไม่มีงานใกล้ครบกำหนด')}
-      ${listCard('รอขึ้น LIVE', 'cloud', pendingLive, liLive, 'ไม่มีงานค้างขึ้น LIVE')}
+      ${listCard('รอขึ้น LIVE', 'cloud', pendingLive, liLive, 'ไม่มีงานค้างขึ้น LIVE', pendingLive.length ? `<button class="btn sm" data-release title="สร้าง Release note สำหรับงานที่รอขึ้น LIVE">${icon('file','sm')}Release note</button>` : '')}
     </div>
     <div class="grid2">
       <div class="card"><div class="card-head"><h3>งานตามสถานะ</h3></div><div class="card-body"><div class="chart-box"><canvas id="cStatus"></canvas></div></div></div>
@@ -1188,20 +1271,30 @@ function renderTable(jobs){
     const x = sortVal(a, sort.key), y = sortVal(b, sort.key);
     return (x < y ? -1 : x > y ? 1 : (a.jobNo || '').localeCompare(b.jobNo || '')) * sort.dir;
   });
-  // keep Job No + งาน pinned on the left while scrolling sideways
+  // keep the checkbox, Job No and งาน pinned on the left while scrolling sideways
   const stick = {};
-  if (cols[0]?.key === 'jobNo'){ stick.jobNo = 0; if (cols[1]?.key === 'work') stick.work = 136; }
-  else if (cols[0]?.key === 'work') stick.work = 0;
+  let left = SEL_W;
+  for (const c of cols.slice(0, 2)){
+    if (c.key === 'jobNo'){ stick.jobNo = left; left += 136; }
+    else if (c.key === 'work'){ stick.work = left; break; }
+    else break;
+  }
   const lastStick = Object.keys(stick).pop();
   const cellAttrs = c => {
     const cls = [`c-${c.key}`, c.type === 'bool' ? 'center' : '', c.cls || ''];
     if (c.key in stick) cls.push('stick', c.key === lastStick ? 'stick-last' : '');
     return `class="${cls.join(' ')}"${c.key in stick ? ` style="left:${stick[c.key]}px"` : ''}`;
   };
+  const L = lists();
+  const cell = (j, c) => c.key === 'status' ? inlineSelect(j, 'status', L.statuses, statusColor)
+    : c.key === 'priority' ? inlineSelect(j, 'priority', L.priorities, p => PRIORITY_COLORS[p] || '#64748b')
+    : cellHtml(j, c);
+  const allOn = rows.length && rows.every(j => selected.has(j.id));
   $('#view').innerHTML = `<div class="card table-card"><div class="table-scroll"><table class="jobs">
-    <thead><tr>${cols.map(c => `<th data-sort="${c.key}" ${cellAttrs(c).replace('class="', `class="${sort.key === c.key ? 'sorted ' : ''}`)}>${esc(c.label)}${sort.key === c.key ? `<span class="arr">${sort.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}<th></th></tr></thead>
-    <tbody>${rows.map(j => `<tr data-id="${j.id}" class="${isOverdue(j) ? 'overdue' : ''}">
-      ${cols.map(c => `<td ${cellAttrs(c)}>${cellHtml(j, c)}</td>`).join('')}
+    <thead><tr><th class="c-sel stick" style="left:0"><input type="checkbox" id="selAll" title="เลือกทั้งหมด" ${allOn ? 'checked' : ''}></th>${cols.map(c => `<th data-sort="${c.key}" ${cellAttrs(c).replace('class="', `class="${sort.key === c.key ? 'sorted ' : ''}`)}>${esc(c.label)}${sort.key === c.key ? `<span class="arr">${sort.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}<th></th></tr></thead>
+    <tbody>${rows.map(j => `<tr data-id="${j.id}" class="${isOverdue(j) ? 'overdue' : ''} ${selected.has(j.id) ? 'selected' : ''}">
+      <td class="c-sel stick" style="left:0"><input type="checkbox" data-sel ${selected.has(j.id) ? 'checked' : ''}></td>
+      ${cols.map(c => `<td ${cellAttrs(c)}>${cell(j, c)}</td>`).join('')}
       <td class="acts"><button class="icon-btn" data-act="dup" title="Duplicate">${icon('copy','sm')}</button><button class="icon-btn danger" data-act="del" title="ลบ">${icon('trash','sm')}</button></td>
     </tr>`).join('')}</tbody>
   </table></div></div>`;
@@ -1211,26 +1304,159 @@ function renderTable(jobs){
     sort = {key:k, dir: sort.key === k ? -sort.dir : 1};
     setPref('sort', sort); render();
   });
+  $('#selAll').onchange = e => { rows.forEach(j => e.target.checked ? selected.add(j.id) : selected.delete(j.id)); render(); };
+  $('tbody').onchange = e => {
+    const tr = e.target.closest('tr[data-id]'); if (!tr) return;
+    const job = db.jobs.find(j => j.id === tr.dataset.id);
+    if (e.target.matches('[data-sel]')){
+      e.target.checked ? selected.add(job.id) : selected.delete(job.id);
+      tr.classList.toggle('selected', e.target.checked);
+      $('#selAll').checked = rows.every(j => selected.has(j.id));
+      return renderBulkBar();
+    }
+    const key = e.target.dataset.inline; if (!key) return;
+    const value = e.target.value, copy = {...job, [key]: value};
+    if (key === 'status' && isDoneStatus(value) && !copy.finishDate) copy.finishDate = today();
+    safe(async () => { if (await saveJob(copy)){ render(); toast(`${job.jobNo}: ${key === 'status' ? 'สถานะ' : 'ความสำคัญ'} → ${value}`); } });
+  };
   $('tbody').onclick = e => {
-    if (e.target.closest('a')) return;
+    if (e.target.closest('a, select, input, .c-sel')) return;
     const tr = e.target.closest('tr[data-id]'); if (!tr) return;
     const job = db.jobs.find(j => j.id === tr.dataset.id);
     const act = e.target.closest('[data-act]')?.dataset.act;
     const tog = e.target.closest('[data-toggle]')?.dataset.toggle;
     if (act === 'dup') duplicate(job);
-    else if (act === 'del'){ if (confirm(`ลบงาน ${job.jobNo}?`)) safe(async () => { await deleteJob(job.id); render(); toast('ลบงานแล้ว', 'trash'); }); }
+    else if (act === 'del'){ if (confirm(`ลบงาน ${job.jobNo}?`)) safe(async () => { await deleteJob(job.id); selected.delete(job.id); render(); toast('ลบงานแล้ว', 'trash'); }); }
     else if (tog){
       const copy = {...job, [tog]: !job[tog]};
       const dk = tog + 'Date';
       if (copy[tog] && !copy[dk]) copy[dk] = today();
       safe(async () => {
-        await upsertJob(copy); render();
-        toast(`${COL[tog].label} ${copy[tog] ? 'ขึ้นแล้ว' : 'ยกเลิก'} — ${job.jobNo}`);
+        if (!await saveJob(copy)) return;
+        render(); toast(`${COL[tog].label} ${copy[tog] ? 'ขึ้นแล้ว' : 'ยกเลิก'} — ${job.jobNo}`);
       });
     }
     else openForm(job);
   };
 }
+const SEL_W = 40;
+const selected = new Set();
+const inlineSelect = (j, key, values, colorFn) => `<select class="pill-select" data-inline="${key}" style="--c:${colorFn(j[key])}" title="คลิกเพื่อเปลี่ยน">
+  ${uniq([...values, j[key]]).map(v => `<option ${v === j[key] ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
+
+/* ---------- Bulk actions (table selection) ---------- */
+function renderBulkBar(){
+  for (const id of selected) if (!db.jobs.some(j => j.id === id)) selected.delete(id);
+  const bar = $('#bulkBar');
+  bar.hidden = view !== 'table' || !selected.size;
+  if (bar.hidden) return;
+  bar.innerHTML = `<span class="bb-count">${icon('check','sm')}เลือก ${selected.size} งาน</span>
+    <select class="pill-select bb-status" id="bulkStatus" style="--c:var(--accent)"><option value="">เปลี่ยนสถานะ…</option>${lists().statuses.map(s => `<option>${esc(s)}</option>`).join('')}</select>
+    <button class="btn sm" data-bulk="std66">ขึ้น STD66</button>
+    <button class="btn sm" data-bulk="live">${icon('cloud','sm')}ขึ้น LIVE</button>
+    <button class="btn sm" data-bulk="release">${icon('file','sm')}Release note</button>
+    <button class="btn sm danger-text" data-bulk="delete">${icon('trash','sm')}ลบ</button>
+    <button class="icon-btn" data-bulk="clear" title="ยกเลิกการเลือก">${icon('x','sm')}</button>`;
+  $('#bulkStatus').onchange = e => { const s = e.target.value; if (s) bulkApply([...selected], j => statusPatch(j, s, today()), `เปลี่ยนสถานะเป็น ${s}`); };
+}
+const statusPatch = (j, status, date) => ({...j, status, finishDate: isDoneStatus(status) && !j.finishDate ? date : j.finishDate});
+const deployPatch = (j, env, date) => env === 'LIVE'
+  ? {...j, deployLIVE:true, deployLIVEDate: j.deployLIVEDate || date}
+  : {...j, deploySTD66:true, deploySTD66Date: j.deploySTD66Date || date};
+async function bulkApply(ids, patch, label){
+  let ok = 0;
+  await safe(async () => {
+    for (const id of ids){
+      const j = db.jobs.find(x => x.id === id);
+      if (j && await saveJob(patch(j))) ok++;
+    }
+  });
+  render();
+  if (ok) toast(`${label} · ${ok} งาน`);
+  return ok;
+}
+function handleBulk(act){
+  const ids = [...selected];
+  if (act === 'clear'){ selected.clear(); return render(); }
+  if (act === 'std66') return bulkApply(ids, j => deployPatch(j, 'STD66', today()), 'ขึ้น STD66');
+  if (act === 'live') return bulkApply(ids, j => deployPatch(j, 'LIVE', today()), 'ขึ้น LIVE');
+  if (act === 'release') return openRelease(ids);
+  if (act === 'delete' && confirm(`ลบ ${ids.length} งานที่เลือก? (แนะนำให้ Backup ก่อน)`))
+    safe(async () => { for (const id of ids) await deleteJob(id); selected.clear(); render(); toast(`ลบ ${ids.length} งานแล้ว`, 'trash'); });
+}
+
+/* ---------- Release note ---------- */
+const rn = {ids:[], env:'LIVE', fmt:'text'};
+function releaseJobs(){
+  if (rn.ids.length) return db.jobs.filter(j => rn.ids.includes(j.id));
+  // nothing selected: take what is waiting for this environment (within current filters)
+  return filtered().filter(j => rn.env === 'LIVE' ? j.deploySTD66 && !j.deployLIVE : !j.deploySTD66 && !isDone(j))
+    .sort((a, b) => (a.jobNo || '').localeCompare(b.jobNo || ''));
+}
+function releaseText(jobs){
+  const md = rn.fmt === 'md', withNote = $('#rnNote').checked, date = $('#rnDate').value || today();
+  const d = parseISO(date);
+  const out = [md ? `### Release ${rn.env} — ${fmtDate(date)} ${d.getFullYear()} (${jobs.length} งาน)` : `Release ${rn.env} — ${fmtDate(date)} ${d.getFullYear()} (${jobs.length} งาน)`, ''];
+  const groups = new Map();
+  jobs.forEach(j => { const k = j.system || 'อื่นๆ'; groups.set(k, [...(groups.get(k) || []), j]); });
+  let n = 0;
+  for (const [sys, list] of groups){
+    out.push(md ? `**${sys}** (${list.length})` : `[${sys}] ${list.length} งาน`);
+    for (const j of list){
+      const lines = (j.projectName || '').split('\n').map(x => x.trim()).filter(Boolean);
+      const head = j.title || lines.shift() || displayTitle(j);
+      const meta = [(j.modules || []).join(', '), j.server].filter(Boolean).join(' · ');
+      const sub = [];
+      lines.forEach(l => sub.push(/^[\w\s/.-]{1,20}:/.test(l) ? l : `โมดูล: ${l}`)); // keep "API: xxx" as typed
+      if (j.formPath) sub.push(`เมนู: ${j.formPath.replace(/\s*\n\s*/g, ' ')}`);
+      if (withNote && j.note) sub.push(`รายละเอียด: ${j.note.replace(/\s*\n\s*/g, ' ')}`);
+      if (j.assigner) sub.push(`ผู้แจ้ง: ${j.assigner}`);
+      n++;
+      out.push(md ? `${n}. **${j.jobNo}** ${head}${meta ? ` _(${meta})_` : ''}` : `${n}. ${j.jobNo} ${head}${meta ? ` (${meta})` : ''}`);
+      sub.forEach(s => out.push(`   - ${s}`));
+    }
+    out.push('');
+  }
+  return out.join('\n').trim();
+}
+function refreshRelease(){
+  const jobs = releaseJobs();
+  $$('#rnEnv [data-env]').forEach(b => b.classList.toggle('active', b.dataset.env === rn.env));
+  $$('#rnFmt [data-fmt]').forEach(b => b.classList.toggle('active', b.dataset.fmt === rn.fmt));
+  $('#rnCount').textContent = `${jobs.length} งาน`;
+  $('#rnHint').textContent = rn.ids.length ? `จากงานที่เลือกในตาราง ${rn.ids.length} งาน · แก้ข้อความในกล่องได้ก่อน copy`
+    : rn.env === 'LIVE' ? 'ไม่ได้เลือกงาน — ใช้งานที่ขึ้น STD66 แล้วแต่ยังไม่ขึ้น LIVE (ตามตัวกรองปัจจุบัน)'
+    : 'ไม่ได้เลือกงาน — ใช้งานที่ยังไม่เสร็จและยังไม่ขึ้น STD66 (ตามตัวกรองปัจจุบัน)';
+  $('#rnText').value = jobs.length ? releaseText(jobs) : '';
+  $('#rnText').placeholder = 'ไม่มีงานที่ตรงเงื่อนไข';
+  $('#rnDoneWrap').hidden = rn.env !== 'LIVE';
+  $('#rnMark').disabled = !jobs.length;
+  $('#rnMark').innerHTML = `${icon('check','sm')}ติ๊ก ${rn.env} ให้ ${jobs.length} งาน`;
+}
+function openRelease(ids = []){
+  rn.ids = ids;
+  $('#rnDate').value = today();
+  refreshRelease();
+  $('#releaseDialog').showModal();
+}
+$('#rnEnv').onclick = e => { const b = e.target.closest('[data-env]'); if (b){ rn.env = b.dataset.env; refreshRelease(); } };
+$('#rnFmt').onclick = e => { const b = e.target.closest('[data-fmt]'); if (b){ rn.fmt = b.dataset.fmt; refreshRelease(); } };
+$('#rnNote').onchange = $('#rnDate').onchange = refreshRelease;
+$('#rnCopy').onclick = async () => {
+  const ta = $('#rnText');
+  try { await navigator.clipboard.writeText(ta.value); }
+  catch(e){ ta.select(); document.execCommand('copy'); }
+  toast('copy ข้อความแล้ว — นำไปวางในกลุ่มแชทได้เลย', 'copy');
+};
+$('#rnMark').onclick = async () => {
+  const jobs = releaseJobs(), date = $('#rnDate').value || today();
+  const done = rn.env === 'LIVE' && $('#rnDone').checked ? (db.settings.statuses.find(s => s.done)?.name || '') : '';
+  if (!confirm(`ติ๊ก ${rn.env} (วันที่ ${fmtDate(date)}) ให้ ${jobs.length} งาน${done ? ` และเปลี่ยนสถานะเป็น "${done}"` : ''}?`)) return;
+  $('#rnMark').disabled = true;
+  const ok = await bulkApply(jobs.map(j => j.id), j => { const p = deployPatch(j, rn.env, date); return done ? statusPatch(p, done, date) : p; }, `ขึ้น ${rn.env}`);
+  $('#rnMark').disabled = false;
+  if (ok) $('#releaseDialog').close();
+};
 
 /* ---------- Kanban ---------- */
 function renderKanban(jobs){
@@ -1427,7 +1653,7 @@ function openForm(job, isNew = !job?.id){
   $('#formErr').textContent = '';
   const h = editing.history || [];
   $('#historyBox').innerHTML = !isNew && h.length ? `<div class="section"><h4>${icon('clock','sm')}ประวัติสถานะ</h4><ul class="timeline">${h.slice().reverse().map(x =>
-    `<li>${x.from ? `${esc(x.from)} → <b>${esc(x.to)}</b>` : `สร้างงาน · <b>${esc(x.to)}</b>`}<small>${new Date(x.at).toLocaleString('th-TH', {dateStyle:'medium', timeStyle:'short'})}${x.by ? ' · ' + esc(x.by) : ''}</small></li>`).join('')}</ul></div>` : '';
+    `<li>${x.from ? `${esc(x.from)} → <b>${esc(x.to)}</b>` : `สร้างงาน · <b>${esc(x.to)}</b>`}<small>${new Date(x.at).toLocaleString('th-TH-u-ca-gregory', {dateStyle:'medium', timeStyle:'short'})}${x.by ? ' · ' + esc(x.by) : ''}</small></li>`).join('')}</ul></div>` : '';
   dlg.showModal();
   dlg.querySelector('.body').scrollTop = 0;
   if (isNew) form.elements.namedItem('title').focus(); else document.activeElement?.blur();
@@ -1460,7 +1686,7 @@ form.onsubmit = async e => {
   const isNew = !j.id;
   const btn = form.querySelector('[type=submit]');
   btn.disabled = true;
-  const saved = await safe(() => upsertJob(j));
+  const saved = await safe(() => saveJob(j, latest => { dlg.close(); openForm(latest); toast('โหลดข้อมูลล่าสุดแล้ว', 'restore'); }));
   btn.disabled = false;
   if (!saved) return;
   dlg.close(); render(); toast(isNew ? `เพิ่มงาน ${saved.jobNo} แล้ว` : 'บันทึกการแก้ไขแล้ว');
@@ -1653,7 +1879,8 @@ $('#fileRestore').onchange = e => {
     delete settings.hiddenCols;
     await apiDeleteAll(); db.jobs = []; db.seq = 0;
     await apiSaveSettings(settings); db.settings = settings;
-    await insertJobs(d.jobs.map(j => ({...j, id:''})));
+    // accepts both the app's own backup (camelCase) and the GitHub Actions backup (raw table rows)
+    await insertJobs(d.jobs.map(j => ({...('job_no' in j ? rowToJob(j) : j), id:''})));
     render(); toast('Restore แล้ว', 'restore');
   }).catch(err => { toast('Restore ไม่สำเร็จ: ' + err.message, 'alert'); render(); });
 };
@@ -1665,6 +1892,8 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-new]')) return openForm(null, true);
   if (e.target.closest('[data-clear]')){ Object.assign(F, F_DEFAULT); return render(); }
   const unf = e.target.closest('[data-unf]'); if (unf){ F[unf.dataset.unf] = ''; return render(); }
+  const bulk = e.target.closest('[data-bulk]'); if (bulk) return handleBulk(bulk.dataset.bulk);
+  if (e.target.closest('[data-release]')) return openRelease([]);
   const close = e.target.closest('[data-close]'); if (close) return close.closest('dialog').close();
   if (e.target.tagName === 'DIALOG') e.target.close(); // backdrop click
   const cp = $('.colpicker[open]'); if (cp && !cp.contains(e.target)) cp.open = false;

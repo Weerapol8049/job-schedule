@@ -1,0 +1,63 @@
+# สำรองข้อมูล Supabase ทุกวัน → เก็บเป็นไฟล์เข้ารหัส (.json.gpg) ใน Actions artifacts 90 วัน
+# ต้องตั้ง repository secrets: SUPABASE_SERVICE_ROLE_KEY, BACKUP_PASSPHRASE (ดู SETUP.md)
+# ผลพลอยได้: มีการเรียกฐานข้อมูลทุกวัน project แผน Free จึงไม่ถูก pause
+name: Daily Supabase backup
+
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 01:00 เวลาไทย
+  workflow_dispatch:        # กด Run workflow เองได้จากแท็บ Actions
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: https://raqwyoatasstnadwxkro.supabase.co
+      SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Check secrets
+        run: |
+          [ -n "$SUPABASE_KEY" ] || { echo "::error::ยังไม่ได้ตั้ง secret SUPABASE_SERVICE_ROLE_KEY"; exit 1; }
+          [ -n "$BACKUP_PASSPHRASE" ] || { echo "::error::ยังไม่ได้ตั้ง secret BACKUP_PASSPHRASE (repo เป็น public ห้ามเก็บ backup แบบไม่เข้ารหัส)"; exit 1; }
+
+      - name: Export tables
+        run: |
+          set -euo pipefail
+          mkdir -p pages
+          fetch() {  # $1 = table, $2 = order
+            local off=0 i=0 n
+            while :; do
+              curl -sS --fail-with-body "$SUPABASE_URL/rest/v1/$1?select=*&order=$2&offset=$off&limit=1000" \
+                -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY" -o "pages/$1_$i.json"
+              n=$(jq length "pages/$1_$i.json")
+              i=$((i+1))
+              [ "$n" -lt 1000 ] && break
+              off=$((off+1000))
+            done
+            jq -s 'add' pages/$1_*.json > "$1.json"
+          }
+          fetch jobs created_at.asc
+          fetch app_settings id.asc
+          STAMP=$(TZ=Asia/Bangkok date +%F)
+          jq -n --slurpfile jobs jobs.json --slurpfile s app_settings.json --arg at "$(date -u +%FT%TZ)" \
+            '{source:"github-actions", exported_at:$at, jobs:$jobs[0], settings:($s[0][0].data // {})}' > "job-schedule-backup-$STAMP.json"
+          echo "jobs: $(jq length jobs.json)"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+      - name: Encrypt
+        run: |
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 -o "job-schedule-backup-$STAMP.json.gpg" "job-schedule-backup-$STAMP.json"
+          rm -rf pages jobs.json app_settings.json "job-schedule-backup-$STAMP.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: job-schedule-backup-${{ env.STAMP }}
+          path: job-schedule-backup-*.json.gpg
+          retention-days: 90
+          if-no-files-found: error

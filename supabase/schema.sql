@@ -40,6 +40,9 @@ create table if not exists public.jobs (
   updated_by        uuid default auth.uid() references auth.users(id) on delete set null
 );
 
+-- v2: อีเมลผู้แก้ไขล่าสุด (ใช้แสดงตอนแจ้งเตือนว่ามีคนแก้งานเดียวกันพร้อมกัน)
+alter table public.jobs add column if not exists updated_by_email text not null default '';
+
 create index if not exists jobs_due_date_idx on public.jobs (due_date);
 create index if not exists jobs_status_idx on public.jobs (status);
 create index if not exists jobs_received_date_idx on public.jobs (received_date);
@@ -56,9 +59,11 @@ begin
         exit when not exists (select 1 from public.jobs where job_no = new.job_no);
       end loop;
     end if;
+    new.updated_by_email := coalesce(auth.jwt() ->> 'email', '');
   else
     new.updated_at := now();
     new.updated_by := auth.uid();
+    new.updated_by_email := coalesce(auth.jwt() ->> 'email', '');
     new.created_at := old.created_at;
     new.created_by := old.created_by;
   end if;
