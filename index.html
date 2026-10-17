@@ -1,0 +1,1738 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f4f5f8; --surface:#ffffff; --surface-2:#f8f9fb; --surface-3:#eef0f4;
+  --text:#141923; --text-2:#475066; --muted:#8a92a3; --border:#e6e9ef; --border-strong:#d4d9e2;
+  --accent:#4f46e5; --accent-hover:#4338ca; --accent-text:#ffffff; --accent-soft:#eef0ff; --accent-soft-text:#4338ca;
+  --danger:#e11d48; --danger-soft:#fff0f3; --ok:#059669; --ok-soft:#e7f7f0; --warn:#d97706; --warn-soft:#fff5e5;
+  --shadow-sm:0 1px 2px rgba(16,24,40,.05);
+  --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+  --shadow-lg:0 16px 40px -12px rgba(16,24,40,.22),0 4px 10px -4px rgba(16,24,40,.08);
+  --ring:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  --radius:14px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0e13; --surface:#131821; --surface-2:#171d27; --surface-3:#1e2531;
+    --text:#e9ecf2; --text-2:#b3bbca; --muted:#7b8496; --border:#232b37; --border-strong:#313b4a;
+    --accent:#7c83ff; --accent-hover:#959bff; --accent-text:#0b0d1a; --accent-soft:#1d2042; --accent-soft-text:#b0b5ff;
+    --danger:#fb7185; --danger-soft:#2b141a; --ok:#34d399; --ok-soft:#0f261d; --warn:#fbbf24; --warn-soft:#2a210c;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35); --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 16px 40px -12px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0e13; --surface:#131821; --surface-2:#171d27; --surface-3:#1e2531;
+  --text:#e9ecf2; --text-2:#b3bbca; --muted:#7b8496; --border:#232b37; --border-strong:#313b4a;
+  --accent:#7c83ff; --accent-hover:#959bff; --accent-text:#0b0d1a; --accent-soft:#1d2042; --accent-soft-text:#b0b5ff;
+  --danger:#fb7185; --danger-soft:#2b141a; --ok:#34d399; --ok-soft:#0f261d; --warn:#fbbf24; --warn-soft:#2a210c;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.35); --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 16px 40px -12px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.55 "IBM Plex Sans Thai",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent);text-decoration:none}
+[hidden]{display:none!important}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;font-size:12.5px}
+.muted{color:var(--muted)}
+.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.i.sm{width:14px;height:14px}
+kbd{font:500 11px "IBM Plex Mono",monospace;padding:1px 5px;border-radius:4px;border:1px solid var(--border-strong);background:var(--surface-2);color:var(--muted)}
+
+/* ---------- Layout ---------- */
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 12px;gap:2px}
+.logo{display:flex;align-items:center;gap:10px;padding:2px 8px 14px}
+.logo-mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#a855f7);display:grid;place-items:center;color:#fff;box-shadow:0 4px 12px -2px rgba(99,102,241,.5)}
+.logo-text b{display:block;font-size:15px;line-height:1.2}
+.logo-text small{color:var(--muted);font-size:12px}
+.nav-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:16px 10px 6px}
+#nav{display:contents}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;color:var(--text-2);font-weight:500;border:0;background:none;cursor:pointer;width:100%;text-align:left;transition:background .12s,color .12s}
+.nav-item:hover{background:var(--surface-3);color:var(--text)}
+.nav-item.active{background:var(--accent-soft);color:var(--accent-soft-text)}
+.nav-item .count{margin-left:auto;font-size:11.5px;font-weight:600;min-width:22px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;background:var(--surface-3);color:var(--text-2)}
+.nav-item .count.bad{background:var(--danger-soft);color:var(--danger)}
+.nav-item .count:empty{display:none}
+.sidebar-foot{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding:8px}
+.sidebar-foot .hint{font-size:12px;color:var(--muted)}
+.content{min-width:0;padding:26px 30px 48px;max-width:1680px;width:100%;margin:0 auto}
+
+.page-head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.page-head h1{font-size:23px;margin:0;font-weight:700;letter-spacing:-.01em;line-height:1.25}
+.page-head p{margin:2px 0 0;color:var(--muted)}
+.page-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* ---------- Controls ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 14px;border-radius:9px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-weight:500;cursor:pointer;white-space:nowrap;transition:background .12s,border-color .12s,box-shadow .12s;box-shadow:var(--shadow-sm)}
+.btn:hover{background:var(--surface-3)}
+.btn:focus-visible,.icon-btn:focus-visible,.nav-item:focus-visible,.segmented button:focus-visible{outline:none;box-shadow:var(--ring)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.ghost{border-color:transparent;background:transparent;box-shadow:none}
+.btn.ghost:hover{background:var(--surface-3)}
+.btn.sm{height:32px;padding:0 11px;font-size:13px}
+.btn.danger-text{color:var(--danger)}
+.icon-btn{width:32px;height:32px;display:inline-grid;place-items:center;border-radius:8px;border:0;background:transparent;color:var(--muted);cursor:pointer;transition:background .12s,color .12s}
+.icon-btn:hover{background:var(--surface-3);color:var(--text)}
+.icon-btn.danger:hover{background:var(--danger-soft);color:var(--danger)}
+.segmented{display:inline-flex;background:var(--surface-3);border-radius:10px;padding:3px;gap:2px;max-width:100%;overflow-x:auto}
+.segmented button{border:0;background:transparent;height:30px;padding:0 12px;border-radius:7px;color:var(--text-2);font-weight:500;cursor:pointer;font-size:13px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.segmented button:hover{color:var(--text)}
+.segmented button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>span,.field>.lbl{font-size:12.5px;font-weight:500;color:var(--text-2)}
+.field input,.field select,.field textarea,.input{height:36px;padding:0 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);min-width:0;width:100%;transition:border-color .12s,box-shadow .12s}
+.field textarea,textarea.input{height:auto;min-height:72px;padding:8px 10px;resize:vertical;line-height:1.5}
+.field input:focus,.field select:focus,.field textarea:focus,.input:focus,.search-box input:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring)}
+
+/* ---------- Toolbar / filters ---------- */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.search-box{position:relative;flex:1 1 260px;max-width:420px}
+.search-box>.i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.search-box input{width:100%;height:36px;padding:0 36px 0 36px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface);box-shadow:var(--shadow-sm)}
+.search-box kbd{position:absolute;right:9px;top:50%;transform:translateY(-50%)}
+.search-box input:not(:placeholder-shown)+kbd{display:none}
+.dotcount{background:var(--accent);color:var(--accent-text);border-radius:999px;font-size:11px;font-weight:700;min-width:18px;height:18px;padding:0 5px;display:inline-grid;place-items:center}
+.result-count{color:var(--muted);font-size:13px;margin-left:auto;white-space:nowrap}
+.adv{display:none;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;padding:14px;margin-bottom:12px}
+.adv.open{display:grid}
+.active-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.active-filters:empty{display:none}
+.fchip{display:inline-flex;align-items:center;gap:2px;height:28px;padding:0 4px 0 11px;border-radius:999px;background:var(--accent-soft);color:var(--accent-soft-text);font-size:12.5px;font-weight:500}
+.fchip button{border:0;background:transparent;color:inherit;cursor:pointer;width:22px;height:22px;border-radius:50%;display:grid;place-items:center}
+.fchip button:hover{background:color-mix(in srgb, var(--accent) 18%, transparent)}
+.linklike{border:0;background:none;color:var(--muted);cursor:pointer;font-size:12.5px;text-decoration:underline;text-underline-offset:2px}
+
+/* ---------- Cards ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;gap:8px;padding:14px 16px 0}
+.card-head h3{margin:0;font-size:14.5px;font-weight:600}
+.card-head .sub{margin-left:auto;color:var(--muted);font-size:12.5px}
+.card-body{padding:12px 16px 16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:14px}
+.kpi{padding:16px;display:flex;gap:14px;align-items:center;cursor:pointer;transition:transform .15s,box-shadow .15s;text-align:left;border:1px solid var(--border);font:inherit;color:inherit}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.kpi-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb, var(--tone) 14%, transparent);color:var(--tone);flex:none}
+.kpi-value{font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi-label{color:var(--text-2);font-size:13px;font-weight:500}
+.kpi-sub{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.kpi .bar{margin-top:6px;width:110px}
+.bar{height:6px;border-radius:99px;background:var(--surface-3);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),#a855f7);transition:width .4s}
+.side-card{padding:12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border)}
+.side-card .sc-head{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--text-2);margin-bottom:8px}
+.side-card .sc-head b{font-size:18px;color:var(--text)}
+.side-card small{display:block;margin-top:8px;color:var(--muted);font-size:12px}
+#view.enter>*{animation:fadeUp .28s cubic-bezier(.2,.8,.2,1) both}
+#view.enter>*:nth-child(2){animation-delay:.04s}
+#view.enter>*:nth-child(3){animation-delay:.08s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion: reduce){#view.enter>*,dialog[open]{animation:none!important}}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:14px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.chart-box{position:relative;height:250px}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;gap:10px;align-items:center;padding:9px 6px;border-radius:8px;cursor:pointer}
+.list li:hover{background:var(--surface-2)}
+.list li+li{border-top:1px solid var(--border)}
+.list .grow{flex:1;min-width:0}
+.list .grow b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list .grow small{color:var(--muted);font-size:12px}
+.list-empty{color:var(--muted);padding:22px 0;text-align:center;font-size:13px}
+
+/* ---------- Badges ---------- */
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:color-mix(in srgb, var(--c) 14%, transparent);color:color-mix(in srgb, var(--c) 78%, var(--text))}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c)}
+.prio{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--c);white-space:nowrap}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--surface-3);color:var(--text-2);font-size:12px;font-weight:500;margin:1px 3px 1px 0;white-space:nowrap}
+.person{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.avatar{width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:700;color:#fff;flex:none}
+.due{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:2px 8px;border-radius:6px;background:var(--surface-3);color:var(--text-2);white-space:nowrap}
+.due.bad{background:var(--danger-soft);color:var(--danger)}
+.due.soon{background:var(--warn-soft);color:var(--warn)}
+.due.ok{background:var(--ok-soft);color:var(--ok)}
+.dep{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;height:20px;padding:0 7px;border-radius:5px;background:var(--surface-3);color:var(--muted)}
+.dep.on{background:var(--ok-soft);color:var(--ok)}
+
+/* ---------- Table ---------- */
+.table-card{overflow:hidden}
+.table-scroll{overflow:auto;max-height:calc(100vh - 250px)}
+table.jobs{border-collapse:separate;border-spacing:0;width:100%;font-size:13.5px}
+.jobs thead th{position:sticky;top:0;background:var(--surface-2);color:var(--text-2);font-weight:600;font-size:12.5px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;z-index:2}
+.jobs thead th:hover{color:var(--text)}
+.jobs thead th.sorted{color:var(--accent)}
+.jobs thead th .arr{font-size:10px;margin-left:3px}
+.jobs td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;background:var(--surface)}
+.jobs .stick{position:sticky;z-index:1}
+.jobs thead th.stick{z-index:3}
+.jobs .stick-last{box-shadow:inset -1px 0 0 var(--border)}
+.jobs .c-jobNo{width:136px;min-width:136px;max-width:136px}
+.jobs td.c-work{min-width:300px;max-width:420px}
+.work b{display:block;font-weight:600;color:var(--text);line-height:1.4}
+.work .sub1{display:block;color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.work .sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.45}
+.prio.normal{color:var(--muted);font-weight:500}
+.jobs tbody tr:last-child td{border-bottom:0}
+.jobs tbody tr{cursor:pointer}
+.jobs tbody tr:hover td{background:var(--surface-2)}
+.jobs tr.overdue td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
+.jobs td.pre{white-space:pre-line;min-width:190px}
+.jobs td.wide{min-width:300px;max-width:440px}
+.jobs td.nowrap{white-space:nowrap}
+.jobs td.center,.jobs th.center{text-align:center}
+.dep-toggle{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;border:1.5px dashed var(--border-strong);color:transparent;cursor:pointer;transition:all .12s}
+.dep-toggle:hover{border-color:var(--ok);color:var(--ok)}
+.dep-toggle.on{background:var(--ok);border:1.5px solid var(--ok);color:#fff}
+.jobs td.acts{position:sticky;right:0;white-space:nowrap;padding:6px 8px;width:1%}
+.jobs td.acts .icon-btn{opacity:0}
+.jobs tr:hover td.acts .icon-btn,.jobs td.acts .icon-btn:focus-visible{opacity:1}
+.colpicker{position:relative}
+.colpicker summary{list-style:none}
+.colpicker summary::-webkit-details-marker{display:none}
+.colpicker .menu{position:absolute;z-index:25;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;box-shadow:var(--shadow-lg);display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;width:max-content;max-width:calc(100vw - 32px)}
+.colpicker .menu label{display:flex;gap:8px;align-items:center;font-size:13px;white-space:nowrap;padding:4px 6px;border-radius:6px;cursor:pointer}
+.colpicker .menu label:hover{background:var(--surface-3)}
+.colpicker input{accent-color:var(--accent)}
+
+/* ---------- Kanban ---------- */
+.kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(285px,1fr);gap:14px;overflow-x:auto;padding-bottom:12px;align-items:start}
+.kcol{background:var(--surface-3);border-radius:var(--radius);padding:10px;min-height:320px;border:1.5px dashed transparent;border-top:3px solid var(--c);transition:background .12s,border-color .12s}
+.kcol-empty{border:1.5px dashed var(--border-strong);border-radius:10px;padding:22px 12px;text-align:center;color:var(--muted);font-size:12.5px}
+.kcol.drop{border-color:var(--accent);background:var(--accent-soft)}
+.kcol-head{display:flex;align-items:center;gap:8px;padding:4px 4px 10px;font-weight:600}
+.kcol-head .dot{width:9px;height:9px;border-radius:50%}
+.kcol-head .cnt{font-size:12px;font-weight:600;color:var(--muted);background:var(--surface);border-radius:999px;padding:0 8px}
+.kcol-head .icon-btn{margin-left:auto;width:28px;height:28px}
+.kcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;cursor:grab;box-shadow:var(--shadow-sm);transition:box-shadow .15s,transform .15s}
+.kcard:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.kcard.dragging{opacity:.4;transform:rotate(1.5deg)}
+.kcard .top{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.kcard .top .sys{margin-left:auto}
+.kcard .t{font-weight:600;margin:6px 0 4px;line-height:1.4;word-break:break-word}
+.kcard .desc{font-size:12.5px;color:var(--text-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px}
+.kcard .foot{display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.kcard .foot .deps{margin-left:auto;display:flex;gap:4px}
+
+/* ---------- Calendar (week rows with spanning bars) ---------- */
+.cal-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.cal-bar h2{margin:0 6px 0 0;font-size:17px;font-weight:700}
+.legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text-2)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.cal-dow,.week-bg,.week-ev{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.cal-dow div{padding:9px 10px;font-size:12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)}
+.cal-dow div:nth-child(n+6){color:color-mix(in srgb, var(--danger) 60%, var(--muted))}
+.week{position:relative;border-bottom:1px solid var(--border)}
+.week:last-child{border-bottom:0}
+.week-bg .day{position:relative;padding:6px;border-right:1px solid var(--border);cursor:pointer;min-width:0;transition:background .12s}
+.week-bg .day:last-child{border-right:0}
+.week-bg .day:nth-child(n+6){background:color-mix(in srgb, var(--surface-2) 60%, transparent)}
+.week-bg .day:hover{background:var(--accent-soft)}
+.week-bg .day.other .num{color:var(--muted);opacity:.6}
+.cal .num{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600}
+.week-bg .day.today .num{background:var(--accent);color:var(--accent-text);box-shadow:0 2px 8px -2px var(--accent)}
+.week-ev{position:absolute;top:36px;left:0;right:0;grid-auto-rows:22px;row-gap:4px;pointer-events:none}
+.ev{pointer-events:auto;display:flex;align-items:center;gap:5px;min-width:0;margin:0 4px;padding:0 8px;height:22px;font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:color-mix(in srgb, var(--c) 16%, var(--surface));color:color-mix(in srgb, var(--c) 72%, var(--text));border-left:3px solid var(--c);transition:filter .12s,box-shadow .12s}
+.ev:hover{filter:brightness(.97);box-shadow:var(--shadow)}
+.ev span{overflow:hidden;text-overflow:ellipsis}
+.ev.cl{border-left:0;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:0}
+.ev.cr{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:0}
+.week:not(.expanded) .ev.extra{display:none}
+.more{position:absolute;left:6px;bottom:5px;border:0;background:none;padding:0 4px;font:inherit;font-size:12px;color:var(--accent);font-weight:600;cursor:pointer;border-radius:4px}
+.more:hover{background:var(--accent-soft)}
+
+/* ---------- Empty states ---------- */
+.empty-state{padding:56px 16px;text-align:center}
+.empty-state .e-icon{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;margin:0 auto 14px;background:var(--accent-soft);color:var(--accent)}
+.empty-state .e-icon .i{width:26px;height:26px}
+.empty-state h3{margin:0 0 4px;font-size:16px}
+.empty-state p{margin:0 auto 16px;color:var(--muted);max-width:420px}
+.empty-state .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+
+/* ---------- Settings ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:10px}
+.tile{display:flex;gap:12px;align-items:center;text-align:left;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;transition:border-color .12s,box-shadow .12s}
+.tile:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+.tile .t-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--surface-3);color:var(--text-2);flex:none}
+.tile b{display:block;font-weight:600}
+.tile small{color:var(--muted);font-size:12px}
+.tile.danger .t-icon{background:var(--danger-soft);color:var(--danger)}
+.tile.danger b{color:var(--danger)}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:14px}
+.settings-grid textarea{font-family:"IBM Plex Mono",monospace;font-size:12.5px;min-height:150px}
+.status-preview{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+
+/* ---------- Dialogs ---------- */
+dialog{border:0;padding:0;background:var(--surface);color:var(--text);box-shadow:var(--shadow-lg)}
+dialog::backdrop{background:rgba(9,12,20,.45);backdrop-filter:blur(2px)}
+dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;width:min(620px,100vw);max-width:100vw;border-radius:18px 0 0 18px}
+dialog.drawer[open]{animation:slideIn .22s cubic-bezier(.2,.8,.2,1)}
+dialog.modal{width:min(980px,calc(100vw - 24px));max-height:calc(100vh - 32px);border-radius:18px}
+dialog.modal[open]{animation:pop .18s ease-out}
+@keyframes slideIn{from{transform:translateX(48px);opacity:0}}
+@keyframes pop{from{transform:scale(.97);opacity:0}}
+.dlg{display:flex;flex-direction:column;height:100%;max-height:inherit}
+.dlg>header{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border)}
+.dlg>header h2{margin:0;font-size:16px;font-weight:600;flex:1}
+.chip-no{font-size:12px;padding:2px 8px;border-radius:6px;background:var(--surface-3);color:var(--text-2)}
+.chip-no:empty{display:none}
+.dlg>.body{overflow:auto;padding:4px 20px 12px;flex:1}
+.dlg>footer{display:flex;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid var(--border);background:var(--surface-2)}
+.dlg>footer .spacer{flex:1}
+.err{color:var(--danger);font-size:13px;font-weight:500}
+.title-input{width:100%;font-size:20px;font-weight:600;border:0;padding:16px 0 6px;background:transparent;color:var(--text);outline:none}
+.title-input::placeholder{color:var(--muted);font-weight:500}
+.section{padding:16px 0;border-bottom:1px solid var(--border)}
+.section:last-of-type{border-bottom:0}
+.section h4{display:flex;align-items:center;gap:6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 12px;font-weight:600}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fgrid.c3{grid-template-columns:repeat(3,1fr)}
+.fgrid .full{grid-column:1/-1}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pills label{--c:var(--accent);display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid var(--border-strong);border-radius:999px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text-2);transition:all .12s}
+.pills label:hover{border-color:var(--c)}
+.pills label .dot{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.pills input{position:absolute;opacity:0;pointer-events:none}
+.pills label:has(input:checked){background:color-mix(in srgb, var(--c) 14%, transparent);border-color:var(--c);color:color-mix(in srgb, var(--c) 78%, var(--text))}
+.pills label:has(input:focus-visible){box-shadow:var(--ring)}
+.mod-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mod-chips label{display:inline-flex;align-items:center;height:28px;padding:0 11px;border:1px solid var(--border-strong);border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-2);transition:all .12s}
+.mod-chips label:has(input:checked){background:var(--accent-soft);border-color:var(--accent);color:var(--accent-soft-text);font-weight:600}
+.mod-chips input[type=checkbox]{position:absolute;opacity:0;pointer-events:none}
+.mod-chips input[type=text]{width:140px;height:28px;padding:0 9px;border:1px dashed var(--border-strong);border-radius:8px;background:transparent;font-size:13px}
+.deploy-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
+.deploy-card label{flex:1;cursor:pointer;line-height:1.3}
+.deploy-card label small{display:block;color:var(--muted);font-size:12px}
+.deploy-card input[type=date]{width:150px;height:32px;padding:0 8px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface)}
+.switch{appearance:none;-webkit-appearance:none;width:38px;height:22px;border-radius:999px;background:var(--border-strong);position:relative;cursor:pointer;transition:background .15s;flex:none;margin:0}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.switch:checked{background:var(--ok)}
+.switch:checked::after{transform:translateX(16px)}
+.switch:focus-visible{outline:none;box-shadow:var(--ring)}
+.timeline{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--border)}
+.timeline li{position:relative;padding:0 0 10px 12px;font-size:13px}
+.timeline li::before{content:"";position:absolute;left:-20px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.timeline small{display:block;color:var(--muted);font-size:12px}
+.preview-wrap{overflow:auto;max-height:56vh;border:1px solid var(--border);border-radius:12px}
+#sheetPick:not(:empty){padding:14px 0 4px}
+.sheet-head{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.sheet-head label{margin-left:auto;display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--text-2);cursor:pointer}
+.sheet-head input{accent-color:var(--accent)}
+.mod-chips label .cnt{font-size:11.5px;font-weight:500;opacity:.75;margin-left:4px}
+.mod-chips label.disabled{opacity:.45;cursor:not-allowed;text-decoration:line-through}
+
+.toast{position:fixed;bottom:22px;right:22px;display:flex;align-items:center;gap:10px;background:var(--text);color:var(--bg);padding:11px 16px;border-radius:12px;z-index:100;opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px);box-shadow:var(--shadow-lg);font-weight:500}
+.toast.show{opacity:1;transform:none}
+
+/* ---------- Login / user ---------- */
+.login{min-height:100vh;display:grid;place-items:center;padding:16px;background:radial-gradient(900px 500px at 15% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent),var(--bg)}
+.login .card{width:min(400px,100%);padding:28px}
+.login h1{font-size:21px;margin:16px 0 2px}
+.login p{color:var(--muted);margin:0 0 20px}
+.login form{display:flex;flex-direction:column;gap:14px}
+.login .btn{height:40px}
+.userbox{display:flex;align-items:center;gap:8px;font-size:12.5px;min-width:0}
+.userbox .email{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)}
+.mode{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.mode i{width:7px;height:7px;border-radius:50%;flex:none}
+.loading{padding:70px 16px;text-align:center;color:var(--muted)}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn:disabled{opacity:.6;cursor:progress}
+
+/* ---------- Responsive ---------- */
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .sidebar{position:sticky;top:0;z-index:30;height:auto;flex-direction:row;align-items:center;gap:4px;padding:8px 12px;border-right:0;border-bottom:1px solid var(--border);overflow-x:auto}
+  .logo{padding:0 6px 0 0}
+  .logo-text,.nav-section,.sidebar-foot .hint,.nav-item .count,.userbox .email,.mode,#sideStats{display:none}
+  .nav-item{width:auto;flex:none;padding:8px 10px}
+  .nav-item span:not(.count){display:none}
+  .nav-item.active span:not(.count){display:inline}
+  .sidebar-foot{margin:0 0 0 auto;padding:0;flex-direction:row}
+  .content{padding:18px 16px 40px}
+  .page-head h1{font-size:20px}
+}
+@media (max-width:640px){
+  .fgrid,.fgrid.c3{grid-template-columns:1fr}
+  dialog.drawer{border-radius:0}
+  .week-bg .day{padding:3px}
+  .ev{font-size:10.5px;padding:0 4px;margin:0 1px}
+  .legend{display:none}
+  .result-count{margin-left:0}
+  .search-box{max-width:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></symbol>
+  <symbol id="i-kanban" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7v7M12 7v4M16 7v9"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-calcheck" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="i-checkcircle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2M12 12v9M16 16l-4-4-4 4"/></symbol>
+  <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
+  <symbol id="i-restore" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/></symbol>
+</svg>
+
+<div class="login" id="loginScreen" hidden>
+  <div class="card">
+    <div class="logo-mark"><svg class="i"><use href="#i-calcheck"/></svg></div>
+    <h1>Job Schedule</h1>
+    <p>เข้าสู่ระบบด้วยบัญชีของทีม</p>
+    <form id="loginForm">
+      <label class="field"><span>อีเมล</span><input type="email" id="loginEmail" autocomplete="username" required></label>
+      <label class="field"><span>รหัสผ่าน</span><input type="password" id="loginPassword" autocomplete="current-password" required></label>
+      <span class="err" id="loginErr"></span>
+      <button class="btn primary" type="submit" id="loginBtn">เข้าสู่ระบบ</button>
+    </form>
+  </div>
+</div>
+
+<div class="app" id="app" hidden>
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark"><svg class="i"><use href="#i-calcheck"/></svg></div>
+      <div class="logo-text"><b>Job Schedule</b><small>บันทึกงาน &amp; ติดตามสถานะ</small></div>
+    </div>
+    <div class="nav-section">เมนู</div>
+    <button class="nav-item" data-view="dashboard"><svg class="i"><use href="#i-dashboard"/></svg><span>ภาพรวม</span><span class="count" data-count="dashboard"></span></button>
+    <button class="nav-item" data-view="table"><svg class="i"><use href="#i-table"/></svg><span>ตารางงาน</span><span class="count" data-count="table"></span></button>
+    <button class="nav-item" data-view="kanban"><svg class="i"><use href="#i-kanban"/></svg><span>บอร์ด Kanban</span><span class="count" data-count="kanban"></span></button>
+    <button class="nav-item" data-view="calendar"><svg class="i"><use href="#i-calendar"/></svg><span>ปฏิทิน</span></button>
+    <div class="nav-section">ระบบ</div>
+    <button class="nav-item" data-view="settings"><svg class="i"><use href="#i-sliders"/></svg><span>ข้อมูล &amp; ตั้งค่า</span></button>
+    <div class="sidebar-foot">
+      <div id="sideStats"></div>
+      <div class="userbox" id="userBox"></div>
+      <div class="segmented" id="themeSwitch" aria-label="ธีม">
+        <button data-theme-set="light" title="สว่าง"><svg class="i sm"><use href="#i-sun"/></svg></button>
+        <button data-theme-set="auto" title="ตามระบบ"><svg class="i sm"><use href="#i-monitor"/></svg></button>
+        <button data-theme-set="dark" title="มืด"><svg class="i sm"><use href="#i-moon"/></svg></button>
+      </div>
+      <div class="hint"><kbd>N</kbd> เพิ่มงาน &nbsp;·&nbsp; <kbd>/</kbd> ค้นหา</div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="page-head" id="pageHead"></div>
+
+    <div id="toolbar">
+      <div class="toolbar">
+        <div class="search-box">
+          <svg class="i"><use href="#i-search"/></svg>
+          <input id="fq" type="search" placeholder="ค้นหางาน, ProjectName, หมายเหตุ, Job No…" autocomplete="off">
+          <kbd>/</kbd>
+        </div>
+        <div class="segmented" id="quick">
+          <button data-quick="">ทั้งหมด</button>
+          <button data-quick="week">สัปดาห์นี้</button>
+          <button data-quick="month">เดือนนี้</button>
+          <button data-quick="overdue">เลยกำหนด</button>
+          <button data-quick="pendingLive">รอขึ้น LIVE</button>
+        </div>
+        <button class="btn sm" id="advBtn"><svg class="i sm"><use href="#i-filter"/></svg>ตัวกรอง<span class="dotcount" id="advCount" hidden></span></button>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <div class="card adv" id="adv">
+        <label class="field"><span>กรองวันที่ตาม</span><select id="fDateField"><option value="receivedDate">วันที่รับงาน</option><option value="startDate">วันที่เริ่มงาน</option><option value="dueDate" selected>วันที่ส่งงาน</option><option value="finishDate">วันที่เสร็จจริง</option></select></label>
+        <label class="field"><span>ตั้งแต่</span><input type="date" id="fFrom"></label>
+        <label class="field"><span>ถึง</span><input type="date" id="fTo"></label>
+        <label class="field"><span>ผู้มอบหมาย</span><select id="fAssigner"></select></label>
+        <label class="field"><span>Module</span><select id="fModule"></select></label>
+        <label class="field"><span>ประเภทงาน</span><select id="fSystem"></select></label>
+        <label class="field"><span>Server</span><select id="fServer"></select></label>
+        <label class="field"><span>สถานะ</span><select id="fStatus"></select></label>
+        <label class="field"><span>ความสำคัญ</span><select id="fPriority"></select></label>
+        <label class="field"><span>STD66</span><select id="fStd66"><option value="">ทั้งหมด</option><option value="yes">ขึ้นแล้ว</option><option value="no">ยังไม่ขึ้น</option></select></label>
+        <label class="field"><span>LIVE</span><select id="fLive"><option value="">ทั้งหมด</option><option value="yes">ขึ้นแล้ว</option><option value="no">ยังไม่ขึ้น</option></select></label>
+      </div>
+      <div class="active-filters" id="activeFilters"></div>
+    </div>
+
+    <section id="view"></section>
+  </main>
+</div>
+
+<datalist id="dlAssigner"></datalist>
+<datalist id="dlDepartment"></datalist>
+<datalist id="dlServer"></datalist>
+
+<!-- Job form (drawer) -->
+<dialog id="jobDialog" class="drawer">
+  <form class="dlg" id="jobForm" novalidate>
+    <header>
+      <h2 id="jobFormTitle">เพิ่มงาน</h2>
+      <span class="chip-no mono" id="jobFormNo"></span>
+      <button type="button" class="icon-btn" data-close title="ปิด (Esc)"><svg class="i"><use href="#i-x"/></svg></button>
+    </header>
+    <div class="body">
+      <input class="title-input" name="title" placeholder="ชื่องาน เช่น Sync Sales order จาก AX" autocomplete="off">
+      <div class="section">
+        <h4>สถานะ</h4>
+        <div class="pills" id="statusPills"></div>
+        <div class="fgrid" style="margin-top:14px">
+          <div class="field full"><span class="lbl">ความสำคัญ</span><div class="pills" id="priorityPills"></div></div>
+          <label class="field"><span>ชื่อผู้มอบหมายงาน</span><input name="assigner" list="dlAssigner" autocomplete="off"></label>
+          <label class="field"><span>แผนก</span><input name="department" list="dlDepartment" autocomplete="off"></label>
+          <label class="field"><span>ผู้รับผิดชอบ</span><input name="assignee" autocomplete="off"></label>
+          <label class="field"><span>ลักษณะงาน</span><select name="jobType"></select></label>
+        </div>
+      </div>
+      <div class="section">
+        <h4>กำหนดการ</h4>
+        <div class="fgrid c3">
+          <label class="field"><span>วันที่รับงาน *</span><input type="date" name="receivedDate"></label>
+          <label class="field"><span>วันที่เริ่มงาน</span><input type="date" name="startDate"></label>
+          <label class="field"><span>วันที่ส่งงาน</span><input type="date" name="dueDate"></label>
+          <label class="field"><span>วันที่เสร็จจริง</span><input type="date" name="finishDate"></label>
+          <label class="field"><span>ชั่วโมงประมาณ</span><input type="number" min="0" step="0.5" name="estHours"></label>
+          <label class="field"><span>ชั่วโมงจริง</span><input type="number" min="0" step="0.5" name="actualHours"></label>
+        </div>
+      </div>
+      <div class="section">
+        <h4>ระบบ &amp; โปรเจกต์</h4>
+        <div class="fgrid">
+          <div class="field full"><span class="lbl">Module</span><div class="mod-chips" id="modChips"></div></div>
+          <label class="field"><span>ประเภทงาน (ระบบ)</span><select name="system"></select></label>
+          <label class="field"><span>Server / DB</span><input name="server" list="dlServer" autocomplete="off"></label>
+          <label class="field full"><span>ProjectName (module / API)</span><textarea class="mono" name="projectName" rows="2" placeholder="biz_sales_order_ax&#10;API: GenSalesOrderAxOdoo"></textarea></label>
+          <label class="field full"><span>Form / Report / Job / Other</span><textarea class="mono" name="formPath" rows="2" placeholder="Sales > Order AX > Sales order"></textarea></label>
+          <label class="field"><span>Button Work</span><input name="buttonWork"></label>
+          <label class="field"><span>Tags (คั่นด้วย ,)</span><input name="tags"></label>
+          <label class="field full"><span>ลิงก์อ้างอิง (ticket / เอกสาร / Git)</span><input name="refLink" type="url" placeholder="https://"></label>
+        </div>
+      </div>
+      <div class="section">
+        <h4>Deploy</h4>
+        <div class="fgrid">
+          <div class="deploy-card"><input type="checkbox" class="switch" name="deploySTD66" id="swStd"><label for="swStd"><b>STD66</b><small>ขึ้นระบบทดสอบ</small></label><input type="date" name="deploySTD66Date" title="วันที่ขึ้น STD66"></div>
+          <div class="deploy-card"><input type="checkbox" class="switch" name="deployLIVE" id="swLive"><label for="swLive"><b>LIVE</b><small>ขึ้นระบบจริง</small></label><input type="date" name="deployLIVEDate" title="วันที่ขึ้น LIVE"></div>
+        </div>
+      </div>
+      <div class="section">
+        <h4>รายละเอียด / หมายเหตุ</h4>
+        <label class="field"><textarea name="note" rows="5" placeholder="อธิบายงาน ปัญหา หรือเงื่อนไขที่ผู้ใช้แจ้ง…"></textarea></label>
+      </div>
+      <div id="historyBox"></div>
+    </div>
+    <footer>
+      <button type="button" class="btn ghost danger-text" id="formDelete"><svg class="i sm"><use href="#i-trash"/></svg>ลบ</button>
+      <span class="err" id="formErr"></span>
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-close>ยกเลิก</button>
+      <button type="submit" class="btn primary"><svg class="i sm"><use href="#i-check"/></svg>บันทึก</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- Import preview -->
+<dialog id="importDialog" class="modal">
+  <div class="dlg">
+    <header><h2>ตรวจสอบข้อมูลก่อนนำเข้า</h2><button type="button" class="icon-btn" data-close><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="body"><div id="sheetPick"></div><p id="importInfo" class="muted"></p><div class="preview-wrap" id="importPreview"></div></div>
+    <footer><span class="spacer"></span><button class="btn" data-close>ยกเลิก</button><button class="btn" id="importReplace">แทนที่ข้อมูลทั้งหมด</button><button class="btn primary" id="importAppend">เพิ่มต่อท้าย</button></footer>
+  </div>
+</dialog>
+
+<input type="file" id="fileImport" accept=".xlsx,.xls,.csv" hidden>
+<input type="file" id="fileRestore" accept=".json" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ================= Config ================= */
+const LS_KEY = 'jobSchedule.v1';
+const PREF_KEY = 'jobSchedule.prefs';
+const DEFAULT_SETTINGS = {
+  statuses: [
+    {name:'ใหม่', color:'#64748b', done:false},
+    {name:'กำลังทำ', color:'#3b82f6', done:false},
+    {name:'รอทดสอบ', color:'#f59e0b', done:false},
+    {name:'รอตอบกลับ', color:'#a855f7', done:false},
+    {name:'เสร็จ', color:'#10b981', done:true},
+    {name:'ยกเลิก', color:'#94a3b8', done:true},
+  ],
+  modules: ['Sales','Purchase','Project','Settings','Accounting','AP','AR','Inventory','Product','HR'],
+  systems: ['Odoo','AX','อื่นๆ'],
+  servers: ['stmdev','c1stmdev','stmm.work'],
+  assigners: ['พี่มะลิ','พี่มล','พี่แหม่ม'],
+  departments: [],
+  priorities: ['ต่ำ','ปกติ','สูง','ด่วน'],
+  jobTypes: ['New feature','Bug fix','Change request','Report','Support'],
+};
+const DEFAULT_HIDDEN = ['title','projectName','note','buttonWork','department','startDate','jobType','assignee','finishDate','estHours','actualHours','deploySTD66Date','deployLIVEDate','refLink','tags'];
+const PRIORITY_COLORS = {'ด่วน':'#e11d48','สูง':'#f97316','ปกติ':'#64748b','ต่ำ':'#94a3b8'};
+
+// Column definitions: used by table, export and import (label = Thai header like the original Excel)
+const COLS = [
+  {key:'jobNo', label:'Job No', aliases:['jobno','job no','รหัสงาน'], cls:'nowrap'},
+  {key:'receivedDate', label:'วันที่รับงาน', type:'date', cls:'nowrap'},
+  {key:'startDate', label:'วันที่เริ่มงาน', type:'date', cls:'nowrap'},
+  {key:'dueDate', label:'วันที่ส่งงาน', type:'date', cls:'nowrap'},
+  {key:'assigner', label:'ชื่อผู้มอบหมายงาน', aliases:['ผู้มอบหมายงาน','ผู้มอบหมาย'], cls:'nowrap'},
+  {key:'department', label:'แผนก'},
+  {key:'status', label:'สถานะงาน', aliases:['สถานะ','status']},
+  {key:'priority', label:'ความสำคัญ', aliases:['priority']},
+  {key:'modules', label:'Module', type:'list', aliases:['modules']},
+  {key:'system', label:'ประเภทงาน', aliases:['ระบบ','system']},
+  {key:'server', label:'Server', aliases:['db','database','server/db','ฐานข้อมูล'], cls:'nowrap'},
+  {key:'title', label:'ชื่องาน', aliases:['title']},
+  {key:'projectName', label:'ProjectName', cls:'pre mono', aliases:['project name','project']},
+  {key:'formPath', label:'Form / Report / Job / Other', cls:'pre mono', aliases:['form/report/job/other','form']},
+  {key:'buttonWork', label:'Button Work', cls:'pre'},
+  {key:'note', label:'หมายเหตุ', cls:'pre wide', aliases:['note','รายละเอียด']},
+  {key:'deploySTD66', label:'STD66', type:'bool'},
+  {key:'deployLIVE', label:'LIVE', type:'bool'},
+  {key:'jobType', label:'ลักษณะงาน', aliases:['jobtype']},
+  {key:'assignee', label:'ผู้รับผิดชอบ'},
+  {key:'finishDate', label:'วันที่เสร็จจริง', type:'date', cls:'nowrap'},
+  {key:'estHours', label:'ชม.ประมาณ', type:'num'},
+  {key:'actualHours', label:'ชม.จริง', type:'num'},
+  {key:'deploySTD66Date', label:'วันที่ขึ้น STD66', type:'date', cls:'nowrap'},
+  {key:'deployLIVEDate', label:'วันที่ขึ้น LIVE', type:'date', cls:'nowrap'},
+  {key:'refLink', label:'ลิงก์อ้างอิง', type:'link'},
+  {key:'tags', label:'Tags', type:'list'},
+];
+const COL = Object.fromEntries(COLS.map(c => [c.key, c]));
+// Table-only order: the virtual "งาน" column (title + ProjectName + note) sits up front so the important text is visible without scrolling
+const TABLE_COLS = ['jobNo','work','status','priority','assigner','modules','system','server','formPath','receivedDate','startDate','dueDate','deploySTD66','deployLIVE',
+  'projectName','note','buttonWork','department','title','jobType','assignee','finishDate','estHours','actualHours','deploySTD66Date','deployLIVEDate','refLink','tags']
+  .map(k => k === 'work' ? {key:'work', label:'งาน'} : COL[k]);
+
+const SAMPLE = [
+  ['2026-10-01','2026-10-01','2026-10-01','พี่มะลิ',['Sales'],'Odoo','stmdev','biz_sales_order_ax\nAPI: GenSalesOrderAxOdoo','Sales > Order AX > Sales order','ดึงข้อมูล Sales order จากระบบ และให้ทำการ Sync ได้',true,false],
+  ['2026-10-01','2026-10-02','2026-10-02','พี่มะลิ',['Purchase'],'Odoo','stmdev','biz_purchase_order_ax\nAPI: GenPrFromOdooAPI','Purchase > Order AX > Purchase order','ดึงข้อมูล Purchase order จากระบบ และให้ทำการ Sync ได้',true,false],
+  ['2026-10-01','2026-10-02','2026-10-02','พี่มะลิ',['Project'],'Odoo','stmdev','biz_project_ax\nAPI: GenSalesOrderAxOdoo','Project > Project AX > Project','ดึงข้อมูล Project จากระบบ และให้ทำการ Sync ได้',true,false],
+  ['2026-10-01','2026-10-02','2026-10-02','พี่มะลิ',['Settings'],'Odoo','c1stmdev','ax_gateway\nbiz_api_core','Settings > Technical > API ภายนอก','สร้างระบบจัดการ API gateway, FastAPI',true,false],
+  ['2026-10-05','2026-10-05','2026-10-06','พี่มะลิ',[],'Odoo','stmm.work','','','ติดตั้ง Cloudflare ที่ระบบ live',true,true],
+  ['2026-10-06','2026-10-06','2026-10-06','พี่มะลิ',['Accounting','Sales'],'Odoo','stmdev','biz_product_item_ax\nSTM.Integration/STM.Api.Item','Product','สร้าง api ดึงข้อมูล item จาก AX ไปทำเป็นตัวเลือกให้กับฟิลด์ Internal Reference ที่หน้า Products',true,true],
+  ['2026-10-09','2026-10-09','2026-10-09','พี่มล',['Sales'],'Odoo','stmm.work','biz_product_kanban','Product','แก้จากยอด total เดิม เพิ่มดึงยอด outgoing มาหักล้าง เพราะฝ่ายขายไม่เห็นข้อมูลสินค้าคงเหลือที่ขายได้ทำให้แย่งของกัน',true,true],
+  ['2026-10-10','2026-10-10','2026-10-10','พี่แหม่ม',['AP'],'AX','','STM_AP_RptPrePaymentVoucher','STMPrePaymentVoucherV2ControllerS\nTM.insertPrePaymentCustTmp()','เวลามีการหักเงินช่าง ถ้าไม่พิมพ์คำว่าหักสิ้นเปลือง มันจะไม่หักยอดเงินใน pm ให้ค่ะ พี่ขอเปลี่ยนเงื่อนไข เป็นคำว่า หัก เท่านั้น เช่น หักค่าเสื้อ หักทำผิด หักค่าเสียหาย และหักอื่นๆ หลายเหตุผล',true,true],
+];
+
+/* ================= Utils ================= */
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icon = (n, cls='') => `<svg class="i ${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const pad = n => String(n).padStart(2,'0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today = () => iso(new Date());
+const parseISO = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const weekStart = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(x, -((x.getDay()+6)%7)); };
+const daysUntil = s => Math.round((parseISO(s) - parseISO(today())) / 86400000);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const clone = o => JSON.parse(JSON.stringify(o));
+const uniq = arr => [...new Set(arr.filter(v => v !== '' && v != null))];
+const TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TH_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const TH_DOW = ['จันทร์','อังคาร','พุธ','พฤหัสฯ','ศุกร์','เสาร์','อาทิตย์'];
+function fmtDate(s){
+  if (!s) return '';
+  const d = parseISO(s);
+  return `${d.getDate()} ${TH_SHORT[d.getMonth()]}` + (d.getFullYear() !== new Date().getFullYear() ? ` ${String(d.getFullYear()).slice(2)}` : '');
+}
+function alpha(hex, a){
+  let h = String(hex).replace('#','');
+  if (h.length === 3) h = h.split('').map(x => x + x).join('');
+  const n = parseInt(h.slice(0,6), 16);
+  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
+}
+
+function toast(msg, ic='checkcircle'){ const t = $('#toast'); t.innerHTML = icon(ic) + esc(msg); t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600); }
+function getPrefs(){ try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {}; } catch(e){ return {}; } }
+function setPref(k, v){ try { const p = getPrefs(); p[k] = v; localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch(e){} }
+
+/* ================= Store ================= */
+// Two backends: Supabase (when config.js is filled in) or localStorage (prototype mode).
+// `db` is always the in-memory cache that the views render from.
+const CFG = window.APP_CONFIG || {};
+const CLOUD_CONFIGURED = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY);
+const CLOUD = CLOUD_CONFIGURED && !!window.supabase;
+const sb = CLOUD ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
+let currentUser = null;
+let db = {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0};
+let hiddenCols = new Set(getPrefs().hiddenCols || DEFAULT_HIDDEN);
+
+function readLocal(){
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_KEY));
+    if (d && Array.isArray(d.jobs)) return {jobs:d.jobs, settings:{...clone(DEFAULT_SETTINGS), ...d.settings}, seq:d.seq || d.jobs.length};
+  } catch(e){}
+  return {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0};
+}
+function persistLocal(){
+  if (CLOUD) return;
+  try { localStorage.setItem(LS_KEY, JSON.stringify(db)); }
+  catch(e){ toast('บันทึกลง browser ไม่สำเร็จ: ' + e.message, 'alert'); }
+}
+
+// app field -> Postgres column (see supabase/schema.sql)
+const DB_MAP = {jobNo:'job_no', title:'title', receivedDate:'received_date', startDate:'start_date', dueDate:'due_date', finishDate:'finish_date',
+  assigner:'assigner', department:'department', assignee:'assignee', status:'status', priority:'priority', jobType:'job_type', modules:'modules',
+  system:'system_name', server:'server', projectName:'project_name', formPath:'form_path', buttonWork:'button_work', note:'note',
+  deploySTD66:'deploy_std66', deployLIVE:'deploy_live', deploySTD66Date:'deploy_std66_date', deployLIVEDate:'deploy_live_date',
+  estHours:'est_hours', actualHours:'actual_hours', refLink:'ref_link', tags:'tags', history:'history', createdAt:'created_at', updatedAt:'updated_at'};
+const ARRAY_KEYS = new Set(['modules','tags','history']);
+const BOOL_KEYS = new Set(['deploySTD66','deployLIVE']);
+const NUM_KEYS = new Set(['estHours','actualHours']);
+const DB_MANAGED = new Set(['createdAt','updatedAt']);
+function jobToRow(j){
+  const r = {};
+  for (const [k, col] of Object.entries(DB_MAP)){
+    if (DB_MANAGED.has(k)) continue;
+    const v = j[k];
+    if (ARRAY_KEYS.has(k)) r[col] = v || [];
+    else if (BOOL_KEYS.has(k)) r[col] = !!v;
+    else if (NUM_KEYS.has(k)) r[col] = v === '' || v == null || isNaN(+v) ? null : +v;
+    else if (COL[k]?.type === 'date') r[col] = v || null;
+    else r[col] = v ?? '';
+  }
+  if (!r.job_no) delete r.job_no; // generated by the database trigger
+  return r;
+}
+function rowToJob(r){
+  const j = {id:r.id};
+  for (const [k, col] of Object.entries(DB_MAP)){
+    const v = r[col];
+    if (ARRAY_KEYS.has(k)) j[k] = v || [];
+    else if (BOOL_KEYS.has(k)) j[k] = !!v;
+    else j[k] = v == null ? '' : NUM_KEYS.has(k) ? String(v) : v;
+  }
+  return j;
+}
+async function fetchAllJobs(){
+  const out = [];
+  for (let from = 0; ; from += 1000){
+    const {data, error} = await sb.from('jobs').select('*').order('created_at').range(from, from + 999);
+    if (error) throw error;
+    out.push(...data.map(rowToJob));
+    if (data.length < 1000) return out;
+  }
+}
+async function apiLoad(){
+  if (!CLOUD) return readLocal();
+  const [jobs, setRes] = await Promise.all([fetchAllJobs(), sb.from('app_settings').select('data').eq('id', 1).maybeSingle()]);
+  if (setRes.error) throw setRes.error;
+  return {jobs, settings:{...clone(DEFAULT_SETTINGS), ...(setRes.data?.data || {})}, seq:0};
+}
+async function apiSaveJob(job){
+  if (!CLOUD){
+    if (!job.id){ job.id = uid(); if (!job.jobNo) job.jobNo = nextJobNo(job.receivedDate); }
+    return job;
+  }
+  const row = jobToRow(job);
+  const q = job.id ? sb.from('jobs').update(row).eq('id', job.id) : sb.from('jobs').insert(row);
+  const {data, error} = await q.select().single();
+  if (error) throw error;
+  return rowToJob(data);
+}
+async function apiInsertMany(jobs){
+  if (!CLOUD) return jobs.map(j => ({...j, id:uid()}));
+  const out = [];
+  for (let i = 0; i < jobs.length; i += 500){
+    const {data, error} = await sb.from('jobs').insert(jobs.slice(i, i + 500).map(jobToRow)).select();
+    if (error) throw error;
+    out.push(...data.map(rowToJob));
+  }
+  return out;
+}
+async function apiDeleteJob(id){
+  if (!CLOUD) return;
+  const {error} = await sb.from('jobs').delete().eq('id', id);
+  if (error) throw error;
+}
+async function apiDeleteAll(){
+  if (!CLOUD) return;
+  const {error} = await sb.from('jobs').delete().not('id', 'is', null);
+  if (error) throw error;
+}
+async function apiSaveSettings(settings){
+  if (!CLOUD) return;
+  const {error} = await sb.from('app_settings').upsert({id:1, data:settings});
+  if (error) throw error;
+}
+async function safe(fn){
+  try { return await fn(); }
+  catch(err){ console.error(err); toast('ผิดพลาด: ' + (err.message || err), 'alert'); render(); return undefined; }
+}
+function mergeJob(job){
+  const i = db.jobs.findIndex(j => j.id === job.id);
+  if (i >= 0) db.jobs[i] = job; else db.jobs.push(job);
+}
+
+// Live updates from teammates
+let renderTimer;
+function scheduleRender(){ clearTimeout(renderTimer); renderTimer = setTimeout(() => { if (view !== 'settings') render(); }, 150); }
+function subscribeRealtime(){
+  sb.channel('job-schedule')
+    .on('postgres_changes', {event:'*', schema:'public', table:'jobs'}, p => {
+      if (p.eventType === 'DELETE') db.jobs = db.jobs.filter(j => j.id !== p.old.id);
+      else mergeJob(rowToJob(p.new));
+      scheduleRender();
+    })
+    .on('postgres_changes', {event:'*', schema:'public', table:'app_settings'}, p => {
+      if (p.new?.data){ db.settings = {...clone(DEFAULT_SETTINGS), ...p.new.data}; scheduleRender(); }
+    })
+    .subscribe();
+}
+function nextJobNo(dateStr){
+  db.seq += 1;
+  return `JOB-${(dateStr || today()).slice(0,4)}-${String(db.seq).padStart(4,'0')}`;
+}
+function emptyJob(){
+  const t = today();
+  return {id:'', jobNo:'', title:'', receivedDate:t, startDate:t, dueDate:'', finishDate:'', assigner:'', department:'', assignee:'',
+    status:db.settings.statuses[0]?.name || '', priority:'ปกติ', jobType:'', modules:[], system:db.settings.systems[0] || '', server:'',
+    projectName:'', formPath:'', buttonWork:'', note:'', deploySTD66:false, deployLIVE:false, deploySTD66Date:'', deployLIVEDate:'',
+    estHours:'', actualHours:'', refLink:'', tags:[], history:[], createdAt:'', updatedAt:''};
+}
+function stampNew(job, now = new Date().toISOString()){
+  job.id = '';
+  job.createdAt = job.updatedAt = now;
+  job.history = [{at:now, from:'', to:job.status, by:currentUser?.email || ''}];
+  return job;
+}
+async function upsertJob(job){
+  const now = new Date().toISOString();
+  const old = job.id ? db.jobs.find(j => j.id === job.id) : null;
+  if (old){
+    if (old.status !== job.status) job.history = [...(old.history || []), {at:now, from:old.status, to:job.status, by:currentUser?.email || ''}];
+    job.updatedAt = now;
+  } else stampNew(job, now);
+  const saved = await apiSaveJob(job);
+  mergeJob(saved);
+  persistLocal();
+  return saved;
+}
+// Bulk insert (import / sample / restore / migrate). Keeps incoming Job No unless it already exists.
+async function insertJobs(jobs){
+  const used = new Set(db.jobs.map(j => j.jobNo));
+  jobs.forEach(j => {
+    if (j.jobNo && used.has(j.jobNo)) j.jobNo = '';
+    if (!CLOUD){
+      if (!j.jobNo) j.jobNo = nextJobNo(j.receivedDate);
+      else db.seq = Math.max(db.seq, +(j.jobNo.match(/(\d+)$/)?.[1] || 0));
+    }
+    if (j.jobNo) used.add(j.jobNo);
+  });
+  const saved = await apiInsertMany(jobs);
+  saved.forEach(mergeJob);
+  persistLocal();
+  return saved;
+}
+async function setStatus(id, status){
+  const j = db.jobs.find(x => x.id === id);
+  if (!j || j.status === status) return;
+  const copy = {...j, status};
+  if (isDoneStatus(status) && !copy.finishDate) copy.finishDate = today();
+  return upsertJob(copy);
+}
+async function deleteJob(id){
+  await apiDeleteJob(id);
+  db.jobs = db.jobs.filter(j => j.id !== id);
+  persistLocal();
+}
+
+/* ================= Domain helpers ================= */
+const statusObj = name => db.settings.statuses.find(s => s.name === name);
+const statusColor = name => statusObj(name)?.color || '#94a3b8';
+const isDoneStatus = name => !!statusObj(name)?.done;
+const isDone = j => isDoneStatus(j.status);
+const isOverdue = j => !isDone(j) && j.dueDate && j.dueDate < today();
+const displayTitle = j => j.title || (j.projectName || '').split('\n')[0] || (j.note || '').slice(0,70) || j.formPath || '(ไม่มีชื่อ)';
+function jobRange(j){
+  const s = j.startDate || j.receivedDate || j.dueDate;
+  let e = j.dueDate || s;
+  if (e && s && e < s) e = s;
+  return [s, e];
+}
+const overlaps = (j, from, to) => { const [s, e] = jobRange(j); return s && s <= to && e >= from; };
+const pill = status => `<span class="pill" style="--c:${statusColor(status)}">${esc(status || '-')}</span>`;
+const priorityBadge = p => p ? `<span class="prio ${p === 'ปกติ' ? 'normal' : ''}" style="--c:${PRIORITY_COLORS[p] || '#64748b'}">${p === 'ด่วน' || p === 'สูง' ? icon('flag','sm') : ''}${esc(p)}</span>` : '';
+const tagsHtml = arr => (arr || []).map(m => `<span class="tag">${esc(m)}</span>`).join('');
+function person(name, withName = true){
+  if (!name) return '<span class="muted">—</span>';
+  const base = name.replace(/^(พี่|น้อง|คุณ)\s*/, '') || name;
+  const initial = /^[เแโใไ]/.test(base) ? base.slice(0, 2) : base.charAt(0);
+  let h = 0; for (const ch of name) h = (h * 31 + ch.codePointAt(0)) % 360;
+  return `<span class="person" title="${esc(name)}"><span class="avatar" style="background:hsl(${h} 55% 50%)">${esc(initial.toUpperCase())}</span>${withName ? esc(name) : ''}</span>`;
+}
+function dueChip(j, showDate = false){
+  if (!j.dueDate) return '';
+  if (isDone(j)) return `<span class="due ok">${icon('check','sm')}${fmtDate(j.finishDate || j.dueDate)}</span>`;
+  const n = daysUntil(j.dueDate), d = showDate ? fmtDate(j.dueDate) + ' · ' : '';
+  if (n < 0) return `<span class="due bad">${icon('alert','sm')}${d}เลย ${-n} วัน</span>`;
+  if (n === 0) return `<span class="due soon">${icon('clock','sm')}${d}วันนี้</span>`;
+  if (n <= 3) return `<span class="due soon">${icon('clock','sm')}${d}อีก ${n} วัน</span>`;
+  return `<span class="due">${icon('calendar','sm')}${fmtDate(j.dueDate)}</span>`;
+}
+
+/* ================= Filters ================= */
+const F_DEFAULT = {q:'', dateField:'dueDate', from:'', to:'', assigner:'', module:'', system:'', server:'', status:'', priority:'', std66:'', live:'', quick:''};
+const F = {...F_DEFAULT};
+const FILTER_INPUTS = {fq:'q', fDateField:'dateField', fFrom:'from', fTo:'to', fAssigner:'assigner', fModule:'module', fSystem:'system', fServer:'server', fStatus:'status', fPriority:'priority', fStd66:'std66', fLive:'live'};
+const ADV_LABELS = {from:'ตั้งแต่', to:'ถึง', assigner:'ผู้มอบหมาย', module:'Module', system:'ประเภท', server:'Server', status:'สถานะ', priority:'ความสำคัญ', std66:'STD66', live:'LIVE'};
+
+function filtered(){
+  const q = F.q.trim().toLowerCase();
+  const now = new Date();
+  const ws = weekStart(now), wFrom = iso(ws), wTo = iso(addDays(ws, 6));
+  const mFrom = iso(new Date(now.getFullYear(), now.getMonth(), 1)), mTo = iso(new Date(now.getFullYear(), now.getMonth()+1, 0));
+  return db.jobs.filter(j => {
+    if (q){
+      const hay = [j.jobNo, j.title, j.projectName, j.formPath, j.note, j.buttonWork, j.assigner, j.server, (j.modules||[]).join(' '), (j.tags||[]).join(' ')].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (F.from || F.to){
+      const d = j[F.dateField];
+      if (!d || (F.from && d < F.from) || (F.to && d > F.to)) return false;
+    }
+    if (F.assigner && j.assigner !== F.assigner) return false;
+    if (F.module && !(j.modules || []).includes(F.module)) return false;
+    if (F.system && j.system !== F.system) return false;
+    if (F.server && j.server !== F.server) return false;
+    if (F.status && j.status !== F.status) return false;
+    if (F.priority && j.priority !== F.priority) return false;
+    if (F.std66 && !!j.deploySTD66 !== (F.std66 === 'yes')) return false;
+    if (F.live && !!j.deployLIVE !== (F.live === 'yes')) return false;
+    if (F.quick === 'week' && !overlaps(j, wFrom, wTo)) return false;
+    if (F.quick === 'month' && !overlaps(j, mFrom, mTo)) return false;
+    if (F.quick === 'overdue' && !isOverdue(j)) return false;
+    if (F.quick === 'pendingLive' && !(j.deploySTD66 && !j.deployLIVE)) return false;
+    return true;
+  });
+}
+function fillSelect(sel, values, allLabel){
+  const cur = sel.value;
+  sel.innerHTML = (allLabel != null ? `<option value="">${esc(allLabel)}</option>` : '') + values.map(v => `<option>${esc(v)}</option>`).join('');
+  if (values.includes(cur) || cur === '') sel.value = cur;
+}
+function lists(){
+  const s = db.settings, J = db.jobs;
+  return {
+    assigners: uniq([...s.assigners, ...J.map(j => j.assigner)]),
+    departments: uniq([...s.departments, ...J.map(j => j.department)]),
+    modules: uniq([...s.modules, ...J.flatMap(j => j.modules || [])]),
+    systems: uniq([...s.systems, ...J.map(j => j.system)]),
+    servers: uniq([...s.servers, ...J.map(j => j.server)]),
+    statuses: uniq([...s.statuses.map(x => x.name), ...J.map(j => j.status)]),
+    priorities: s.priorities,
+    jobTypes: s.jobTypes,
+  };
+}
+function refreshOptions(){
+  const L = lists();
+  fillSelect($('#fAssigner'), L.assigners, 'ทั้งหมด');
+  fillSelect($('#fModule'), L.modules, 'ทั้งหมด');
+  fillSelect($('#fSystem'), L.systems, 'ทั้งหมด');
+  fillSelect($('#fServer'), L.servers, 'ทั้งหมด');
+  fillSelect($('#fStatus'), L.statuses, 'ทั้งหมด');
+  fillSelect($('#fPriority'), L.priorities, 'ทั้งหมด');
+  $('#dlAssigner').innerHTML = L.assigners.map(v => `<option value="${esc(v)}">`).join('');
+  $('#dlDepartment').innerHTML = L.departments.map(v => `<option value="${esc(v)}">`).join('');
+  $('#dlServer').innerHTML = L.servers.map(v => `<option value="${esc(v)}">`).join('');
+}
+function syncFilterUI(){
+  for (const [id, k] of Object.entries(FILTER_INPUTS)){ const el = $('#' + id); if (el.value !== F[k]) el.value = F[k]; }
+  $$('[data-quick]').forEach(b => b.classList.toggle('active', F.quick === b.dataset.quick));
+  const active = Object.keys(ADV_LABELS).filter(k => F[k]);
+  $('#advCount').hidden = !active.length;
+  $('#advCount').textContent = active.length;
+  const val = k => (k === 'std66' || k === 'live') ? (F[k] === 'yes' ? 'ขึ้นแล้ว' : 'ยังไม่ขึ้น') : (k === 'from' || k === 'to') ? fmtDate(F[k]) : F[k];
+  $('#activeFilters').innerHTML = active.length ? active.map(k => `<span class="fchip">${ADV_LABELS[k]}: ${esc(val(k))}<button data-unf="${k}" title="เอาออก">${icon('x','sm')}</button></span>`).join('')
+    + `<button class="linklike" data-clear>ล้างตัวกรองทั้งหมด</button>` : '';
+}
+
+/* ================= Views ================= */
+let view = getPrefs().view || 'dashboard';
+const views = {dashboard:renderDashboard, table:renderTable, kanban:renderKanban, calendar:renderCalendar, settings:renderSettings};
+const PAGE = {
+  dashboard: ['ภาพรวม', () => {
+    const open = db.jobs.filter(j => !isDone(j));
+    const overdue = open.filter(isOverdue).length, soon = open.filter(j => j.dueDate && !isOverdue(j) && daysUntil(j.dueDate) <= 3).length;
+    const parts = [`${fmtDate(today())} ${new Date().getFullYear()}`, `งานค้าง ${open.length} งาน`];
+    if (overdue) parts.push(`เลยกำหนด ${overdue}`);
+    if (soon) parts.push(`ครบกำหนดใน 3 วัน ${soon}`);
+    return parts.join(' · ');
+  }],
+  table: ['ตารางงาน', () => 'บันทึกและแก้ไขงานทั้งหมด — คลิกแถวเพื่อเปิดรายละเอียด'],
+  kanban: ['บอร์ด Kanban', () => 'ลากการ์ดเพื่อเปลี่ยนสถานะ'],
+  calendar: ['ปฏิทินงาน', () => 'งานแสดงตามช่วงวันที่เริ่ม → วันที่ส่ง'],
+  settings: ['ข้อมูล & ตั้งค่า', () => 'นำเข้า / ส่งออกข้อมูล และจัดการตัวเลือกในฟอร์ม'],
+};
+function renderPageHead(){
+  const [title, sub] = PAGE[view];
+  const hidden = hiddenCols;
+  const tableTools = view === 'table' ? `
+    <details class="colpicker"><summary class="btn">${icon('columns','sm')}คอลัมน์</summary>
+      <div class="menu">${TABLE_COLS.map(c => `<label><input type="checkbox" data-col="${c.key}" ${hidden.has(c.key) ? '' : 'checked'}> ${esc(c.label)}</label>`).join('')}</div>
+    </details>
+    <button class="btn" data-io="import">${icon('upload','sm')}Import</button>
+    <button class="btn" data-io="xlsx">${icon('download','sm')}Export Excel</button>` : '';
+  $('#pageHead').innerHTML = `<div><h1>${esc(title)}</h1><p>${esc(sub())}</p></div>
+    <div class="page-actions">${tableTools}${view !== 'settings' ? `<button class="btn primary" data-new>${icon('plus','sm')}เพิ่มงาน</button>` : ''}</div>`;
+  $$('[data-col]').forEach(cb => cb.onchange = () => {
+    cb.checked ? hiddenCols.delete(cb.dataset.col) : hiddenCols.add(cb.dataset.col);
+    setPref('hiddenCols', [...hiddenCols]);
+    render(); $('.colpicker').open = true;
+  });
+}
+function render(){
+  $$('.nav-item[data-view]').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  const overdue = db.jobs.filter(isOverdue).length;
+  const cDash = $('[data-count="dashboard"]');
+  cDash.textContent = overdue || ''; cDash.classList.toggle('bad', overdue > 0); cDash.title = overdue ? `เลยกำหนด ${overdue} งาน` : '';
+  $('[data-count="table"]').textContent = db.jobs.length || '';
+  $('[data-count="kanban"]').textContent = db.jobs.filter(j => !isDone(j)).length || '';
+  $('#toolbar').hidden = view === 'settings';
+  renderSideStats();
+  renderPageHead();
+  refreshOptions();
+  syncFilterUI();
+  const jobs = filtered();
+  $('#resultCount').textContent = `${jobs.length} จาก ${db.jobs.length} งาน`;
+  destroyCharts();
+  if (view !== 'settings' && !db.jobs.length) return renderWelcome();
+  views[view](jobs);
+}
+function go(v){
+  view = v; setPref('view', v); render(); window.scrollTo(0, 0);
+  const el = $('#view'); el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
+}
+function renderSideStats(){
+  const now = new Date();
+  const mFrom = iso(new Date(now.getFullYear(), now.getMonth(), 1)), mTo = iso(new Date(now.getFullYear(), now.getMonth()+1, 0));
+  const month = db.jobs.filter(j => overlaps(j, mFrom, mTo) && j.status !== 'ยกเลิก');
+  const done = month.filter(isDone).length, pct = month.length ? Math.round(done / month.length * 100) : 0;
+  $('#sideStats').innerHTML = month.length ? `<div class="side-card"><div class="sc-head"><span>ความคืบหน้า ${TH_MONTHS[now.getMonth()]}</span><b>${pct}%</b></div>
+    <div class="bar"><i style="width:${pct}%"></i></div><small>เสร็จ ${done} จาก ${month.length} งานในเดือนนี้</small></div>` : '';
+}
+
+function renderWelcome(){
+  $('#view').innerHTML = `<div class="card empty-state">
+    <div class="e-icon">${icon('calcheck')}</div>
+    <h3>ยังไม่มีงานในระบบ</h3>
+    <p>เริ่มบันทึกงานแรก นำเข้าจากไฟล์ Excel เดิม หรือลองโหลดข้อมูลตัวอย่างเพื่อดูหน้าตาระบบ</p>
+    <div class="btns"><button class="btn primary" data-new>${icon('plus','sm')}เพิ่มงานแรก</button>
+      <button class="btn" data-io="import">${icon('upload','sm')}Import Excel</button>
+      <button class="btn" data-io="sample">${icon('flask','sm')}โหลดข้อมูลตัวอย่าง</button></div></div>`;
+}
+const noMatch = () => `<div class="card empty-state"><div class="e-icon">${icon('search')}</div><h3>ไม่พบงานที่ตรงกับตัวกรอง</h3><p>ลองเปลี่ยนคำค้นหาหรือเงื่อนไขตัวกรอง</p><div class="btns"><button class="btn" data-clear>ล้างตัวกรอง</button></div></div>`;
+
+/* ---------- Dashboard ---------- */
+let charts = [];
+function destroyCharts(){ charts.forEach(c => c.destroy()); charts = []; }
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function countBy(jobs, fn){
+  const m = new Map();
+  jobs.forEach(j => [].concat(fn(j)).forEach(k => { k = k || '(ไม่ระบุ)'; m.set(k, (m.get(k)||0) + 1); }));
+  return [...m.entries()].sort((a,b) => b[1] - a[1]);
+}
+function renderDashboard(jobs){
+  const t = today(), now = new Date();
+  const mFrom = iso(new Date(now.getFullYear(), now.getMonth(), 1)), mTo = iso(new Date(now.getFullYear(), now.getMonth()+1, 0));
+  const doneDate = j => j.finishDate || (isDone(j) ? j.dueDate : '');
+  const in7 = iso(addDays(now, 7));
+  const upcoming = jobs.filter(j => !isDone(j) && j.dueDate && j.dueDate >= t && j.dueDate <= in7).sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+  const overdue = jobs.filter(isOverdue).sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+  const pendingLive = jobs.filter(j => j.deploySTD66 && !j.deployLIVE);
+  const kpi = (q, tone, ic, label, value, sub) => `<button class="card kpi" data-kq="${q}" style="--tone:${tone}"><span class="kpi-icon">${icon(ic)}</span><span><span class="kpi-value">${value}</span><br><span class="kpi-label">${label}</span>${sub}</span></button>`;
+  const doneCount = jobs.filter(isDone).length, pct = jobs.length ? Math.round(doneCount / jobs.length * 100) : 0;
+  const activeJobs = jobs.filter(j => !isDone(j));
+  const doneMonth = jobs.filter(j => isDone(j) && doneDate(j) >= mFrom && doneDate(j) <= mTo).length;
+  const li = j => `<li data-id="${j.id}">${person(j.assigner, false)}<span class="grow"><b>${esc(displayTitle(j))}</b><small>${esc(j.jobNo)} · ${esc((j.modules||[]).join(', ') || j.system || '-')}</small></span>${dueChip(j)}</li>`;
+  const liLive = j => `<li data-id="${j.id}">${person(j.assigner, false)}<span class="grow"><b>${esc(displayTitle(j))}</b><small>${esc(j.jobNo)} · STD66 ${fmtDate(j.deploySTD66Date) || '✓'}</small></span><span class="dep on">STD66</span></li>`;
+  const listCard = (title, ic, items, fn, empty) => `<div class="card"><div class="card-head">${icon(ic,'sm')}<h3>${title}</h3><span class="sub">${items.length} งาน</span></div>
+    <div class="card-body"><ul class="list">${items.slice(0, 8).map(fn).join('') || `<li class="list-empty">${empty}</li>`}</ul></div></div>`;
+
+  $('#view').innerHTML = !jobs.length ? noMatch() : `
+    <div class="kpis">
+      ${kpi('', cssVar('--accent'), 'briefcase', 'งานทั้งหมด', jobs.length, `<span class="bar"><i style="width:${pct}%"></i></span><span class="kpi-sub">เสร็จแล้ว ${pct}%</span>`)}
+      ${kpi('active', '#3b82f6', 'activity', 'ยังไม่เสร็จ', activeJobs.length, `<span class="kpi-sub">กำลังทำ ${activeJobs.filter(j => j.status === 'กำลังทำ').length} งาน</span>`)}
+      ${kpi('overdue', '#e11d48', 'alert', 'เลยกำหนด', overdue.length, `<span class="kpi-sub">${overdue.length ? 'ควรเร่งดำเนินการ' : 'ไม่มีงานค้างเกินกำหนด'}</span>`)}
+      ${kpi('month', '#10b981', 'checkcircle', 'เสร็จเดือนนี้', doneMonth, `<span class="kpi-sub">${TH_MONTHS[now.getMonth()]} ${now.getFullYear()}</span>`)}
+      ${kpi('pendingLive', '#f59e0b', 'cloud', 'รอขึ้น LIVE', pendingLive.length, `<span class="kpi-sub">ผ่าน STD66 แล้ว</span>`)}
+    </div>
+    <div class="grid3" style="margin-bottom:14px">
+      ${listCard('เลยกำหนด', 'alert', overdue, li, 'ไม่มีงานเลยกำหนด')}
+      ${listCard('ใกล้ครบกำหนด (7 วัน)', 'clock', upcoming, li, 'ไม่มีงานใกล้ครบกำหนด')}
+      ${listCard('รอขึ้น LIVE', 'cloud', pendingLive, liLive, 'ไม่มีงานค้างขึ้น LIVE')}
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-head"><h3>งานตามสถานะ</h3></div><div class="card-body"><div class="chart-box"><canvas id="cStatus"></canvas></div></div></div>
+      <div class="card"><div class="card-head"><h3>งานรับเข้า / เสร็จ รายสัปดาห์</h3><span class="sub">8 สัปดาห์ล่าสุด</span></div><div class="card-body"><div class="chart-box"><canvas id="cWeek"></canvas></div></div></div>
+      <div class="card"><div class="card-head"><h3>งานตาม Module</h3></div><div class="card-body"><div class="chart-box"><canvas id="cModule"></canvas></div></div></div>
+      <div class="card"><div class="card-head"><h3>งานตามผู้มอบหมาย</h3></div><div class="card-body"><div class="chart-box"><canvas id="cAssigner"></canvas></div></div></div>
+    </div>`;
+  if (!jobs.length) return;
+
+  $$('.kpi').forEach(el => el.onclick = () => { const q = el.dataset.kq; F.quick = q === 'active' ? '' : q; if (q === 'active') go('kanban'); else go('table'); });
+  $$('.list li[data-id]').forEach(el => el.onclick = () => openForm(db.jobs.find(j => j.id === el.dataset.id)));
+
+  if (typeof Chart === 'undefined'){ $$('.chart-box').forEach(b => b.innerHTML = '<p class="list-empty">โหลด Chart.js ไม่ได้ (ออฟไลน์?)</p>'); return; }
+  Chart.defaults.font.family = '"IBM Plex Sans Thai", system-ui, sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = cssVar('--muted');
+  Chart.defaults.borderColor = cssVar('--border');
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+  const accent = cssVar('--accent'), ok = cssVar('--ok');
+
+  const st = countBy(jobs, j => j.status);
+  const centerText = {id:'centerText', afterDraw(c){
+    const {ctx, chartArea:{left, right, top, bottom}} = c, x = (left + right) / 2, y = (top + bottom) / 2;
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = cssVar('--text'); ctx.font = '700 30px "IBM Plex Sans Thai", sans-serif'; ctx.fillText(jobs.length, x, y - 6);
+    ctx.fillStyle = cssVar('--muted'); ctx.font = '12px "IBM Plex Sans Thai", sans-serif'; ctx.fillText('งานทั้งหมด', x, y + 18);
+    ctx.restore();
+  }};
+  charts.push(new Chart($('#cStatus'), {type:'doughnut', plugins:[centerText],
+    data:{labels:st.map(x => `${x[0]}  ${x[1]}`), datasets:[{data:st.map(x => x[1]), backgroundColor:st.map(x => statusColor(x[0])), borderColor:cssVar('--surface'), borderWidth:3, hoverOffset:6, borderRadius:4}]},
+    options:{maintainAspectRatio:false, cutout:'74%', layout:{padding:8}, plugins:{legend:{position:'right', labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, boxHeight:8, padding:14, color:cssVar('--text-2')}}}}}));
+
+  const bar = (id, data) => charts.push(new Chart($(id), {type:'bar',
+    data:{labels:data.map(x => x[0]), datasets:[{data:data.map(x => x[1]), backgroundColor:alpha(accent, .85), hoverBackgroundColor:accent, borderRadius:6, maxBarThickness:22}]},
+    options:{maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}, border:{display:false}}, y:{grid:{display:false}, border:{display:false}}}}}));
+  bar('#cModule', countBy(jobs, j => (j.modules && j.modules.length) ? j.modules : '').slice(0, 10));
+  bar('#cAssigner', countBy(jobs, j => j.assigner).slice(0, 10));
+
+  const ws0 = addDays(weekStart(now), -7*7);
+  const weeks = Array.from({length:8}, (_, i) => addDays(ws0, i*7));
+  const inWeek = (d, w) => d && d >= iso(w) && d <= iso(addDays(w, 6));
+  const line = (label, color, data) => ({label, data, borderColor:color, backgroundColor:alpha(color, .12), fill:true, tension:.35, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:color, borderWidth:2});
+  charts.push(new Chart($('#cWeek'), {type:'line',
+    data:{labels:weeks.map(w => `${w.getDate()} ${TH_SHORT[w.getMonth()]}`),
+      datasets:[
+        line('รับเข้า', accent, weeks.map(w => jobs.filter(j => inWeek(j.receivedDate, w)).length)),
+        line('เสร็จ', ok, weeks.map(w => jobs.filter(j => isDone(j) && inWeek(doneDate(j), w)).length)),
+      ]},
+    options:{maintainAspectRatio:false, interaction:{mode:'index', intersect:false}, plugins:{legend:{position:'bottom', labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, boxHeight:8, padding:16}}},
+      scales:{y:{beginAtZero:true, ticks:{precision:0}, border:{display:false}}, x:{grid:{display:false}}}}}));
+}
+
+/* ---------- Table ---------- */
+let sort = getPrefs().sort || {key:'receivedDate', dir:1};
+function cellHtml(j, c){
+  const v = j[c.key];
+  if (c.type === 'bool') return `<span class="dep-toggle ${v ? 'on' : ''}" data-toggle="${c.key}" title="คลิกเพื่อสลับ">${icon('check','sm')}</span>`;
+  if (c.type === 'list') return tagsHtml(v);
+  if (c.type === 'link') return v ? `<a href="${esc(v)}" target="_blank" rel="noopener">${icon('link','sm')} เปิด</a>` : '';
+  if (c.key === 'dueDate') return (!v || isDone(j) || daysUntil(v) > 3) ? `<span title="${esc(v)}">${fmtDate(v)}</span>` : dueChip(j, true);
+  if (c.type === 'date') return `<span title="${esc(v)}">${fmtDate(v)}</span>`;
+  switch (c.key){
+    case 'work': {
+      const lines = (j.projectName || '').split('\n').map(x => x.trim()).filter(Boolean);
+      const head = j.title || lines.shift() || displayTitle(j);
+      return `<div class="work"><b>${esc(head)}</b>${lines.length ? `<span class="mono sub1">${esc(lines.join(' · '))}</span>` : ''}${j.note && j.note !== head ? `<span class="sub">${esc(j.note)}</span>` : ''}</div>`;
+    }
+    case 'status': return pill(v);
+    case 'priority': return priorityBadge(v);
+    case 'assigner': case 'assignee': return person(v);
+    case 'jobNo': return `<span class="mono muted">${esc(v)}</span>`;
+    default: return esc(v);
+  }
+}
+function sortVal(j, k){ if (k === 'work') return displayTitle(j).toLowerCase(); const v = j[k]; return Array.isArray(v) ? v.join(',') : (typeof v === 'boolean' ? (v?1:0) : (v ?? '')); }
+function renderTable(jobs){
+  if (!jobs.length){ $('#view').innerHTML = noMatch(); return; }
+  const hidden = hiddenCols;
+  const cols = TABLE_COLS.filter(c => !hidden.has(c.key));
+  const rows = [...jobs].sort((a, b) => {
+    const x = sortVal(a, sort.key), y = sortVal(b, sort.key);
+    return (x < y ? -1 : x > y ? 1 : (a.jobNo || '').localeCompare(b.jobNo || '')) * sort.dir;
+  });
+  // keep Job No + งาน pinned on the left while scrolling sideways
+  const stick = {};
+  if (cols[0]?.key === 'jobNo'){ stick.jobNo = 0; if (cols[1]?.key === 'work') stick.work = 136; }
+  else if (cols[0]?.key === 'work') stick.work = 0;
+  const lastStick = Object.keys(stick).pop();
+  const cellAttrs = c => {
+    const cls = [`c-${c.key}`, c.type === 'bool' ? 'center' : '', c.cls || ''];
+    if (c.key in stick) cls.push('stick', c.key === lastStick ? 'stick-last' : '');
+    return `class="${cls.join(' ')}"${c.key in stick ? ` style="left:${stick[c.key]}px"` : ''}`;
+  };
+  $('#view').innerHTML = `<div class="card table-card"><div class="table-scroll"><table class="jobs">
+    <thead><tr>${cols.map(c => `<th data-sort="${c.key}" ${cellAttrs(c).replace('class="', `class="${sort.key === c.key ? 'sorted ' : ''}`)}>${esc(c.label)}${sort.key === c.key ? `<span class="arr">${sort.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}<th></th></tr></thead>
+    <tbody>${rows.map(j => `<tr data-id="${j.id}" class="${isOverdue(j) ? 'overdue' : ''}">
+      ${cols.map(c => `<td ${cellAttrs(c)}>${cellHtml(j, c)}</td>`).join('')}
+      <td class="acts"><button class="icon-btn" data-act="dup" title="Duplicate">${icon('copy','sm')}</button><button class="icon-btn danger" data-act="del" title="ลบ">${icon('trash','sm')}</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`;
+
+  $$('th[data-sort]').forEach(th => th.onclick = () => {
+    const k = th.dataset.sort;
+    sort = {key:k, dir: sort.key === k ? -sort.dir : 1};
+    setPref('sort', sort); render();
+  });
+  $('tbody').onclick = e => {
+    if (e.target.closest('a')) return;
+    const tr = e.target.closest('tr[data-id]'); if (!tr) return;
+    const job = db.jobs.find(j => j.id === tr.dataset.id);
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    const tog = e.target.closest('[data-toggle]')?.dataset.toggle;
+    if (act === 'dup') duplicate(job);
+    else if (act === 'del'){ if (confirm(`ลบงาน ${job.jobNo}?`)) safe(async () => { await deleteJob(job.id); render(); toast('ลบงานแล้ว', 'trash'); }); }
+    else if (tog){
+      const copy = {...job, [tog]: !job[tog]};
+      const dk = tog + 'Date';
+      if (copy[tog] && !copy[dk]) copy[dk] = today();
+      safe(async () => {
+        await upsertJob(copy); render();
+        toast(`${COL[tog].label} ${copy[tog] ? 'ขึ้นแล้ว' : 'ยกเลิก'} — ${job.jobNo}`);
+      });
+    }
+    else openForm(job);
+  };
+}
+
+/* ---------- Kanban ---------- */
+function renderKanban(jobs){
+  const names = uniq([...db.settings.statuses.map(s => s.name), ...jobs.map(j => j.status)]);
+  $('#view').innerHTML = `<div class="kanban">${names.map(n => {
+    const items = jobs.filter(j => (j.status || '') === n).sort((a,b) => (a.dueDate || '9').localeCompare(b.dueDate || '9'));
+    return `<div class="kcol" data-status="${esc(n)}" style="--c:${statusColor(n)}">
+      <div class="kcol-head"><span class="dot" style="background:${statusColor(n)}"></span>${esc(n)}<span class="cnt">${items.length}</span>
+        <button class="icon-btn" data-new-status="${esc(n)}" title="เพิ่มงานในสถานะนี้">${icon('plus','sm')}</button></div>
+      ${items.map(j => `<div class="kcard" draggable="true" data-id="${j.id}">
+        <div class="top"><span class="mono">${esc(j.jobNo)}</span>${j.priority !== 'ปกติ' ? priorityBadge(j.priority) : ''}<span class="sys">${esc(j.system)}</span></div>
+        <div class="t">${esc(displayTitle(j))}</div>
+        ${j.note && j.note !== displayTitle(j) ? `<div class="desc">${esc(j.note)}</div>` : ''}
+        <div>${tagsHtml(j.modules)}</div>
+        <div class="foot">${person(j.assigner, false)}${dueChip(j)}
+          <span class="deps"><span class="dep ${j.deploySTD66 ? 'on' : ''}">STD66</span><span class="dep ${j.deployLIVE ? 'on' : ''}">LIVE</span></span></div>
+      </div>`).join('') || '<div class="kcol-empty">ยังไม่มีงาน<br>ลากการ์ดมาวางที่นี่</div>'}
+    </div>`;
+  }).join('')}</div>`;
+
+  $$('.kcard').forEach(c => {
+    c.ondragstart = e => { e.dataTransfer.setData('text/plain', c.dataset.id); c.classList.add('dragging'); };
+    c.ondragend = () => c.classList.remove('dragging');
+    c.onclick = () => openForm(db.jobs.find(j => j.id === c.dataset.id));
+  });
+  $$('.kcol').forEach(col => {
+    col.ondragover = e => { e.preventDefault(); col.classList.add('drop'); };
+    col.ondragleave = e => { if (!col.contains(e.relatedTarget)) col.classList.remove('drop'); };
+    col.ondrop = e => {
+      e.preventDefault(); col.classList.remove('drop');
+      const id = e.dataTransfer.getData('text/plain'), job = db.jobs.find(j => j.id === id), to = col.dataset.status;
+      if (!job || job.status === to) return;
+      const card = $$('.kcard').find(c => c.dataset.id === id);
+      if (card) col.appendChild(card); // optimistic move while saving
+      safe(async () => { await setStatus(id, to); render(); toast(`${job.jobNo} → ${to}`); });
+    };
+  });
+  $$('[data-new-status]').forEach(b => b.onclick = () => openForm({...emptyJob(), status:b.dataset.newStatus}, true));
+}
+
+/* ---------- Calendar ---------- */
+let calMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+const calExpanded = new Set();
+function renderCalendar(jobs){
+  const first = calMonth, start = weekStart(first), t = today();
+  const ranged = jobs.map(j => { const [s, e] = jobRange(j); return s ? {j, s, e} : null; }).filter(Boolean);
+  const MAX_LANES = 3, monthKey = iso(first);
+  const weeks = Array.from({length:6}, (_, w) => {
+    const ws = addDays(start, w * 7), wFrom = iso(ws), wTo = iso(addDays(ws, 6));
+    const idx = s => Math.round((parseISO(s) - ws) / 86400000);
+    // clip each job to this week, then pack into lanes (longest first so bars don't fragment)
+    const segs = ranged.filter(x => x.s <= wTo && x.e >= wFrom)
+      .map(x => ({...x, a:Math.max(0, idx(x.s)), b:Math.min(6, idx(x.e)), cl:x.s < wFrom, cr:x.e > wTo}))
+      .sort((p, q) => p.a - q.a || (q.b - q.a) - (p.b - p.a));
+    const laneEnds = [];
+    segs.forEach(sg => {
+      let l = laneEnds.findIndex(end => end < sg.a);
+      if (l < 0){ l = laneEnds.length; laneEnds.push(-1); }
+      laneEnds[l] = sg.b; sg.lane = l;
+    });
+    const expanded = calExpanded.has(`${monthKey}:${w}`);
+    const hidden = Array(7).fill(0);
+    segs.filter(sg => sg.lane >= MAX_LANES).forEach(sg => { for (let d = sg.a; d <= sg.b; d++) hidden[d]++; });
+    const lanes = expanded ? laneEnds.length : Math.min(laneEnds.length, MAX_LANES);
+    const minH = Math.max(112, 40 + lanes * 26 + (hidden.some(Boolean) ? 22 : 6));
+    return {w, ws, segs, hidden, expanded, minH};
+  });
+  $('#view').innerHTML = `<div class="card">
+    <div class="cal-bar">
+      <h2>${TH_MONTHS[first.getMonth()]} ${first.getFullYear()}</h2>
+      <button class="icon-btn" data-cal="-1" title="เดือนก่อน">${icon('left')}</button>
+      <button class="btn sm" data-cal="0">วันนี้</button>
+      <button class="icon-btn" data-cal="1" title="เดือนถัดไป">${icon('right')}</button>
+      <div class="legend">${db.settings.statuses.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>
+    </div>
+    <div class="cal">
+      <div class="cal-dow">${TH_DOW.map(d => `<div>${d}</div>`).join('')}</div>
+      ${weeks.map(wk => `<div class="week ${wk.expanded ? 'expanded' : ''}" data-week="${wk.w}">
+        <div class="week-bg" style="min-height:${wk.minH}px">${Array.from({length:7}, (_, i) => {
+          const d = addDays(wk.ws, i), ds = iso(d);
+          return `<div class="day ${d.getMonth() !== first.getMonth() ? 'other' : ''} ${ds === t ? 'today' : ''}" data-date="${ds}" title="คลิกเพื่อเพิ่มงานวันที่ ${fmtDate(ds)}">
+            <div class="num">${d.getDate()}</div>
+            ${wk.hidden[i] ? `<button class="more" data-more>${wk.expanded ? 'ย่อ' : `+${wk.hidden[i]} เพิ่มเติม`}</button>` : ''}</div>`;
+        }).join('')}</div>
+        <div class="week-ev">${wk.segs.map(sg => `<span class="ev ${sg.lane >= MAX_LANES ? 'extra' : ''} ${sg.cl ? 'cl' : ''} ${sg.cr ? 'cr' : ''}" data-id="${sg.j.id}"
+          style="grid-column:${sg.a + 1} / ${sg.b + 2};grid-row:${sg.lane + 1};--c:${statusColor(sg.j.status)}"
+          title="${esc(`${sg.j.jobNo} · ${displayTitle(sg.j)}\n${sg.j.status} · ${fmtDate(sg.s)} – ${fmtDate(sg.e)}`)}"><span>${esc(displayTitle(sg.j))}</span></span>`).join('')}</div>
+      </div>`).join('')}
+    </div></div>`;
+  $$('[data-cal]').forEach(b => b.onclick = () => {
+    const n = +b.dataset.cal, d = new Date();
+    calMonth = n === 0 ? new Date(d.getFullYear(), d.getMonth(), 1) : new Date(calMonth.getFullYear(), calMonth.getMonth() + n, 1);
+    render();
+  });
+  $('.cal').onclick = e => {
+    const ev = e.target.closest('.ev');
+    if (ev){ openForm(db.jobs.find(j => j.id === ev.dataset.id)); return; }
+    const more = e.target.closest('[data-more]');
+    if (more){
+      const key = `${iso(calMonth)}:${more.closest('.week').dataset.week}`;
+      calExpanded.has(key) ? calExpanded.delete(key) : calExpanded.add(key);
+      render(); return;
+    }
+    const day = e.target.closest('.day');
+    if (day){ const job = emptyJob(); job.receivedDate = job.startDate = job.dueDate = day.dataset.date; openForm(job, true); }
+  };
+}
+
+/* ---------- Settings / data ---------- */
+function renderSettings(){
+  const s = db.settings;
+  const tile = (io, ic, title, sub, cls='') => `<button class="tile ${cls}" data-io="${io}"><span class="t-icon">${icon(ic)}</span><span><b>${title}</b><small>${sub}</small></span></button>`;
+  const ta = (key, label, hint, val, extra='') => `<div class="card"><div class="card-head"><h3>${label}</h3><span class="sub">${hint}</span></div>
+    <div class="card-body"><label class="field"><textarea id="set_${key}" spellcheck="false">${esc(val)}</textarea></label>${extra}</div></div>`;
+  $('#view').innerHTML = `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head">${icon('database','sm')}<h3>ข้อมูล</h3><span class="sub">${db.jobs.length} งาน · ${CLOUD ? 'เก็บบน Supabase (ซิงก์ realtime ทั้งทีม)' : 'เก็บใน browser นี้ (localStorage)'}</span></div>
+      <div class="card-body"><div class="tiles">
+        ${CLOUD && readLocal().jobs.length ? tile('migrate', 'cloud', `ย้ายข้อมูลในเครื่องขึ้น Supabase`, `พบ ${readLocal().jobs.length} งานจากโหมดเก็บในเครื่อง`) : ''}
+        ${tile('import', 'upload', 'Import Excel / CSV', 'นำเข้าจากไฟล์ Excel รูปแบบเดิม')}
+        ${tile('xlsx', 'download', 'Export Excel', 'ส่งออก .xlsx หัวคอลัมน์ภาษาไทย')}
+        ${tile('csv', 'file', 'Export CSV', 'ส่งออก .csv (UTF-8)')}
+        ${tile('backup', 'save', 'Backup JSON', 'สำรองข้อมูลและการตั้งค่าทั้งหมด')}
+        ${tile('restore', 'restore', 'Restore JSON', 'กู้คืนจากไฟล์ backup')}
+        ${tile('sample', 'flask', 'โหลดข้อมูลตัวอย่าง', '8 งานจากตาราง Excel เดิม')}
+        ${tile('clear', 'trash', 'ลบข้อมูลทั้งหมด', 'แนะนำให้ Backup ก่อน', 'danger')}
+      </div></div>
+    </div>
+    <div class="settings-grid">
+      ${ta('statuses', 'สถานะงาน', 'ชื่อ|สี|done', s.statuses.map(x => [x.name, x.color, x.done ? 'done' : ''].filter(Boolean).join('|')).join('\n'),
+        `<div class="status-preview">${s.statuses.map(x => pill(x.name)).join('')}</div>`)}
+      ${ta('modules', 'Module', 'บรรทัดละ 1 รายการ', s.modules.join('\n'))}
+      ${ta('systems', 'ประเภทงาน (ระบบ)', 'บรรทัดละ 1 รายการ', s.systems.join('\n'))}
+      ${ta('servers', 'Server / DB', 'บรรทัดละ 1 รายการ', s.servers.join('\n'))}
+      ${ta('assigners', 'ผู้มอบหมายงาน', 'บรรทัดละ 1 รายการ', s.assigners.join('\n'))}
+      ${ta('departments', 'แผนก', 'บรรทัดละ 1 รายการ', s.departments.join('\n'))}
+      ${ta('priorities', 'ความสำคัญ', 'บรรทัดละ 1 รายการ', s.priorities.join('\n'))}
+      ${ta('jobTypes', 'ลักษณะงาน', 'บรรทัดละ 1 รายการ', s.jobTypes.join('\n'))}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn primary" id="saveSettings">${icon('check','sm')}บันทึกการตั้งค่า</button><button class="btn" id="resetSettings">คืนค่าเริ่มต้น</button></div>`;
+
+  $('#saveSettings').onclick = () => {
+    const lines = k => $('#set_' + k).value.split('\n').map(x => x.trim()).filter(Boolean);
+    const statuses = lines('statuses').map(l => { const [name, color, done] = l.split('|').map(x => (x || '').trim()); return {name, color: /^#[0-9a-f]{3,8}$/i.test(color) ? color : '#64748b', done: done === 'done'}; });
+    if (!statuses.length){ toast('ต้องมีสถานะอย่างน้อย 1 รายการ', 'alert'); return; }
+    const next = {...db.settings, statuses, modules:lines('modules'), systems:lines('systems'), servers:lines('servers'), assigners:lines('assigners'),
+      departments:lines('departments'), priorities:lines('priorities'), jobTypes:lines('jobTypes')};
+    safe(async () => { await apiSaveSettings(next); db.settings = next; persistLocal(); toast('บันทึกการตั้งค่าแล้ว'); render(); });
+  };
+  $('#resetSettings').onclick = () => {
+    if (!confirm('คืนค่า master list เป็นค่าเริ่มต้น?')) return;
+    const next = clone(DEFAULT_SETTINGS);
+    safe(async () => { await apiSaveSettings(next); db.settings = next; persistLocal(); render(); });
+  };
+}
+
+/* ================= Job form ================= */
+const dlg = $('#jobDialog'), form = $('#jobForm');
+let editing = null;
+function renderModChips(selected){
+  const all = uniq([...lists().modules, ...selected]);
+  $('#modChips').innerHTML = all.map(m => `<label><input type="checkbox" value="${esc(m)}" ${selected.includes(m) ? 'checked' : ''}>${esc(m)}</label>`).join('')
+    + `<input type="text" id="newMod" placeholder="+ เพิ่ม Module (Enter)">`;
+  $('#newMod').onkeydown = e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const v = e.target.value.trim(); if (!v) return;
+    renderModChips(uniq([...currentMods(), v]));
+    $('#newMod').focus();
+  };
+}
+const currentMods = () => $$('#modChips input[type=checkbox]:checked').map(i => i.value);
+const radioPills = (name, values, colorFn) => values.map(v => `<label style="--c:${colorFn(v)}"><input type="radio" name="${name}" value="${esc(v)}"><span class="dot"></span>${esc(v)}</label>`).join('');
+function openForm(job, isNew = !job?.id){
+  if (!job) job = emptyJob();
+  editing = clone(job);
+  const L = lists();
+  $('#statusPills').innerHTML = radioPills('status', L.statuses, statusColor);
+  $('#priorityPills').innerHTML = radioPills('priority', L.priorities, p => PRIORITY_COLORS[p] || '#64748b');
+  fillSelect(form.elements.namedItem('jobType'), L.jobTypes, '-');
+  fillSelect(form.elements.namedItem('system'), L.systems, '-');
+  for (const el of form.elements){
+    if (!el.name) continue;
+    const v = editing[el.name];
+    if (el.type === 'checkbox') el.checked = !!v;
+    else if (el.type === 'radio') el.checked = el.value === v;
+    else if (el.name === 'tags') el.value = (v || []).join(', ');
+    else el.value = v ?? '';
+  }
+  renderModChips(editing.modules || []);
+  $('#jobFormTitle').textContent = isNew ? 'เพิ่มงานใหม่' : 'รายละเอียดงาน';
+  $('#jobFormNo').textContent = isNew ? '' : editing.jobNo;
+  $('#formDelete').hidden = isNew;
+  $('#formErr').textContent = '';
+  const h = editing.history || [];
+  $('#historyBox').innerHTML = !isNew && h.length ? `<div class="section"><h4>${icon('clock','sm')}ประวัติสถานะ</h4><ul class="timeline">${h.slice().reverse().map(x =>
+    `<li>${x.from ? `${esc(x.from)} → <b>${esc(x.to)}</b>` : `สร้างงาน · <b>${esc(x.to)}</b>`}<small>${new Date(x.at).toLocaleString('th-TH', {dateStyle:'medium', timeStyle:'short'})}${x.by ? ' · ' + esc(x.by) : ''}</small></li>`).join('')}</ul></div>` : '';
+  dlg.showModal();
+  dlg.querySelector('.body').scrollTop = 0;
+  if (isNew) form.elements.namedItem('title').focus(); else document.activeElement?.blur();
+}
+function duplicate(job){
+  const t = today();
+  openForm({...clone(job), id:'', jobNo:'', status:db.settings.statuses[0].name, receivedDate:t, startDate:t, dueDate:'', finishDate:'',
+    deploySTD66:false, deployLIVE:false, deploySTD66Date:'', deployLIVEDate:'', actualHours:'', history:[]}, true);
+}
+form.deploySTD66.onchange = () => { if (form.deploySTD66.checked && !form.deploySTD66Date.value) form.deploySTD66Date.value = today(); };
+form.deployLIVE.onchange = () => { if (form.deployLIVE.checked && !form.deployLIVEDate.value) form.deployLIVEDate.value = today(); };
+$('#statusPills').onchange = e => { if (isDoneStatus(e.target.value) && !form.finishDate.value) form.finishDate.value = today(); };
+form.onsubmit = async e => {
+  e.preventDefault();
+  const j = {...editing};
+  for (const el of form.elements){
+    if (!el.name) continue;
+    if (el.type === 'checkbox') j[el.name] = el.checked;
+    else if (el.type === 'radio'){ if (el.checked) j[el.name] = el.value; }
+    else if (el.name === 'tags') j.tags = uniq(el.value.split(',').map(x => x.trim()));
+    else j[el.name] = el.tagName === 'TEXTAREA' ? el.value.replace(/\s+$/, '') : el.value.trim();
+  }
+  j.modules = currentMods();
+  const err = !j.receivedDate ? 'กรุณาระบุวันที่รับงาน'
+    : (j.startDate && j.startDate < j.receivedDate) ? 'วันที่เริ่มงานต้องไม่ก่อนวันที่รับงาน'
+    : (j.dueDate && j.dueDate < (j.startDate || j.receivedDate)) ? 'วันที่ส่งงานต้องไม่ก่อนวันที่เริ่มงาน'
+    : (j.finishDate && j.finishDate < j.receivedDate) ? 'วันที่เสร็จจริงต้องไม่ก่อนวันที่รับงาน'
+    : (!j.title && !j.projectName && !j.note) ? 'กรอกอย่างน้อย ชื่องาน / ProjectName / หมายเหตุ' : '';
+  if (err){ $('#formErr').textContent = err; return; }
+  const isNew = !j.id;
+  const btn = form.querySelector('[type=submit]');
+  btn.disabled = true;
+  const saved = await safe(() => upsertJob(j));
+  btn.disabled = false;
+  if (!saved) return;
+  dlg.close(); render(); toast(isNew ? `เพิ่มงาน ${saved.jobNo} แล้ว` : 'บันทึกการแก้ไขแล้ว');
+};
+$('#formDelete').onclick = () => {
+  if (editing?.id && confirm(`ลบงาน ${editing.jobNo}?`)) safe(async () => { await deleteJob(editing.id); dlg.close(); render(); toast('ลบงานแล้ว', 'trash'); });
+};
+
+/* ================= Import / Export ================= */
+const EXPORT_COLS = COLS;
+function cellOut(j, c){
+  const v = j[c.key];
+  if (c.type === 'bool') return v ? '✓' : '';
+  if (c.type === 'list') return (v || []).join(', ');
+  if (c.type === 'num') return v === '' || v == null ? '' : Number(v);
+  return v ?? '';
+}
+function exportXlsx(){
+  if (typeof XLSX === 'undefined') return toast('โหลด SheetJS ไม่ได้ (ออฟไลน์?) — ใช้ Export CSV แทน', 'alert');
+  const jobs = filtered();
+  const aoa = [EXPORT_COLS.map(c => c.label), ...jobs.map(j => EXPORT_COLS.map(c => cellOut(j, c)))];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = EXPORT_COLS.map(c => ({wch: c.cls?.includes('wide') ? 60 : c.cls?.includes('pre') ? 36 : c.type === 'bool' ? 7 : 14}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Jobs');
+  XLSX.writeFile(wb, `job-schedule-${today()}.xlsx`);
+  toast(`Export ${jobs.length} งานแล้ว`, 'download');
+}
+function download(name, text, type){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type}));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function exportCsv(){
+  const q = v => { v = String(v ?? ''); return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+  const jobs = filtered();
+  const lines = [EXPORT_COLS.map(c => q(c.label)).join(','), ...jobs.map(j => EXPORT_COLS.map(c => q(cellOut(j, c))).join(','))];
+  download(`job-schedule-${today()}.csv`, '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+  toast(`Export ${jobs.length} งานแล้ว`, 'download');
+}
+
+const norm = s => String(s ?? '').toLowerCase().replace(/\s+/g, '');
+function matchCol(h){
+  const n = norm(h); if (!n) return null;
+  return COLS.find(c => norm(c.label) === n || norm(c.key) === n || (c.aliases || []).some(a => norm(a) === n)) || null;
+}
+function toDate(v){
+  if (v instanceof Date && !isNaN(v)) return iso(new Date(v.getTime() + 12*3600*1000)); // SheetJS dates can land a few seconds before midnight
+  if (typeof v === 'number' && typeof XLSX !== 'undefined'){ const d = XLSX.SSF.parse_date_code(v); return d ? `${d.y}-${pad(d.m)}-${pad(d.d)}` : ''; }
+  const s = String(v ?? '').trim(); if (!s) return '';
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+  if (m){ let y = +m[3]; if (y > 2400) y -= 543; return `${y}-${pad(m[2])}-${pad(m[1])}`; }
+  return '';
+}
+const toBool = v => v === true || /^(✓|✔|☑|true|yes|y|1|x)$/i.test(String(v ?? '').trim());
+function rowsToJobs(rows){
+  let hi = -1, best = 0;
+  rows.slice(0, 15).forEach((r, i) => { const n = r.filter(matchCol).length; if (n > best){ best = n; hi = i; } });
+  if (hi < 0 || best < 2) throw new Error('ไม่พบแถวหัวตาราง (เช่น วันที่รับงาน, Module, ProjectName)');
+  const header = rows[hi];
+  const keys = header.map((h, i) => {
+    const c = matchCol(h); if (c) return c.key;
+    // unlabeled column right after "ประเภทงาน" in the original sheet = server
+    if (!String(h ?? '').trim() && i > 0 && matchCol(header[i-1])?.key === 'system') return 'server';
+    return null;
+  });
+  return rows.slice(hi + 1).filter(r => r.some(c => String(c ?? '').trim())).map(r => {
+    const j = emptyJob(); j.status = ''; j.priority = 'ปกติ'; j.system = '';
+    keys.forEach((k, i) => {
+      if (!k) return;
+      const c = COL[k], v = r[i];
+      if (c.type === 'date') j[k] = toDate(v);
+      else if (c.type === 'bool') j[k] = toBool(v);
+      else if (c.type === 'list') j[k] = uniq(String(v ?? '').split(/[,\n]/).map(x => x.trim()));
+      else j[k] = String(v ?? '').trim();
+    });
+    if (!j.status) j.status = (j.deployLIVE || j.deploySTD66) ? (db.settings.statuses.find(s => s.done)?.name || 'เสร็จ') : db.settings.statuses[0].name;
+    if (!j.receivedDate) j.receivedDate = j.startDate || j.dueDate || today();
+    return j;
+  });
+}
+// Every sheet is parsed on its own (each may have its header on a different row); the user picks which ones to import.
+let importSheets = [], importFileName = '', importTagSheet = false, pendingImport = [];
+function parseSheet(name, rows){
+  try { const jobs = rowsToJobs(rows); return {name, jobs, on:jobs.length > 0}; }
+  catch(err){ return {name, jobs:[], on:false, error:err.message}; }
+}
+function importFile(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      if (typeof XLSX === 'undefined') throw new Error('โหลด SheetJS ไม่ได้ (ออฟไลน์?)');
+      if (/\.csv$/i.test(file.name)){
+        const text = new TextDecoder('utf-8').decode(e.target.result);
+        const wb = XLSX.read(text, {type:'string', raw:true});
+        importSheets = [parseSheet(file.name, XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:'', raw:false}))];
+      } else {
+        const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+        importSheets = wb.SheetNames.map(n => parseSheet(n, XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, defval:'', raw:true})));
+      }
+      if (!importSheets.some(s => s.jobs.length)) throw new Error(importSheets.find(s => s.error)?.error || 'ไม่พบข้อมูลงานในไฟล์');
+      importFileName = file.name;
+      showImportPreview();
+    } catch(err){ toast('Import ไม่สำเร็จ: ' + err.message, 'alert'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function showImportPreview(){
+  const multi = importSheets.length > 1;
+  const rows = importSheets.filter(s => s.on).flatMap(s => s.jobs.map(j => ({sheet:s.name,
+    job:{...clone(j), tags: importTagSheet ? uniq([...(j.tags || []), s.name]) : [...(j.tags || [])]}})));
+  pendingImport = rows.map(r => r.job);
+
+  $('#sheetPick').innerHTML = multi ? `
+    <div class="sheet-head"><b>เลือก sheet ที่จะนำเข้า</b>
+      <label><input type="checkbox" id="sheetTag" ${importTagSheet ? 'checked' : ''}> ใส่ชื่อ sheet เป็น Tag</label></div>
+    <div class="mod-chips">${importSheets.map((s, i) => `<label class="${s.jobs.length ? '' : 'disabled'}" title="${esc(s.error || `${s.jobs.length} แถว`)}">
+      <input type="checkbox" data-sheet="${i}" ${s.on ? 'checked' : ''} ${s.jobs.length ? '' : 'disabled'}>${esc(s.name)}<span class="cnt">${s.jobs.length || 'ไม่มีหัวตาราง'}</span></label>`).join('')}</div>` : '';
+  $$('[data-sheet]').forEach(cb => cb.onchange = () => { importSheets[+cb.dataset.sheet].on = cb.checked; showImportPreview(); });
+  if (multi) $('#sheetTag').onchange = e => { importTagSheet = e.target.checked; showImportPreview(); };
+
+  const nOn = importSheets.filter(s => s.on).length;
+  $('#importInfo').textContent = `ไฟล์ ${importFileName}: ${multi ? `เลือก ${nOn} จาก ${importSheets.length} sheet · ` : ''}รวม ${rows.length} แถว` + (rows.length > 30 ? ' (แสดง 30 แถวแรก)' : '');
+  const cols = ['jobNo','receivedDate','startDate','dueDate','assigner','status','modules','system','server','projectName','note','deploySTD66','deployLIVE','tags'].map(k => COL[k]);
+  $('#importPreview').innerHTML = rows.length ? `<table class="jobs"><thead><tr>${multi ? '<th>Sheet</th>' : ''}${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.slice(0, 30).map(r => `<tr>${multi ? `<td class="nowrap"><span class="tag">${esc(r.sheet)}</span></td>` : ''}${cols.map(c => `<td class="${c.type === 'bool' ? 'center' : ''} ${c.cls || ''}">${cellHtml(r.job, c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+    : '<p class="list-empty">ยังไม่ได้เลือก sheet</p>';
+  $('#importAppend').disabled = $('#importReplace').disabled = !rows.length;
+  if (!$('#importDialog').open) $('#importDialog').showModal();
+}
+async function commitImport(replace){
+  const jobs = pendingImport, btns = $$('#importDialog footer .btn');
+  btns.forEach(b => b.disabled = true);
+  await safe(async () => {
+    if (replace){ await apiDeleteAll(); db.jobs = []; db.seq = 0; }
+    const now = new Date().toISOString();
+    await insertJobs(jobs.map(j => stampNew(j, now)));
+    $('#importDialog').close();
+    toast(`นำเข้า ${jobs.length} งานแล้ว`, 'upload'); pendingImport = []; render();
+  });
+  btns.forEach(b => b.disabled = false);
+}
+$('#importAppend').onclick = () => commitImport(false);
+$('#importReplace').onclick = () => { if (confirm('แทนที่ข้อมูลเดิมทั้งหมด? (แนะนำให้ Backup ก่อน)')) commitImport(true); };
+
+function loadSample(){
+  if (db.jobs.length && !confirm('เพิ่มข้อมูลตัวอย่าง 8 แถวต่อท้ายข้อมูลเดิม?')) return;
+  const done = db.settings.statuses.find(s => s.done)?.name || 'เสร็จ';
+  const now = new Date().toISOString();
+  const jobs = SAMPLE.map(([r, s, d, assigner, modules, system, server, projectName, formPath, note, std, live]) => stampNew({...emptyJob(),
+    receivedDate:r, startDate:s, dueDate:d, finishDate:d, assigner, modules, system, server, projectName, formPath, note,
+    status:done, deploySTD66:std, deployLIVE:live, deploySTD66Date:std ? d : '', deployLIVEDate:live ? d : ''}, now));
+  safe(async () => { await insertJobs(jobs); toast('โหลดข้อมูลตัวอย่างแล้ว', 'flask'); render(); });
+}
+function migrateLocal(){
+  const local = readLocal();
+  if (!local.jobs.length || !confirm(`ย้าย ${local.jobs.length} งานจากเครื่องนี้ขึ้น Supabase?`)) return;
+  safe(async () => {
+    await insertJobs(local.jobs.map(j => ({...j, id:''})));
+    // keep a copy under another key instead of deleting, just in case
+    try { localStorage.setItem(LS_KEY + '.migrated', localStorage.getItem(LS_KEY)); localStorage.removeItem(LS_KEY); } catch(e){}
+    toast(`ย้าย ${local.jobs.length} งานขึ้น Supabase แล้ว`, 'cloud'); render();
+  });
+}
+function handleIO(act){
+  switch (act){
+    case 'xlsx': return exportXlsx();
+    case 'csv': return exportCsv();
+    case 'import': return $('#fileImport').click();
+    case 'backup': download(`job-schedule-backup-${today()}.json`, JSON.stringify(db, null, 2), 'application/json'); return toast('Backup แล้ว', 'save');
+    case 'restore': return $('#fileRestore').click();
+    case 'sample': return loadSample();
+    case 'migrate': return migrateLocal();
+    case 'clear':
+      if (confirm(CLOUD ? 'ลบงานทั้งหมดบน Supabase (ทั้งทีมจะไม่เห็นงานอีก)? แนะนำให้ Backup ก่อน' : 'ลบงานทั้งหมด? (แนะนำให้ Backup ก่อน)'))
+        safe(async () => { await apiDeleteAll(); db.jobs = []; db.seq = 0; persistLocal(); render(); toast('ลบข้อมูลทั้งหมดแล้ว', 'trash'); });
+      return;
+  }
+}
+$('#fileImport').onchange = e => { const f = e.target.files[0]; if (f) importFile(f); e.target.value = ''; };
+$('#fileRestore').onchange = e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  f.text().then(async t => {
+    const d = JSON.parse(t);
+    if (!Array.isArray(d.jobs)) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
+    if (!confirm(`Restore ${d.jobs.length} งาน แทนที่ข้อมูลปัจจุบัน?`)) return;
+    const settings = {...clone(DEFAULT_SETTINGS), ...d.settings};
+    delete settings.hiddenCols;
+    await apiDeleteAll(); db.jobs = []; db.seq = 0;
+    await apiSaveSettings(settings); db.settings = settings;
+    await insertJobs(d.jobs.map(j => ({...j, id:''})));
+    render(); toast('Restore แล้ว', 'restore');
+  }).catch(err => { toast('Restore ไม่สำเร็จ: ' + err.message, 'alert'); render(); });
+};
+
+/* ================= Wiring ================= */
+$$('.nav-item[data-view]').forEach(b => b.onclick = () => go(b.dataset.view));
+document.addEventListener('click', e => {
+  const io = e.target.closest('[data-io]'); if (io) return handleIO(io.dataset.io);
+  if (e.target.closest('[data-new]')) return openForm(null, true);
+  if (e.target.closest('[data-clear]')){ Object.assign(F, F_DEFAULT); return render(); }
+  const unf = e.target.closest('[data-unf]'); if (unf){ F[unf.dataset.unf] = ''; return render(); }
+  const close = e.target.closest('[data-close]'); if (close) return close.closest('dialog').close();
+  if (e.target.tagName === 'DIALOG') e.target.close(); // backdrop click
+  const cp = $('.colpicker[open]'); if (cp && !cp.contains(e.target)) cp.open = false;
+});
+for (const [id, k] of Object.entries(FILTER_INPUTS)){
+  const el = $('#' + id);
+  el.addEventListener(el.tagName === 'INPUT' && el.type !== 'date' ? 'input' : 'change', () => { F[k] = el.value; render(); });
+}
+$$('[data-quick]').forEach(b => b.onclick = () => { F.quick = b.dataset.quick; render(); });
+$('#advBtn').onclick = () => { $('#adv').classList.toggle('open'); setPref('adv', $('#adv').classList.contains('open')); };
+if (getPrefs().adv) $('#adv').classList.add('open');
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || $('#app').hidden || $('dialog[open]') || e.target.closest('input,textarea,select')) return;
+  if (e.code === 'KeyN'){ e.preventDefault(); openForm(null, true); }
+  else if (e.code === 'Slash' && view !== 'settings'){ e.preventDefault(); $('#fq').focus(); }
+});
+
+// Theme: light / auto / dark
+function applyTheme(t){
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = t;
+  $$('[data-theme-set]').forEach(b => b.classList.toggle('active', b.dataset.themeSet === t));
+}
+let theme = getPrefs().theme || 'auto';
+applyTheme(theme);
+$$('[data-theme-set]').forEach(b => b.onclick = () => { theme = b.dataset.themeSet; applyTheme(theme); setPref('theme', theme); if (view === 'dashboard') render(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (view === 'dashboard') render(); });
+
+/* ================= Auth & boot ================= */
+function renderUserBox(){
+  const email = currentUser?.email || '';
+  $('#userBox').innerHTML = CLOUD
+    ? `${person(email, false)}<span class="email" title="${esc(email)}">${esc(email)}</span><button class="icon-btn" id="logoutBtn" title="ออกจากระบบ">${icon('logout','sm')}</button>`
+    : `<span class="mode" title="ข้อมูลเก็บใน browser นี้เท่านั้น — กรอก config.js เพื่อใช้ Supabase"><i style="background:var(--warn)"></i>โหมดเก็บในเครื่อง</span>`;
+  if (CLOUD) $('#logoutBtn').onclick = () => sb.auth.signOut();
+}
+function showApp(){ $('#loginScreen').hidden = true; $('#app').hidden = false; renderUserBox(); }
+async function enterApp(user){
+  currentUser = user;
+  showApp();
+  $('#view').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลดข้อมูล…</div>';
+  try { db = await apiLoad(); }
+  catch(err){ toast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'alert'); }
+  render();
+  subscribeRealtime();
+}
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  const btn = $('#loginBtn');
+  btn.disabled = true; $('#loginErr').textContent = '';
+  const {data, error} = await sb.auth.signInWithPassword({email:$('#loginEmail').value.trim(), password:$('#loginPassword').value});
+  btn.disabled = false;
+  if (error){ $('#loginErr').textContent = /invalid/i.test(error.message) ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' : error.message; return; }
+  enterApp(data.user);
+};
+async function boot(){
+  if (CLOUD_CONFIGURED && !CLOUD){
+    $('#loginScreen').hidden = false;
+    $('#loginForm').innerHTML = '<p class="err">โหลดไลบรารี Supabase ไม่สำเร็จ — ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่</p>';
+    return;
+  }
+  if (!CLOUD){ db = readLocal(); showApp(); render(); return; }
+  sb.auth.onAuthStateChange(event => { if (event === 'SIGNED_OUT') location.reload(); });
+  const {data:{session}} = await sb.auth.getSession();
+  if (session) enterApp(session.user);
+  else { $('#loginScreen').hidden = false; $('#loginEmail').focus(); }
+}
+boot();
+</script>
+</body>
+</html>
