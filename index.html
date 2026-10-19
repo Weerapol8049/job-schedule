@@ -1265,7 +1265,7 @@ function renderDashboard(jobs){
 }
 
 /* ---------- Table ---------- */
-let sort = getPrefs().sort || {key:'receivedDate', dir:1};
+let sort = getPrefs().sort || {key:'tags', dir:-1};
 function cellHtml(j, c){
   const v = j[c.key];
   if (c.type === 'bool') return `<span class="dep-toggle ${v ? 'on' : ''}" data-toggle="${c.key}" title="คลิกเพื่อสลับ">${icon('check','sm')}</span>`;
@@ -1291,10 +1291,12 @@ function renderTable(jobs){
   if (!jobs.length){ $('#view').innerHTML = noMatch(); return; }
   const hidden = hiddenCols;
   const cols = TABLE_COLS.filter(c => !hidden.has(c.key));
-  const rows = [...jobs].sort((a, b) => {
-    const x = sortVal(a, sort.key), y = sortVal(b, sort.key);
-    return (x < y ? -1 : x > y ? 1 : (a.jobNo || '').localeCompare(b.jobNo || '')) * sort.dir;
-  });
+  const cmp = (x, y) => typeof x === 'string' && typeof y === 'string' ? x.localeCompare(y, undefined, {numeric:true}) : (x < y ? -1 : x > y ? 1 : 0);
+  const rows = [...jobs].sort((a, b) =>
+    cmp(sortVal(a, sort.key), sortVal(b, sort.key)) * sort.dir
+    // ค่าเท่ากัน → วันที่รับงานล่าสุดก่อน แล้วตาม Job No มาก→น้อย
+    || cmp(b.receivedDate || '', a.receivedDate || '')
+    || cmp(b.jobNo || '', a.jobNo || ''));
   // keep the checkbox, Job No and งาน pinned on the left while scrolling sideways
   const stick = {};
   let left = SEL_W;
