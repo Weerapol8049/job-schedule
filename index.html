@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="config.js"></script>
 <style>
 :root{
@@ -425,6 +426,14 @@ dialog.modal[open]{animation:pop .18s ease-out}
 .kb-code-head .btn{margin-left:auto;height:28px}
 .kb-code pre{margin:0;padding:14px 16px;overflow-x:auto;font:12.8px/1.65 "IBM Plex Mono",monospace;tab-size:4}
 .hl-kw{color:var(--code-kw);font-weight:500}.hl-str{color:var(--code-str)}.hl-com{color:var(--code-com);font-style:italic}.hl-fn{color:var(--code-fn)}.hl-num{color:var(--code-num)}
+/* highlight.js tokens → same palette */
+.kb-code .hljs-keyword,.kb-code .hljs-selector-tag,.kb-code .hljs-literal,.kb-code .hljs-type,.kb-code .hljs-built_in,.kb-code .hljs-doctag{color:var(--code-kw);font-weight:500}
+.kb-code .hljs-string,.kb-code .hljs-regexp,.kb-code .hljs-symbol,.kb-code .hljs-char,.kb-code .hljs-template-tag{color:var(--code-str)}
+.kb-code .hljs-comment,.kb-code .hljs-quote{color:var(--code-com);font-style:italic}
+.kb-code .hljs-title,.kb-code .hljs-attr,.kb-code .hljs-name,.kb-code .hljs-section,.kb-code .hljs-selector-class,.kb-code .hljs-selector-id,.kb-code .hljs-property{color:var(--code-fn)}
+.kb-code .hljs-number,.kb-code .hljs-meta,.kb-code .hljs-variable,.kb-code .hljs-attribute{color:var(--code-num)}
+.kb-code .hljs-tag{color:var(--muted)}
+.kb-edit-tools select{height:32px;padding:0 8px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-size:13px}
 .kb-fig{margin:0 0 16px}
 .kb-fig img{display:block;max-width:100%;height:auto;min-height:48px;border:1px solid var(--border);border-radius:10px;cursor:zoom-in;background:var(--surface-2)}
 .kb-fig figcaption{font-size:12.5px;color:var(--muted);margin-top:6px}
@@ -735,7 +744,9 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
         <div class="kb-edit-tools">
           <div class="segmented" id="kbMode"><button type="button" data-kbmode="write">เขียน</button><button type="button" data-kbmode="preview">ดูตัวอย่าง</button></div>
           <button type="button" class="btn sm" id="kbPick"><svg class="i sm"><use href="#i-image"/></svg>แนบรูป</button>
-          <span class="hint">วางรูป: กด Win+Shift+S แล้ว Ctrl+V ในช่องเนื้อหา หรือลากไฟล์มาวาง · โค้ด: <code>```x++</code> … <code>```</code> · หัวข้อย่อย: <code>###</code> · bullet: <code>-</code></span>
+          <select id="kbLang" title="ภาษาของโค้ด"></select>
+          <button type="button" class="btn sm" id="kbCodeBtn" title="ไม่ได้เลือกข้อความ = แทรกกล่องโค้ดใหม่ · เลือกข้อความ = ทำเป็นกล่องโค้ดและจัดรูปแบบ · เคอร์เซอร์อยู่ในกล่องโค้ด = จัดรูปแบบ / เปลี่ยนภาษา">{ } โค้ด / จัดรูปแบบ</button>
+          <span class="hint">วางรูป: กด Win+Shift+S แล้ว Ctrl+V ในช่องเนื้อหา หรือลากไฟล์มาวาง · โค้ด: เลือกข้อความแล้วกด <b>{ } โค้ด</b> · หัวข้อย่อย: <code>###</code> · bullet: <code>-</code></span>
         </div>
         <textarea id="kbBody" name="body" class="input" spellcheck="false" placeholder="อธิบายสั้น ๆ ว่าใช้ตอนไหน แล้ววางโค้ดหรือรูปหน้าจอ"></textarea>
         <div id="kbPreview" class="kb-body" hidden></div>
@@ -2241,6 +2252,135 @@ function kbHighlight(code, lang){
   }
   return out + esc(code.slice(last));
 }
+// Code languages: [fence name, label, highlight.js grammar, other names accepted after ```]
+const KB_LANGS = [
+  ['x++',  'X++ (AX 2012)', 'xpp',        ['xpp','ax','axapta','ax2012']],
+  ['sql',  'SQL Server',    'sql',        ['tsql','t-sql','mssql','sqlserver']],
+  ['cs',   'C#',            'csharp',     ['c#','csharp']],
+  ['json', 'JSON',          'json',       []],
+  ['html', 'HTML / XML',    'xml',        ['xml','htm','xhtml','svg']],
+  ['css',  'CSS',           'css',        ['scss','less']],
+  ['js',   'JavaScript',    'javascript', ['javascript','ts','typescript','node']],
+  ['py',   'Python',        'python',     ['python']],
+  ['bash', 'Shell / curl',  'bash',       ['sh','shell','powershell','ps','cmd','curl','console']],
+];
+const kbLangInfo = lang => { lang = String(lang || '').toLowerCase(); return KB_LANGS.find(l => l[0] === lang || l[3].includes(lang)) || null; };
+const KB_AUTO = ['sql','csharp','json','xml','css','javascript','python','bash','xpp'];
+// X++ (Dynamics AX 2012) for highlight.js — case-insensitive like the language itself
+if (window.hljs) hljs.registerLanguage('xpp', h => ({
+  name:'X++', case_insensitive:true,
+  keywords:{
+    keyword:'abstract as asc avg break breakpoint by case catch changecompany class client container continue count crosscompany default delegate delete_from desc display div do edit else event exists extends final firstfast firstonly firstonly10 firstonly100 firstonly1000 flush for forceliterals forcenestedloop forceplaceholders forceselectorder forupdate from group if implements index insert_recordset interface is join like maxof minof mod new next nofetch notexists optimisticlock order outer pause pessimisticlock print private protected public repeatableread retry return reverse select server setting static sum super switch throw try ttsabort ttsbegin ttscommit update_recordset validtimestate where while window',
+    type:'anytype boolean date int int64 real str timeofday utcdatetime void guid',
+    literal:'true false null',
+    built_in:'element this info warning error checkfailed box global curext systemdateget today strfmt num2str str2num date2str any2str enum2str con2str str2con conins conlen conpeek conpoke condel conview tablenum fieldnum classnum classstr tablestr fieldstr methodstr enumnum enumstr formstr reportstr literalstr queryvalue sysquery',
+  },
+  contains:[
+    h.C_LINE_COMMENT_MODE, h.C_BLOCK_COMMENT_MODE, h.QUOTE_STRING_MODE, h.APOS_STRING_MODE, h.C_NUMBER_MODE,
+    {className:'meta', begin:/#\w+/},
+    {className:'title.function', begin:/\b[A-Za-z_]\w*(?=\s*\()/, relevance:0},
+  ],
+}));
+function kbHL(code, lang){
+  const info = kbLangInfo(lang);
+  if (window.hljs){
+    try {
+      if (info) return {html:hljs.highlight(code, {language:info[2], ignoreIllegals:true}).value, label:info[1]};
+      if (!lang){
+        const r = hljs.highlightAuto(code, KB_AUTO);
+        const found = KB_LANGS.find(l => l[2] === r.language);
+        return {html:r.value, label:found && r.relevance >= 5 ? found[1] : 'code'};
+      }
+    } catch(e){ console.error(e); }
+  }
+  return {html:kbHighlight(code, lang), label:info ? info[1] : (lang || 'code')};
+}
+
+/* ---------- code formatting (editor button) ---------- */
+const KB_FMT_LIBS = {
+  sql:'https://cdn.jsdelivr.net/npm/sql-formatter@15.3.1/dist/sql-formatter.min.js',
+  js:'https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js',
+  html:'https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-html.min.js',
+  css:'https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-css.min.js',
+};
+const kbScripts = {};
+function kbLoadScript(url){
+  return kbScripts[url] ||= new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = url; s.onload = res;
+    s.onerror = () => { delete kbScripts[url]; rej(new Error('โหลดตัวจัดรูปแบบไม่ได้ (ตรวจอินเทอร์เน็ต)')); };
+    document.head.append(s);
+  });
+}
+// Re-indent by brackets — for X++, C#, curl + JSON payloads. Keeps line breaks, only fixes leading whitespace.
+function kbReindent(code, unit = '    '){
+  let level = 0;
+  return code.split('\n').map(raw => {
+    const line = raw.trim();
+    if (!line) return '';
+    // ignore brackets inside "strings" and comments (but not the // in http://)
+    const bare = line.replace(/"(?:[^"\\]|\\.)*"/g, '""').replace(/(^|\s)\/\/.*$/, '').replace(/\/\*.*?\*\//g, '');
+    const lead = (bare.match(/^[}\])]+/) || [''])[0].length;
+    const cur = Math.max(0, level - lead);
+    level = Math.max(0, level + (bare.match(/[{[(]/g) || []).length - (bare.match(/[}\])]/g) || []).length);
+    return unit.repeat(cur) + line;
+  }).join('\n');
+}
+async function kbFormatCode(code, lang){
+  const v = kbLangInfo(lang)?.[0] || '';
+  code = code.replace(/\t/g, '    ').replace(/[ \t]+$/gm, '');
+  switch (v){
+    case 'json': try { return JSON.stringify(JSON.parse(code), null, 2); } catch(e){ return kbReindent(code, '  '); }
+    case 'sql': await kbLoadScript(KB_FMT_LIBS.sql); return sqlFormatter.format(code, {language:'transactsql', keywordCase:'upper', tabWidth:4});
+    case 'html': await kbLoadScript(KB_FMT_LIBS.html); return html_beautify(code, {indent_size:2, wrap_line_length:0});
+    case 'css': await kbLoadScript(KB_FMT_LIBS.css); return css_beautify(code, {indent_size:2});
+    case 'js': await kbLoadScript(KB_FMT_LIBS.js); return js_beautify(code, {indent_size:2});
+    case 'x++': case 'cs': return kbReindent(code);
+    case 'bash': return /[{[]/.test(code) ? kbReindent(code, '  ') : code; // curl + JSON body; leave plain scripts alone
+    default: return code; // Python & unknown: indentation carries meaning — don't touch
+  }
+}
+const KB_FENCE_G = /^```[ \t]*([\w+#.-]*)[ \t]*\n([\s\S]*?)^```[ \t]*$/gm;
+function kbFenceAt(text, pos){
+  KB_FENCE_G.lastIndex = 0;
+  let m;
+  while ((m = KB_FENCE_G.exec(text))) if (pos >= m.index && pos <= m.index + m[0].length) return m;
+  return null;
+}
+async function kbCodeAction(){
+  const ta = kf('body'), lang = $('#kbLang').value;
+  if (ta.hidden) kbSetMode('write');
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  const fence = kbFenceAt(v, s);
+  const btn = $('#kbCodeBtn');
+  btn.disabled = true;
+  try {
+    if (fence){
+      const code = await kbFormatCode(fence[2].replace(/\n$/, ''), lang);
+      ta.setRangeText('```' + lang + '\n' + code + '\n```', fence.index, fence.index + fence[0].length, 'select');
+      toast(`จัดรูปแบบเป็น ${kbLangInfo(lang)?.[1] || 'โค้ด'} แล้ว`);
+    } else if (e > s){
+      const code = await kbFormatCode(v.slice(s, e).replace(/^\s*\n/, '').replace(/\s+$/, ''), lang);
+      const pre = s > 0 && v[s - 1] !== '\n' ? '\n' : '', post = e < v.length && v[e] !== '\n' ? '\n' : '';
+      ta.setRangeText(pre + '```' + lang + '\n' + code + '\n```' + post, s, e, 'end');
+      toast(`ทำเป็นกล่องโค้ด ${kbLangInfo(lang)?.[1] || ''} แล้ว`);
+    } else {
+      const pre = s > 0 && v[s - 1] !== '\n' ? '\n' : '';
+      ta.setRangeText(pre + '```' + lang + '\n\n```\n', s, e, 'start');
+      const pos = s + pre.length + 4 + lang.length;
+      ta.setSelectionRange(pos, pos);
+    }
+  } catch(err){ console.error(err); toast('จัดรูปแบบไม่สำเร็จ: ' + (err.message || err), 'alert'); }
+  btn.disabled = false;
+  ta.focus();
+}
+// keep the language picker in step with the code block under the cursor
+function kbSyncLang(){
+  const f = kbFenceAt(kf('body').value, kf('body').selectionStart);
+  const info = f && kbLangInfo(f[1]);
+  if (info) $('#kbLang').value = info[0];
+}
+
 const kbInline = s => esc(s)
   .replace(/`([^`\n]+)`/g, '<code class="inl">$1</code>')
   .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
@@ -2267,8 +2407,8 @@ function kbRenderBody(src){
   for (let i = 0; i < parts.length; i += 3){
     html += kbRenderText(parts[i]);
     if (parts[i + 2] === undefined) continue;
-    const lang = (parts[i + 1] || '').toLowerCase();
-    html += `<div class="kb-code"><div class="kb-code-head">${esc(lang || 'code')}<button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div><pre>${kbHighlight(parts[i + 2].replace(/\n$/, ''), lang)}</pre></div>`;
+    const hl = kbHL(parts[i + 2].replace(/\n$/, ''), (parts[i + 1] || '').toLowerCase());
+    html += `<div class="kb-code"><div class="kb-code-head">${esc(hl.label)}<button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div><pre>${hl.html}</pre></div>`;
   }
   return html;
 }
@@ -2453,6 +2593,9 @@ kf('body').addEventListener('dragover', e => { if ([...e.dataTransfer.types].inc
 kf('body').addEventListener('dragleave', () => kf('body').classList.remove('drop'));
 kf('body').addEventListener('drop', e => { if (!e.dataTransfer.files.length) return; e.preventDefault(); kf('body').classList.remove('drop'); kbAddImages(e.dataTransfer.files); });
 $('#kbPick').onclick = () => $('#kbFile').click();
+$('#kbLang').innerHTML = KB_LANGS.map(l => `<option value="${esc(l[0])}">${esc(l[1])}</option>`).join('');
+$('#kbCodeBtn').onclick = kbCodeAction;
+['click', 'keyup'].forEach(ev => kf('body').addEventListener(ev, kbSyncLang));
 $('#kbFile').onchange = e => { kbAddImages(e.target.files); e.target.value = ''; };
 $('#kbMode').onclick = e => { const b = e.target.closest('[data-kbmode]'); if (b) kbSetMode(b.dataset.kbmode); };
 kbForm.onsubmit = async e => {
