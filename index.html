@@ -770,7 +770,9 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
     <header><h2>นำเข้าจาก OneNote</h2><span class="chip-no" id="kbImpCount"></span><button type="button" class="icon-btn" data-kb-imp-close title="ปิด"><svg class="i"><use href="#i-x"/></svg></button></header>
     <div class="body">
       <div class="rn-opts">
-        <label class="field" style="min-width:220px"><span>หมวด</span><input id="kbImpCat" list="dlKbCat" autocomplete="off"></label>
+        <label class="field" style="min-width:200px"><span>หมวดเริ่มต้น (หน้าที่แยกไม่ได้)</span><input id="kbImpCat" list="dlKbCat" autocomplete="off"></label>
+        <label class="field" style="min-width:160px"><span>Tag ใส่ทุกหน้า (คั่นด้วย ,)</span><input id="kbImpTag" autocomplete="off"></label>
+        <label class="rn-check"><input type="checkbox" id="kbImpAuto" checked> แยกหมวดอัตโนมัติจากหัวข้อ / โค้ด</label>
         <label class="rn-check"><input type="checkbox" id="kbImpAll" checked> เลือกทั้งหมด</label>
         <label class="rn-check"><input type="checkbox" id="kbImpSkipDup" checked> ไม่เลือกเรื่องที่หัวข้อซ้ำกับที่มีอยู่แล้ว</label>
       </div>
@@ -2840,8 +2842,12 @@ function kbConvertPage(pageEl, files, imgSeq){
   // OneNote web clipping footer: "From <https://…>"
   let sourceUrl = '';
   body = body.replace(/^From\s*<(https?:\/\/[^>\s]+)>\s*$/gim, (m, url) => { if (!sourceUrl) sourceUrl = url; return ''; }).replace(/\n{3,}/g, '\n\n').trim();
+  // untitled pages: the date/time lines end up first in the body → use them as the date instead of the title
+  let dateFromBody = '';
+  if (!title) body = body.replace(/^(\s*([^\n]{1,60})\n?)(\s*\d{1,2}:\d{2}(\s*[AP]M)?\s*\n?)?/i, (m, a, line) => {
+    const d = kbParseOneNoteDate(m); if (!d) return m; dateFromBody = d; return ''; }).trim();
   const fallbackTitle = (body.split('\n').find(l => /[\p{L}\p{N}]/u.test(l) && !/^(```|!\[)/.test(l)) || '').replace(/[*`]/g, '').trim().slice(0, 80);
-  return {title: title || fallbackTitle || '(ไม่มีหัวข้อ)', createdAt, body, sourceUrl, images, secret: KB_SECRET_RE.test(body)};
+  return {title: title || fallbackTitle || '(ไม่มีหัวข้อ)', createdAt: createdAt || dateFromBody, body, sourceUrl, images, secret: KB_SECRET_RE.test(body)};
 }
 function kbParseOneNote(html, files){
   const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -2853,17 +2859,41 @@ function kbParseOneNote(html, files){
 // personal notebooks often hold credentials; the knowledge base is readable by the whole team
 const KB_SECRET_RE = /(password|passwd|\bpwd\b|รหัสผ่าน|secret|api[ _-]?key|token)\s*[:=]/i;
 const kbIsDup = (p, cat) => db.notes.some(n => n.title.trim().toLowerCase() === p.title.trim().toLowerCase() && n.category === cat);
+// A OneNote section like "Error" mixes programs → category = program, section name → tag.
+// Titles decide (they usually start with "AX …", "VS 2013 …", "SQL …"); AX-only words in the body are the fallback.
+const KB_CLASSIFY = [
+  ['AX / X++',        /^(AX|Dynamics)\b|\bAX ?2012\b/i],
+  ['Visual Studio',   /\b(VS ?20\d\d|visual studio|nuget|devenv|business logic project)\b/i],
+  ['SQL Server',      /\b(sql|database|deadlock(ed)?)\b/i],
+  ['C#',              /(^|\s)(c#|\.net)(\s|$)|\b(ssl\/tls|gac)\b/i],
+  ['JavaScript',      /\b(javascript|jquery)\b/i],
+  ['Power BI',        /\bpower ?bi\b/i],
+  ['Windows / Server', /\b(error 10\d\d|service did not|windows server|comodo|registry|remote desktop)\b/i],
+  ['Odoo',            /\bodoo\b/i],
+  ['AX / X++',        /\b(ax|x\+\+|aos|cil|workflow|inventdim|invent(ory)? dimension|dimension \w+ is|number sequence|voucher|sourcedocument|table ?temp|tabletmp|occenabled|currency|display method|unit conver|user group|joined select|privil|menuitem|purch ?req|ledger)/i],
+];
+const KB_AX_BODY = /```x\+\+|\b(x\+\+|AOS|Dynamics AX|InventDimId|InventTrans|MenuItem|Privil|AOT|curUserId|_ds\.)/;
+function kbClassify(p, fallback){
+  for (const [cat, re] of KB_CLASSIFY) if (re.test(p.title)) return cat;
+  return KB_AX_BODY.test(p.body) ? 'AX / X++' : fallback;
+}
+function kbAssignCats(){
+  const def = $('#kbImpCat').value.trim(), auto = $('#kbImpAuto').checked;
+  kbImp.pages.forEach(p => { if (!p.catManual) p.cat = auto ? kbClassify(p, def) : def; });
+}
 function kbRenderImport(){
-  const cat = $('#kbImpCat').value.trim();
   const sel = kbImp.pages.filter(p => p.on);
   const imgs = sel.reduce((s, p) => s + p.images.length, 0), bytes = sel.reduce((s, p) => s + p.images.reduce((t, i) => t + i.blob.size, 0), 0);
   $('#kbImpCount').textContent = `${sel.length} / ${kbImp.pages.length} หน้า`;
   const secrets = kbImp.pages.filter(p => p.secret).length;
   $('#kbImpInfo').textContent = `${kbImp.file} · เลือก ${sel.length} หน้า · รูป ${imgs} รูป (ไฟล์เดิม ${fmtBytes(bytes)} — จะถูกย่อก่อนอัปโหลด ปกติเหลือราว 1 ใน 4)`
     + (secrets ? ` · ${secrets} หน้ามีรหัสผ่าน จึงไม่ได้เลือกไว้ เพราะทุกคนในทีมจะเห็น (ลบรหัสผ่านใน OneNote ก่อน หรือติ๊กเองถ้าแน่ใจ) — รูปหน้าจอที่มีรหัสผ่านตรวจไม่ได้ ควรดูเองด้วย` : '');
-  $('#kbImpList').innerHTML = `<table class="jobs"><thead><tr><th class="c-sel"></th><th>หัวข้อ</th><th>วันที่ใน OneNote</th><th>รูป</th><th>โค้ด</th><th>ตัวอย่างเนื้อหา</th></tr></thead><tbody>${kbImp.pages.map((p, i) => `
+  const byCat = countBy(sel, p => p.cat);
+  if (sel.length) $('#kbImpInfo').textContent += ' · แยกหมวด: ' + byCat.map(([c, n]) => `${c} ${n}`).join(' · ');
+  $('#kbImpList').innerHTML = `<table class="jobs"><thead><tr><th class="c-sel"></th><th>หัวข้อ</th><th>หมวด</th><th>วันที่ใน OneNote</th><th>รูป</th><th>โค้ด</th><th>ตัวอย่างเนื้อหา</th></tr></thead><tbody>${kbImp.pages.map((p, i) => `
     <tr><td class="c-sel"><input type="checkbox" data-imp="${i}" ${p.on ? 'checked' : ''}></td>
-      <td style="min-width:220px"><b>${esc(p.title)}</b>${kbIsDup(p, cat) ? ' <span class="due soon">มีแล้ว</span>' : ''}${p.secret ? ` <span class="due bad" title="พบคำว่า password / รหัสผ่าน / token — ทุกคนในทีมจะเห็น">${icon('alert','sm')}มีรหัสผ่าน</span>` : ''}</td>
+      <td style="min-width:220px"><b>${esc(p.title)}</b>${kbIsDup(p, p.cat) ? ' <span class="due soon">มีแล้ว</span>' : ''}${p.secret ? ` <span class="due bad" title="พบคำว่า password / รหัสผ่าน / token — ทุกคนในทีมจะเห็น">${icon('alert','sm')}มีรหัสผ่าน</span>` : ''}</td>
+      <td><input class="input" style="height:30px;min-width:150px;font-size:13px" data-impcat="${i}" list="dlKbCat" value="${esc(p.cat)}"></td>
       <td class="nowrap">${p.createdAt ? new Date(p.createdAt).toLocaleDateString('th-TH-u-ca-gregory', {day:'numeric', month:'short', year:'numeric'}) : '-'}</td>
       <td class="center">${p.images.length || ''}</td><td class="center">${(p.body.match(/^```/gm) || []).length / 2 || ''}</td>
       <td class="muted" style="min-width:280px;max-width:460px;font-size:12.5px">${esc(kbSnippet(p.body.replace(/kbimg:/g, 'kb:x')).slice(0, 140))}</td></tr>`).join('')}</tbody></table>`;
@@ -2871,8 +2901,8 @@ function kbRenderImport(){
   $('#kbImpAll').checked = sel.length === kbImp.pages.length;
 }
 function kbApplyDupRule(){
-  const cat = $('#kbImpCat').value.trim(), skip = $('#kbImpSkipDup').checked;
-  kbImp.pages.forEach(p => p.on = !p.secret && !(skip && kbIsDup(p, cat)));
+  const skip = $('#kbImpSkipDup').checked;
+  kbImp.pages.forEach(p => p.on = !p.secret && !(skip && kbIsDup(p, p.cat)));
 }
 $('#kbImportFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = '';
@@ -2883,7 +2913,11 @@ $('#kbImportFile').onchange = async e => {
     const pages = kbParseOneNote(html, files);
     if (!pages.length) throw new Error('ไม่พบหน้าในไฟล์');
     kbImp.file = f.name; kbImp.pages = pages; kbImp.busy = false;
-    $('#kbImpCat').value = f.name.replace(/\.(mht|mhtml)$/i, '');
+    const section = f.name.replace(/\.(mht|mhtml)$/i, '').trim();
+    $('#kbImpCat').value = section;
+    $('#kbImpTag').value = section;
+    $('#kbImpAuto').checked = true;
+    kbAssignCats();
     $('#dlKbCat').innerHTML = uniq([...db.settings.kbCategories, ...db.notes.map(n => n.category)]).map(c => `<option value="${esc(c)}">`).join('');
     $('#kbImpProgress').textContent = '';
     kbApplyDupRule(); kbRenderImport();
@@ -2893,7 +2927,14 @@ $('#kbImportFile').onchange = async e => {
 $('#kbImpList').onchange = e => { const cb = e.target.closest('[data-imp]'); if (cb){ kbImp.pages[+cb.dataset.imp].on = cb.checked; kbRenderImport(); } };
 $('#kbImpAll').onchange = e => { kbImp.pages.forEach(p => p.on = e.target.checked); kbRenderImport(); };
 $('#kbImpSkipDup').onchange = () => { kbApplyDupRule(); kbRenderImport(); };
-$('#kbImpCat').oninput = () => { kbApplyDupRule(); kbRenderImport(); };
+$('#kbImpCat').oninput = $('#kbImpAuto').onchange = () => { kbAssignCats(); kbApplyDupRule(); kbRenderImport(); };
+$('#kbImpList').addEventListener('change', e => {
+  const inp = e.target.closest('[data-impcat]');
+  if (!inp) return;
+  const p = kbImp.pages[+inp.dataset.impcat];
+  p.cat = inp.value.trim(); p.catManual = true;
+  kbRenderImport();
+});
 $('#kbImportDialog').addEventListener('cancel', e => { if (kbImp.busy) e.preventDefault(); });
 async function apiInsertImportedNote(n){
   if (!CLOUD) return {...n, id:uid(), updatedByEmail:''};
@@ -2904,7 +2945,8 @@ async function apiInsertImportedNote(n){
   return rowToNote(data[0]);
 }
 $('#kbImpGo').onclick = async () => {
-  const cat = $('#kbImpCat').value.trim(), pages = kbImp.pages.filter(p => p.on);
+  const def = $('#kbImpCat').value.trim(), pages = kbImp.pages.filter(p => p.on);
+  const tags = uniq($('#kbImpTag').value.split(',').map(x => x.trim()));
   if (!pages.length) return;
   kbImp.busy = true; kbRenderImport();
   $$('#kbImportDialog [data-kb-imp-close]').forEach(b => b.disabled = true);
@@ -2919,7 +2961,7 @@ $('#kbImpGo').onclick = async () => {
       }
       const body = p.body.replace(/!\[([^\]\n]*)\]\(kbimg:(\d+)\)/g, (m, alt, k) => uploaded[k] ? `![${alt}](kb:${uploaded[k]})` : '');
       const now = new Date().toISOString();
-      const saved = await apiInsertImportedNote({title:p.title, category:cat, tags:[], body, sourceUrl:p.sourceUrl, jobNos:[], pinned:false,
+      const saved = await apiInsertImportedNote({title:p.title, category:p.cat || def, tags, body, sourceUrl:p.sourceUrl, jobNos:[], pinned:false,
         createdAt:p.createdAt || now, updatedAt:p.createdAt || now});
       mergeNote(saved);
       p.on = false; done++;
@@ -2934,7 +2976,8 @@ $('#kbImpGo').onclick = async () => {
   $$('#kbImportDialog [data-kb-imp-close]').forEach(b => b.disabled = false);
   const msg = `นำเข้าแล้ว ${done} เรื่อง` + (failed ? ` · ไม่สำเร็จ ${failed}` : '') + (imgFailed ? ` · รูปที่อัปโหลดไม่ได้ ${imgFailed}` : '');
   $('#kbImpProgress').textContent = msg;
-  KB.cat = cat; KB.sel = ''; KB.q = '';
+  const cats = uniq(pages.map(p => p.cat || def));
+  KB.cat = cats.length === 1 ? cats[0] : ''; KB.sel = ''; KB.q = '';
   if (view === 'knowledge') render(); else go('knowledge');
   if (!failed) $('#kbImportDialog').close(); else kbRenderImport();
   toast(msg, failed ? 'alert' : 'checkcircle');
