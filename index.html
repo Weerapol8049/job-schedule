@@ -2681,10 +2681,11 @@ const kbImp = {file:'', pages:[], busy:false};
 function kbLatin1(bytes){ let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return s; }
 function kbParseMime(raw){
   const b = raw.match(/boundary="?([^"\r\n;]+)"?/i);
-  if (!b) throw new Error('ไม่ใช่ไฟล์ .mht (Single File Web Page)');
+  // a page/section without pictures is saved as a single part (headers + html, no boundary)
+  if (!b && !/^\s*(MIME-Version|Content-Type|Content-Location|Content-Transfer-Encoding):/im.test(raw.slice(0, 2000))) throw new Error('ไม่ใช่ไฟล์ .mht (Single File Web Page)');
   let html = '';
   const files = {};
-  for (const p of raw.split('--' + b[1]).slice(1)){
+  for (const p of b ? raw.split('--' + b[1]).slice(1) : [raw]){
     const sep = p.search(/\r?\n\r?\n/);
     if (sep < 0) continue;
     const head = p.slice(0, sep), body = p.slice(sep).replace(/^\s+/, '');
@@ -2719,6 +2720,8 @@ function kbFindFile(files, src){
   return key ? files[key] : null;
 }
 function kbGuessLang(code){
+  if (/^\s*</.test(code) && />\s*$/.test(code)) return 'html';
+  if (/^\s*[{[]/.test(code)){ try { JSON.parse(code); return 'json'; } catch(e){} }
   if (/^\s*(sudo|apt|pip3?|cd|git|systemctl|npm|npx|docker|chmod|chown|mkdir|cp|mv|ls|wget|curl|nano|service|psql|python3?)\b/m.test(code)) return 'bash';
   if (/\b(select|update|insert|delete)\b[\s\S]*\b(from|into|set|where)\b/i.test(code) && !/\bwhile\s*\(/.test(code)) return 'sql';
   if (/^\s*(def |class \w+(\(|:)|import |from \S+ import)|self\./m.test(code)) return 'py';
@@ -2774,8 +2777,25 @@ function kbConvertPage(pageEl, files, imgSeq){
   const flush = () => {
     while (code.length && !code[0].trim()) code.shift();
     while (code.length && !code[code.length - 1].trim()) code.pop();
-    if (code.length){ const c = code.join('\n'); lines.push('```' + kbGuessLang(c) + '\n' + c + '\n```'); }
+    if (code.length){
+      let c = code.join('\n');
+      const lang = kbGuessLang(c);
+      // code typed in a normal font loses its indentation in the export → rebuild it from the brackets
+      if (['x++', 'cs', 'json', 'bash', ''].includes(lang) && /[{}[\]]/.test(c) && !code.some(l => /^\s/.test(l)))
+        c = kbReindent(c, lang === 'json' || lang === 'bash' ? '  ' : '    ');
+      lines.push('```' + lang + '\n' + c + '\n```');
+    }
     code = [];
+  };
+  // code typed in Calibri: start a block on strong signals, keep going while lines still look like code
+  const THAI = /[฀-๿]/;
+  const strongCode = t => /^(\/\/|\/\*)/.test(t) || /[;{}]$/.test(t) || /^[{}()\[\];]+$/.test(t)
+    || /\s\\$/.test(t) || /^(curl|sudo|--?[a-z][\w-]*)\s/.test(t)       // shell / curl continuation lines
+    || /^<[\w!?/][^>]*>?/.test(t) && />$/.test(t)                         // XML / HTML tags
+    || /^(void|public|private|protected|static|server|client|display|edit|class|int|int64|str|real|boolean|date|container|for|while|if|else|switch|case|return|select|try|catch|using|namespace|var)\b.*[({;]/.test(t);
+  const looksCode = t => {
+    const s = t.replace(/(^|\s)\/\/.*$/, '').trim() || t; // judge the code part, not a trailing // comment
+    return strongCode(s) || (code.length > 0 && !THAI.test(s) && s.length < 200 && !/[.!?]$/.test(s) && /[()=\[\]"':,.]/.test(s));
   };
   const imgToken = img => {
     const blob = kbFindFile(files, img.getAttribute('src') || '');
@@ -2791,7 +2811,12 @@ function kbConvertPage(pageEl, files, imgSeq){
         const imgs = [...n.querySelectorAll('img')];
         if (imgs.length){ flush(); imgs.forEach(imgToken); const t = inline(n).trim(); if (t) lines.push(t); }
         else if (isCode(n)) code.push(clean(n.textContent).replace(/\r?\n/g, ' ').replace(/\s+$/, ''));
-        else { flush(); lines.push(inline(n).trim()); }
+        else {
+          const t = clean(n.textContent).replace(/\s*\r?\n\s*/g, ' ').trim();
+          if (!t && code.length) code.push('');
+          else if (t && looksCode(t)) code.push(t);
+          else { flush(); lines.push(inline(n).trim()); }
+        }
       }
       else if (tag === 'UL' || tag === 'OL'){ flush(); [...n.children].forEach(li => { const t = inline(li).trim(); if (t) lines.push('- ' + t.replace(/\n/g, ' ')); }); lines.push(''); }
       // borderless tables are OneNote's page layout (outlines side by side) → read cell by cell; real tables → "a | b" rows
