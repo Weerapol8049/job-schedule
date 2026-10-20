@@ -752,6 +752,24 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
   </form>
 </dialog>
 <dialog id="lightbox" class="lb"><img alt=""></dialog>
+
+<!-- OneNote import (.mht) -->
+<dialog id="kbImportDialog" class="modal">
+  <div class="dlg">
+    <header><h2>นำเข้าจาก OneNote</h2><span class="chip-no" id="kbImpCount"></span><button type="button" class="icon-btn" data-kb-imp-close title="ปิด"><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="body">
+      <div class="rn-opts">
+        <label class="field" style="min-width:220px"><span>หมวด</span><input id="kbImpCat" list="dlKbCat" autocomplete="off"></label>
+        <label class="rn-check"><input type="checkbox" id="kbImpAll" checked> เลือกทั้งหมด</label>
+        <label class="rn-check"><input type="checkbox" id="kbImpSkipDup" checked> ไม่เลือกเรื่องที่หัวข้อซ้ำกับที่มีอยู่แล้ว</label>
+      </div>
+      <p class="muted" id="kbImpInfo" style="margin:0 0 10px"></p>
+      <div class="preview-wrap" id="kbImpList"></div>
+    </div>
+    <footer><span class="muted" id="kbImpProgress"></span><span class="spacer"></span><button type="button" class="btn" data-kb-imp-close>ยกเลิก</button><button type="button" class="btn primary" id="kbImpGo"><svg class="i sm"><use href="#i-upload"/></svg>นำเข้า</button></footer>
+  </div>
+</dialog>
+<input type="file" id="kbImportFile" accept=".mht,.mhtml" hidden>
 <input type="file" id="kbFile" accept="image/*" multiple hidden>
 <datalist id="dlKbCat"></datalist>
 <datalist id="dlJobNo"></datalist>
@@ -1252,7 +1270,7 @@ function renderPageHead(){
     <button class="btn" data-io="xlsx">${icon('download','sm')}Export Excel</button>
     <button class="btn" data-release>${icon('file','sm')}Release note</button>` : '';
   $('#pageHead').innerHTML = `<div><h1>${esc(title)}</h1><p>${esc(sub())}</p></div>
-    <div class="page-actions">${tableTools}${view === 'knowledge' ? `<button class="btn primary" data-kb-new>${icon('plus','sm')}เพิ่มความรู้</button>`
+    <div class="page-actions">${tableTools}${view === 'knowledge' ? `<button class="btn" data-kb-import title="OneNote → File → Export → Section → Single File Web Page (*.mht)">${icon('upload','sm')}Import OneNote</button><button class="btn primary" data-kb-new>${icon('plus','sm')}เพิ่มความรู้</button>`
       : view !== 'settings' ? `<button class="btn primary" data-new>${icon('plus','sm')}เพิ่มงาน</button>` : ''}</div>`;
   $$('[data-col]').forEach(cb => cb.onchange = () => {
     cb.checked ? hiddenCols.delete(cb.dataset.col) : hiddenCols.add(cb.dataset.col);
@@ -2480,6 +2498,8 @@ function kbClick(e){
   const hit = sel => t.closest(sel);
   let el;
   if (hit('[data-kb-new]')){ openKbEditor(); return true; }
+  if (hit('[data-kb-import]')){ $('#kbImportFile').click(); return true; }
+  if (hit('[data-kb-imp-close]')){ if (!kbImp.busy) $('#kbImportDialog').close(); return true; }
   if (hit('[data-kb-cancel]')){ kbTryClose(); return true; }
   if ((el = hit('[data-kbcat]'))){ KB.cat = el.dataset.kbcat; render(); return true; }
   if ((el = hit('[data-kbsel]'))){ KB.sel = el.dataset.kbsel; KB.reading = true; $('#kbPanes').classList.add('reading'); kbRenderList(); kbRenderReader(); $('#kbReader').scrollTop = 0; return true; }
@@ -2510,6 +2530,247 @@ function kbClick(e){
   return false;
 }
 $('#lightbox').onclick = () => $('#lightbox').close();
+
+/* ---------- OneNote import (.mht from File → Export → Section → Single File Web Page) ---------- */
+// Each page is a <div style="...border-width:100%"> holding: title (20pt) · date line · outline divs.
+// Consolas paragraphs become ```code``` blocks, images go through the same resize + upload as pasted ones.
+const kbImp = {file:'', pages:[], busy:false};
+function kbLatin1(bytes){ let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return s; }
+function kbParseMime(raw){
+  const b = raw.match(/boundary="?([^"\r\n;]+)"?/i);
+  if (!b) throw new Error('ไม่ใช่ไฟล์ .mht (Single File Web Page)');
+  let html = '';
+  const files = {};
+  for (const p of raw.split('--' + b[1]).slice(1)){
+    const sep = p.search(/\r?\n\r?\n/);
+    if (sep < 0) continue;
+    const head = p.slice(0, sep), body = p.slice(sep).replace(/^\s+/, '');
+    const h = k => (head.match(new RegExp('^' + k + ':\\s*([^\\r\\n]+)', 'im')) || [])[1] || '';
+    const ctype = h('Content-Type'), type = ctype.split(';')[0].trim().toLowerCase(), enc = h('Content-Transfer-Encoding').trim().toLowerCase();
+    let data;
+    if (enc === 'base64'){
+      const bin = atob(body.replace(/[^A-Za-z0-9+/=]/g, ''));
+      data = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+    } else {
+      const s = enc === 'quoted-printable' ? body.replace(/=\r?\n/g, '') : body;
+      data = new Uint8Array(s.length);
+      let j = 0;
+      for (let i = 0; i < s.length; i++){
+        if (enc === 'quoted-printable' && s[i] === '=' && /^[0-9A-F]{2}$/i.test(s.substr(i + 1, 2))){ data[j++] = parseInt(s.substr(i + 1, 2), 16); i += 2; }
+        else data[j++] = s.charCodeAt(i) & 255;
+      }
+      data = data.subarray(0, j);
+    }
+    if (type === 'text/html' && !html) html = new TextDecoder((ctype.match(/charset="?([\w-]+)/i) || [])[1] || 'utf-8').decode(data);
+    else if (type.startsWith('image/')) files[h('Content-Location').trim()] = new Blob([data], {type});
+  }
+  if (!html) throw new Error('ไม่พบเนื้อหา HTML ในไฟล์');
+  return {html, files};
+}
+const kbDecode = s => { try { return decodeURIComponent(s); } catch(e){ return s; } };
+function kbFindFile(files, src){
+  const want = kbDecode(src).replace(/\\/g, '/'), base = want.split('/').pop();
+  const key = Object.keys(files).find(l => { const d = kbDecode(l); return d === want || d.endsWith('/' + want); })
+    || Object.keys(files).find(l => kbDecode(l).split('/').pop() === base);
+  return key ? files[key] : null;
+}
+function kbGuessLang(code){
+  if (/^\s*(sudo|apt|pip3?|cd|git|systemctl|npm|npx|docker|chmod|chown|mkdir|cp|mv|ls|wget|curl|nano|service|psql|python3?)\b/m.test(code)) return 'bash';
+  if (/\b(select|update|insert|delete)\b[\s\S]*\b(from|into|set|where)\b/i.test(code) && !/\bwhile\s*\(/.test(code)) return 'sql';
+  if (/^\s*(def |class \w+(\(|:)|import |from \S+ import)|self\./m.test(code)) return 'py';
+  if (/\b(\w+_ds|ttsbegin|ttscommit|element\.|super\(\)|info\()/.test(code) || /;\s*$/m.test(code)) return 'x++';
+  return '';
+}
+const KB_EN_MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+function kbParseOneNoteDate(text){
+  text = text.replace(/\s+/g, ' ');
+  let d, m = text.match(/(\d{1,2}) (\S+) (\d{4})/);
+  const tm = text.match(/(\d{1,2}):(\d{2})/);
+  if (m){
+    let mi = TH_MONTHS.indexOf(m[2]);
+    if (mi < 0) mi = KB_EN_MONTHS.indexOf(m[2].toLowerCase());
+    if (mi >= 0) d = new Date(ceYear(+m[3]), mi, +m[1]);
+  }
+  if (!d && (m = text.match(/([A-Za-z]+) (\d{1,2}), (\d{4})/))){ const mi = KB_EN_MONTHS.indexOf(m[1].toLowerCase()); if (mi >= 0) d = new Date(+m[3], mi, +m[2]); }
+  if (!d || isNaN(d)) return '';
+  if (tm) d.setHours(+tm[1], +tm[2]);
+  return d.toISOString();
+}
+// one OneNote page element → {title, createdAt, body, sourceUrl, images}
+function kbConvertPage(pageEl, files, imgSeq){
+  const box = pageEl.children.length === 1 && pageEl.firstElementChild.tagName === 'DIV' ? pageEl.firstElementChild : pageEl;
+  const blocks = [...box.children];
+  const isTitle = el => !!el.querySelector('p[style*="20.0pt"]');
+  const titleEl = blocks.slice(0, 2).find(isTitle);
+  const title = titleEl ? titleEl.textContent.replace(/\s+/g, ' ').trim() : '';
+  let rest = blocks.filter(el => el !== titleEl);
+  const dateEl = rest.slice(0, 2).find(el => /color:\s*gray/i.test(el.innerHTML) && el.textContent.trim().length < 80);
+  const createdAt = dateEl ? kbParseOneNoteDate(dateEl.textContent) : '';
+  rest = rest.filter(el => el !== dateEl);
+
+  const images = [], lines = [];
+  let code = [];
+  const clean = s => s.replace(/ /g, ' ');
+  const inline = el => {
+    let s = '';
+    for (const n of el.childNodes){
+      if (n.nodeType === 3){ s += clean(n.textContent).replace(/\s*\n\s*/g, ' '); continue; }
+      if (n.nodeType !== 1 || n.tagName === 'IMG') continue;
+      if (n.tagName === 'BR'){ s += '\n'; continue; }
+      const inner = inline(n);
+      if (n.tagName === 'A'){ const href = n.getAttribute('href') || ''; s += !/^https?:/i.test(href) || inner.trim() === href ? inner : `${inner} (${href})`; }
+      else if ((n.tagName === 'B' || n.tagName === 'STRONG' || /font-weight:\s*bold/i.test(n.getAttribute('style') || '')) && inner.trim()) s += inner.replace(/^(\s*)(.*?)(\s*)$/s, '$1**$2**$3');
+      else s += inner;
+    }
+    return s;
+  };
+  const monoStyle = el => /consolas|courier|monospace/i.test(el.getAttribute('style') || '');
+  const isCode = p => monoStyle(p) || (p.textContent.trim() && [...p.querySelectorAll('span')].length > 0
+    && [...p.childNodes].every(n => (n.nodeType === 3 && !n.textContent.trim()) || (n.nodeType === 1 && monoStyle(n))));
+  const flush = () => {
+    while (code.length && !code[0].trim()) code.shift();
+    while (code.length && !code[code.length - 1].trim()) code.pop();
+    if (code.length){ const c = code.join('\n'); lines.push('```' + kbGuessLang(c) + '\n' + c + '\n```'); }
+    code = [];
+  };
+  const imgToken = img => {
+    const blob = kbFindFile(files, img.getAttribute('src') || '');
+    if (!blob) return;
+    const key = imgSeq.n++;
+    images.push({key, blob});
+    lines.push(`![](kbimg:${key})`);
+  };
+  const walk = el => {
+    for (const n of el.children){
+      const tag = n.tagName;
+      if (tag === 'P' || /^H[1-6]$/.test(tag)){
+        const imgs = [...n.querySelectorAll('img')];
+        if (imgs.length){ flush(); imgs.forEach(imgToken); const t = inline(n).trim(); if (t) lines.push(t); }
+        else if (isCode(n)) code.push(clean(n.textContent).replace(/\r?\n/g, ' ').replace(/\s+$/, ''));
+        else { flush(); lines.push(inline(n).trim()); }
+      }
+      else if (tag === 'UL' || tag === 'OL'){ flush(); [...n.children].forEach(li => { const t = inline(li).trim(); if (t) lines.push('- ' + t.replace(/\n/g, ' ')); }); lines.push(''); }
+      // borderless tables are OneNote's page layout (outlines side by side) → read cell by cell; real tables → "a | b" rows
+      else if (tag === 'TABLE' && (/border-width:\s*0pt/i.test(n.getAttribute('style') || '') || n.querySelector('div'))){
+        flush(); n.querySelectorAll(':scope > tbody > tr > td, :scope > tr > td').forEach(td => { walk(td); flush(); });
+      }
+      else if (tag === 'TABLE'){
+        flush();
+        n.querySelectorAll('tr').forEach(tr => { const row = [...tr.cells].map(c => inline(c).replace(/\s+/g, ' ').trim()); if (row.some(Boolean)) lines.push(row.join(' | ')); });
+        n.querySelectorAll('img').forEach(imgToken);
+        lines.push('');
+      }
+      else if (tag === 'IMG'){ flush(); imgToken(n); }
+      else if (tag === 'DIV'){ walk(n); flush(); lines.push(''); }
+      else walk(n);
+    }
+  };
+  rest.forEach(el => { if (el.tagName === 'IMG'){ imgToken(el); return; } walk(el.tagName === 'DIV' ? el : {children:[el]}); flush(); lines.push(''); });
+  flush();
+  let body = lines.join('\n').replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+  // OneNote web clipping footer: "From <https://…>"
+  let sourceUrl = '';
+  body = body.replace(/^From\s*<(https?:\/\/[^>\s]+)>\s*$/gim, (m, url) => { if (!sourceUrl) sourceUrl = url; return ''; }).replace(/\n{3,}/g, '\n\n').trim();
+  const fallbackTitle = (body.split('\n').find(l => /[\p{L}\p{N}]/u.test(l) && !/^(```|!\[)/.test(l)) || '').replace(/[*`]/g, '').trim().slice(0, 80);
+  return {title: title || fallbackTitle || '(ไม่มีหัวข้อ)', createdAt, body, sourceUrl, images, secret: KB_SECRET_RE.test(body)};
+}
+function kbParseOneNote(html, files){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  let pageEls = [...doc.body.children].filter(el => el.tagName === 'DIV' && /border-width:\s*100%/i.test(el.getAttribute('style') || ''));
+  if (!pageEls.length) pageEls = [doc.body];
+  const seq = {n:0};
+  return pageEls.map(el => kbConvertPage(el, files, seq)).filter(p => p.body || p.images.length);
+}
+// personal notebooks often hold credentials; the knowledge base is readable by the whole team
+const KB_SECRET_RE = /(password|passwd|\bpwd\b|รหัสผ่าน|secret|api[ _-]?key|token)\s*[:=]/i;
+const kbIsDup = (p, cat) => db.notes.some(n => n.title.trim().toLowerCase() === p.title.trim().toLowerCase() && n.category === cat);
+function kbRenderImport(){
+  const cat = $('#kbImpCat').value.trim();
+  const sel = kbImp.pages.filter(p => p.on);
+  const imgs = sel.reduce((s, p) => s + p.images.length, 0), bytes = sel.reduce((s, p) => s + p.images.reduce((t, i) => t + i.blob.size, 0), 0);
+  $('#kbImpCount').textContent = `${sel.length} / ${kbImp.pages.length} หน้า`;
+  const secrets = kbImp.pages.filter(p => p.secret).length;
+  $('#kbImpInfo').textContent = `${kbImp.file} · เลือก ${sel.length} หน้า · รูป ${imgs} รูป (ไฟล์เดิม ${fmtBytes(bytes)} — จะถูกย่อก่อนอัปโหลด ปกติเหลือราว 1 ใน 4)`
+    + (secrets ? ` · ${secrets} หน้ามีรหัสผ่าน จึงไม่ได้เลือกไว้ เพราะทุกคนในทีมจะเห็น (ลบรหัสผ่านใน OneNote ก่อน หรือติ๊กเองถ้าแน่ใจ) — รูปหน้าจอที่มีรหัสผ่านตรวจไม่ได้ ควรดูเองด้วย` : '');
+  $('#kbImpList').innerHTML = `<table class="jobs"><thead><tr><th class="c-sel"></th><th>หัวข้อ</th><th>วันที่ใน OneNote</th><th>รูป</th><th>โค้ด</th><th>ตัวอย่างเนื้อหา</th></tr></thead><tbody>${kbImp.pages.map((p, i) => `
+    <tr><td class="c-sel"><input type="checkbox" data-imp="${i}" ${p.on ? 'checked' : ''}></td>
+      <td style="min-width:220px"><b>${esc(p.title)}</b>${kbIsDup(p, cat) ? ' <span class="due soon">มีแล้ว</span>' : ''}${p.secret ? ` <span class="due bad" title="พบคำว่า password / รหัสผ่าน / token — ทุกคนในทีมจะเห็น">${icon('alert','sm')}มีรหัสผ่าน</span>` : ''}</td>
+      <td class="nowrap">${p.createdAt ? new Date(p.createdAt).toLocaleDateString('th-TH-u-ca-gregory', {day:'numeric', month:'short', year:'numeric'}) : '-'}</td>
+      <td class="center">${p.images.length || ''}</td><td class="center">${(p.body.match(/^```/gm) || []).length / 2 || ''}</td>
+      <td class="muted" style="min-width:280px;max-width:460px;font-size:12.5px">${esc(kbSnippet(p.body.replace(/kbimg:/g, 'kb:x')).slice(0, 140))}</td></tr>`).join('')}</tbody></table>`;
+  $('#kbImpGo').disabled = !sel.length || kbImp.busy;
+  $('#kbImpAll').checked = sel.length === kbImp.pages.length;
+}
+function kbApplyDupRule(){
+  const cat = $('#kbImpCat').value.trim(), skip = $('#kbImpSkipDup').checked;
+  kbImp.pages.forEach(p => p.on = !p.secret && !(skip && kbIsDup(p, cat)));
+}
+$('#kbImportFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    toast('กำลังอ่านไฟล์…', 'upload');
+    const {html, files} = kbParseMime(kbLatin1(new Uint8Array(await f.arrayBuffer())));
+    const pages = kbParseOneNote(html, files);
+    if (!pages.length) throw new Error('ไม่พบหน้าในไฟล์');
+    kbImp.file = f.name; kbImp.pages = pages; kbImp.busy = false;
+    $('#kbImpCat').value = f.name.replace(/\.(mht|mhtml)$/i, '');
+    $('#dlKbCat').innerHTML = uniq([...db.settings.kbCategories, ...db.notes.map(n => n.category)]).map(c => `<option value="${esc(c)}">`).join('');
+    $('#kbImpProgress').textContent = '';
+    kbApplyDupRule(); kbRenderImport();
+    $('#kbImportDialog').showModal();
+  } catch(err){ console.error(err); toast('อ่านไฟล์ไม่สำเร็จ: ' + (err.message || err), 'alert'); }
+};
+$('#kbImpList').onchange = e => { const cb = e.target.closest('[data-imp]'); if (cb){ kbImp.pages[+cb.dataset.imp].on = cb.checked; kbRenderImport(); } };
+$('#kbImpAll').onchange = e => { kbImp.pages.forEach(p => p.on = e.target.checked); kbRenderImport(); };
+$('#kbImpSkipDup').onchange = () => { kbApplyDupRule(); kbRenderImport(); };
+$('#kbImpCat').oninput = () => { kbApplyDupRule(); kbRenderImport(); };
+$('#kbImportDialog').addEventListener('cancel', e => { if (kbImp.busy) e.preventDefault(); });
+async function apiInsertImportedNote(n){
+  if (!CLOUD) return {...n, id:uid(), updatedByEmail:''};
+  const row = noteToRow(n);
+  if (n.createdAt){ row.created_at = n.createdAt; row.updated_at = n.createdAt; } // keep OneNote's date for sorting
+  const {data, error} = await sb.from('knowledge').insert(row).select();
+  if (error) throw error;
+  return rowToNote(data[0]);
+}
+$('#kbImpGo').onclick = async () => {
+  const cat = $('#kbImpCat').value.trim(), pages = kbImp.pages.filter(p => p.on);
+  if (!pages.length) return;
+  kbImp.busy = true; kbRenderImport();
+  $$('#kbImportDialog [data-kb-imp-close]').forEach(b => b.disabled = true);
+  let done = 0, failed = 0, imgFailed = 0;
+  for (const p of pages){
+    $('#kbImpProgress').textContent = `กำลังนำเข้า ${done + failed + 1} / ${pages.length}: ${p.title.slice(0, 40)}`;
+    const uploaded = {};
+    try {
+      for (const im of p.images){
+        try { uploaded[im.key] = await kbUploadImage(await kbPrepareImage(im.blob)); }
+        catch(err){ console.error(err); imgFailed++; }
+      }
+      const body = p.body.replace(/!\[([^\]\n]*)\]\(kbimg:(\d+)\)/g, (m, alt, k) => uploaded[k] ? `![${alt}](kb:${uploaded[k]})` : '');
+      const now = new Date().toISOString();
+      const saved = await apiInsertImportedNote({title:p.title, category:cat, tags:[], body, sourceUrl:p.sourceUrl, jobNos:[], pinned:false,
+        createdAt:p.createdAt || now, updatedAt:p.createdAt || now});
+      mergeNote(saved);
+      p.on = false; done++;
+    } catch(err){
+      console.error(err); failed++;
+      kbRemoveImages(Object.values(uploaded));
+      $('#kbImpProgress').textContent = `ผิดพลาดที่ "${p.title}": ${err.message || err}`;
+    }
+  }
+  persistLocal();
+  kbImp.busy = false;
+  $$('#kbImportDialog [data-kb-imp-close]').forEach(b => b.disabled = false);
+  const msg = `นำเข้าแล้ว ${done} เรื่อง` + (failed ? ` · ไม่สำเร็จ ${failed}` : '') + (imgFailed ? ` · รูปที่อัปโหลดไม่ได้ ${imgFailed}` : '');
+  $('#kbImpProgress').textContent = msg;
+  KB.cat = cat; KB.sel = ''; KB.q = '';
+  if (view === 'knowledge') render(); else go('knowledge');
+  if (!failed) $('#kbImportDialog').close(); else kbRenderImport();
+  toast(msg, failed ? 'alert' : 'checkcircle');
+};
 
 /* ================= Wiring ================= */
 $$('.nav-item[data-view]').forEach(b => b.onclick = () => go(b.dataset.view));
