@@ -11,4 +11,6 @@ window.APP_CONFIG = {
   GITHUB_REPO: "Weerapol8049/job-schedule",
   // ขนาดฐานข้อมูลสูงสุดของแผน Supabase ที่ใช้ (Free = 500 MB)
   DB_LIMIT_MB: 500,
+  // พื้นที่ Storage (รูปในคลังความรู้) ของแผนที่ใช้ (Free = 1 GB)
+  STORAGE_LIMIT_MB: 1024,
 };

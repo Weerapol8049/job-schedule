@@ -22,6 +22,7 @@
   --shadow-lg:0 16px 40px -12px rgba(16,24,40,.22),0 4px 10px -4px rgba(16,24,40,.08);
   --ring:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   --radius:14px;
+  --code-kw:#7c3aed; --code-str:#0f766e; --code-com:#8a92a3; --code-fn:#1d4ed8; --code-num:#b45309;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
@@ -31,6 +32,7 @@
     --accent:#7c83ff; --accent-hover:#959bff; --accent-text:#0b0d1a; --accent-soft:#1d2042; --accent-soft-text:#b0b5ff;
     --danger:#fb7185; --danger-soft:#2b141a; --ok:#34d399; --ok-soft:#0f261d; --warn:#fbbf24; --warn-soft:#2a210c;
     --shadow-sm:0 1px 2px rgba(0,0,0,.35); --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 16px 40px -12px rgba(0,0,0,.7);
+  --code-kw:#c4b5fd; --code-str:#5eead4; --code-com:#6b7385; --code-fn:#93c5fd; --code-num:#fcd34d;
     color-scheme:dark;
   }
 }
@@ -40,6 +42,7 @@
   --accent:#7c83ff; --accent-hover:#959bff; --accent-text:#0b0d1a; --accent-soft:#1d2042; --accent-soft-text:#b0b5ff;
   --danger:#fb7185; --danger-soft:#2b141a; --ok:#34d399; --ok-soft:#0f261d; --warn:#fbbf24; --warn-soft:#2a210c;
   --shadow-sm:0 1px 2px rgba(0,0,0,.35); --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 16px 40px -12px rgba(0,0,0,.7);
+  --code-kw:#c4b5fd; --code-str:#5eead4; --code-com:#6b7385; --code-fn:#93c5fd; --code-num:#fcd34d;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -384,6 +387,66 @@ dialog.modal[open]{animation:pop .18s ease-out}
 .mod-chips label .cnt{font-size:11.5px;font-weight:500;opacity:.75;margin-left:4px}
 .mod-chips label.disabled{opacity:.45;cursor:not-allowed;text-decoration:line-through}
 
+/* ---------- Knowledge base ---------- */
+.kb-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.kb-cats{display:flex;gap:6px;flex-wrap:wrap}
+.kb-cat{height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.kb-cat:hover{border-color:var(--border-strong);color:var(--text)}
+.kb-cat.active{background:var(--accent-soft);border-color:transparent;color:var(--accent-soft-text)}
+.kb-cat .n{color:var(--muted);font-size:11.5px}
+.cdot{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.kb{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);height:calc(100vh - 200px);min-height:460px;overflow:hidden}
+.kb-list{border-right:1px solid var(--border);overflow:auto;min-width:0}
+.kb-group{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:12px 16px 4px;background:var(--surface);position:sticky;top:0;z-index:1}
+.kb-item{width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);background:transparent;color:inherit;padding:12px 16px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.kb-item:hover{background:var(--surface-2)}
+.kb-item.active{background:var(--accent-soft)}
+.kb-item .row{display:flex;gap:8px;align-items:flex-start}
+.kb-item b{flex:1;min-width:0;font-weight:600;line-height:1.4}
+.kb-item .pin{color:var(--warn);margin-top:3px}
+.kb-item .snip{color:var(--muted);font-size:12.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.kb-item .meta{display:flex;gap:4px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.kb-item .meta .when{margin-left:auto}
+.kb-badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:600;background:var(--surface-3);color:var(--text-2);white-space:nowrap}
+.kb-reader{overflow:auto;min-width:0}
+.kb-doc{max-width:920px;padding:24px 32px 48px}
+.kb-doc-head{display:flex;gap:8px;align-items:flex-start}
+.kb-doc-head h2{margin:8px 0 0;font-size:21px;line-height:1.35;text-wrap:balance}
+.kb-meta{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;margin:12px 0 18px;padding-bottom:14px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.kb-back{display:none;margin-bottom:10px}
+.icon-btn.on{color:var(--warn)}
+.kb-body{line-height:1.7}
+.kb-body p{margin:0 0 12px;max-width:75ch;overflow-wrap:anywhere}
+.kb-body h3{font-size:15px;margin:22px 0 8px}
+.kb-body ul{margin:0 0 12px;padding-left:20px;max-width:75ch}
+.kb-body code.inl{font:12.5px "IBM Plex Mono",monospace;background:var(--surface-3);padding:1px 5px;border-radius:5px}
+.kb-code{margin:0 0 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);overflow:hidden}
+.kb-code-head{display:flex;align-items:center;gap:8px;padding:5px 6px 5px 14px;border-bottom:1px solid var(--border);font:11.5px "IBM Plex Mono",monospace;color:var(--muted)}
+.kb-code-head .btn{margin-left:auto;height:28px}
+.kb-code pre{margin:0;padding:14px 16px;overflow-x:auto;font:12.8px/1.65 "IBM Plex Mono",monospace;tab-size:4}
+.hl-kw{color:var(--code-kw);font-weight:500}.hl-str{color:var(--code-str)}.hl-com{color:var(--code-com);font-style:italic}.hl-fn{color:var(--code-fn)}.hl-num{color:var(--code-num)}
+.kb-fig{margin:0 0 16px}
+.kb-fig img{display:block;max-width:100%;height:auto;min-height:48px;border:1px solid var(--border);border-radius:10px;cursor:zoom-in;background:var(--surface-2)}
+.kb-fig figcaption{font-size:12.5px;color:var(--muted);margin-top:6px}
+.kb-fig.missing img{display:none}
+.kb-fig.missing::before{content:"โหลดรูปไม่ได้ (ไฟล์อาจถูกลบไปแล้ว)";display:block;padding:18px;border:1px dashed var(--border-strong);border-radius:10px;color:var(--muted);font-size:12.5px}
+.kb-panel{margin-top:22px;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
+.kb-panel h4{margin:0 0 8px;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.kb-links{display:flex;flex-direction:column;gap:6px}
+.kb-link{display:flex;gap:10px;align-items:baseline;border:0;background:none;padding:0;cursor:pointer;text-align:left;color:var(--accent);font-size:13.5px}
+.kb-link:hover{text-decoration:underline}
+.kb-link .mono{color:var(--muted)}
+.kb-empty{padding:48px 20px;text-align:center;color:var(--muted)}
+.kb-empty .btn{margin-top:12px}
+dialog.lb{background:transparent;box-shadow:none;max-width:96vw;max-height:94vh;padding:0;cursor:zoom-out}
+dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
+.kb-edit-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.kb-edit-tools .hint{flex:1;min-width:220px;font-size:12px;color:var(--muted)}
+#kbBody{min-height:320px;font:12.8px/1.6 "IBM Plex Mono",monospace;tab-size:4}
+#kbBody.drop{border-color:var(--accent);box-shadow:var(--ring);background:var(--accent-soft)}
+#kbPreview{min-height:320px;max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.kb-pinrow{padding:12px 0 4px}
+
 .toast{position:fixed;bottom:22px;right:22px;display:flex;align-items:center;gap:10px;background:var(--text);color:var(--bg);padding:11px 16px;border-radius:12px;z-index:100;opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px);box-shadow:var(--shadow-lg);font-weight:500}
 .toast.show{opacity:1;transform:none}
 
@@ -415,6 +478,11 @@ dialog.modal[open]{animation:pop .18s ease-out}
   .sidebar-foot{margin:0 0 0 auto;padding:0;flex-direction:row}
   .content{padding:18px 16px 40px}
   .page-head h1{font-size:20px}
+  .kb{grid-template-columns:minmax(0,1fr);height:auto;min-height:0}
+  .kb.reading .kb-list,.kb:not(.reading) .kb-reader{display:none}
+  .kb-list{border-right:0}
+  .kb-doc{padding:18px 16px 32px}
+  .kb-back{display:inline-flex}
 }
 @media (max-width:640px){
   .fgrid,.fgrid.c3{grid-template-columns:1fr}
@@ -463,6 +531,10 @@ dialog.modal[open]{animation:pop .18s ease-out}
   <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 4 3H6l4-3z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></symbol>
   <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/></symbol>
 </svg>
 
@@ -491,6 +563,7 @@ dialog.modal[open]{animation:pop .18s ease-out}
     <button class="nav-item" data-view="table"><svg class="i"><use href="#i-table"/></svg><span>ตารางงาน</span><span class="count" data-count="table"></span></button>
     <button class="nav-item" data-view="kanban"><svg class="i"><use href="#i-kanban"/></svg><span>บอร์ด Kanban</span><span class="count" data-count="kanban"></span></button>
     <button class="nav-item" data-view="calendar"><svg class="i"><use href="#i-calendar"/></svg><span>ปฏิทิน</span></button>
+    <button class="nav-item" data-view="knowledge"><svg class="i"><use href="#i-book"/></svg><span>คลังความรู้</span><span class="count" data-count="knowledge"></span></button>
     <div class="nav-section">ระบบ</div>
     <button class="nav-item" data-view="settings"><svg class="i"><use href="#i-sliders"/></svg><span>ข้อมูล &amp; ตั้งค่า</span></button>
     <a class="nav-item" href="manual.html" target="_blank" rel="noopener"><svg class="i"><use href="#i-file"/></svg><span>คู่มือการใช้งาน</span></a>
@@ -607,6 +680,7 @@ dialog.modal[open]{animation:pop .18s ease-out}
         <h4>รายละเอียด / หมายเหตุ</h4>
         <label class="field"><textarea name="note" rows="5" placeholder="อธิบายงาน ปัญหา หรือเงื่อนไขที่ผู้ใช้แจ้ง…"></textarea></label>
       </div>
+      <div id="jobKbBox"></div>
       <div id="historyBox"></div>
     </div>
     <footer>
@@ -641,6 +715,46 @@ dialog.modal[open]{animation:pop .18s ease-out}
     </footer>
   </div>
 </dialog>
+
+<!-- Knowledge editor -->
+<dialog id="kbDialog" class="modal">
+  <form class="dlg" id="kbForm" novalidate>
+    <header>
+      <h2 id="kbFormTitle">เพิ่มความรู้</h2>
+      <button type="button" class="icon-btn" data-kb-cancel title="ปิด (Esc)"><svg class="i"><use href="#i-x"/></svg></button>
+    </header>
+    <div class="body">
+      <input class="title-input" name="title" placeholder="หัวข้อ เช่น การทำ Lookup ร่วมกับ SQL" autocomplete="off">
+      <div class="fgrid" style="padding:4px 0 16px">
+        <label class="field"><span>หมวด</span><input name="category" list="dlKbCat" autocomplete="off" placeholder="เช่น AX / X++"></label>
+        <label class="field"><span>Tags (คั่นด้วย ,)</span><input name="tags" autocomplete="off" placeholder="x++, lookup"></label>
+        <label class="field"><span>ใช้ในงาน (Job No คั่นด้วย ,)</span><input name="jobNos" list="dlJobNo" autocomplete="off" placeholder="JOB-2026-0144"></label>
+        <label class="field"><span>แหล่งที่มา (URL)</span><input name="sourceUrl" type="url" placeholder="https://"></label>
+      </div>
+      <div class="field">
+        <div class="kb-edit-tools">
+          <div class="segmented" id="kbMode"><button type="button" data-kbmode="write">เขียน</button><button type="button" data-kbmode="preview">ดูตัวอย่าง</button></div>
+          <button type="button" class="btn sm" id="kbPick"><svg class="i sm"><use href="#i-image"/></svg>แนบรูป</button>
+          <span class="hint">วางรูป: กด Win+Shift+S แล้ว Ctrl+V ในช่องเนื้อหา หรือลากไฟล์มาวาง · โค้ด: <code>```x++</code> … <code>```</code> · หัวข้อย่อย: <code>###</code> · bullet: <code>-</code></span>
+        </div>
+        <textarea id="kbBody" name="body" class="input" spellcheck="false" placeholder="อธิบายสั้น ๆ ว่าใช้ตอนไหน แล้ววางโค้ดหรือรูปหน้าจอ"></textarea>
+        <div id="kbPreview" class="kb-body" hidden></div>
+      </div>
+      <label class="rn-check kb-pinrow"><input type="checkbox" name="pinned"> ปักหมุดไว้บนสุด</label>
+    </div>
+    <footer>
+      <button type="button" class="btn ghost danger-text" id="kbDelete"><svg class="i sm"><use href="#i-trash"/></svg>ลบ</button>
+      <span class="err" id="kbErr"></span>
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-kb-cancel>ยกเลิก</button>
+      <button type="submit" class="btn primary"><svg class="i sm"><use href="#i-check"/></svg>บันทึก</button>
+    </footer>
+  </form>
+</dialog>
+<dialog id="lightbox" class="lb"><img alt=""></dialog>
+<input type="file" id="kbFile" accept="image/*" multiple hidden>
+<datalist id="dlKbCat"></datalist>
+<datalist id="dlJobNo"></datalist>
 
 <div class="bulkbar" id="bulkBar" hidden></div>
 
@@ -678,6 +792,7 @@ const DEFAULT_SETTINGS = {
   departments: [],
   priorities: ['ต่ำ','ปกติ','สูง','ด่วน'],
   jobTypes: ['New feature','Bug fix','Change request','Report','Support'],
+  kbCategories: ['AX / X++','Form','Class','SQL Server','Odoo','Error','Excel','Git','Setting','อื่นๆ'],
 };
 const DEFAULT_HIDDEN = ['title','projectName','note','buttonWork','department','startDate','jobType','assignee','finishDate','estHours','actualHours','deploySTD66Date','deployLIVEDate','refLink','tags'];
 const PRIORITY_COLORS = {'ด่วน':'#e11d48','สูง':'#f97316','ปกติ':'#64748b','ต่ำ':'#94a3b8'};
@@ -771,15 +886,16 @@ const CLOUD_CONFIGURED = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY);
 const CLOUD = CLOUD_CONFIGURED && !!window.supabase;
 const sb = CLOUD ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
 let currentUser = null;
-let db = {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0};
+// notes = คลังความรู้ · kbImages = รูปในโหมดเก็บในเครื่อง (path -> data URL)
+let db = {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0, notes:[]};
 let hiddenCols = new Set(getPrefs().hiddenCols || DEFAULT_HIDDEN);
 
 function readLocal(){
   try {
     const d = JSON.parse(localStorage.getItem(LS_KEY));
-    if (d && Array.isArray(d.jobs)) return {jobs:d.jobs, settings:{...clone(DEFAULT_SETTINGS), ...d.settings}, seq:d.seq || d.jobs.length};
+    if (d && Array.isArray(d.jobs)) return {jobs:d.jobs, settings:{...clone(DEFAULT_SETTINGS), ...d.settings}, seq:d.seq || d.jobs.length, notes:d.notes || [], kbImages:d.kbImages || {}};
   } catch(e){}
-  return {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0};
+  return {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0, notes:[], kbImages:{}};
 }
 function persistLocal(){
   if (CLOUD) return;
@@ -833,9 +949,11 @@ async function fetchAllJobs(){
 }
 async function apiLoad(){
   if (!CLOUD) return readLocal();
-  const [jobs, setRes] = await Promise.all([fetchAllJobs(), sb.from('app_settings').select('data').eq('id', 1).maybeSingle()]);
+  // คลังความรู้โหลดไม่ได้ (เช่น ยังไม่ได้รัน schema v4) ไม่ควรทำให้ทั้งแอปใช้ไม่ได้
+  const notesP = fetchAllNotes().then(n => { KB.loadError = ''; return n; }, err => { console.error(err); KB.loadError = err.message || String(err); return []; });
+  const [jobs, setRes, notes] = await Promise.all([fetchAllJobs(), sb.from('app_settings').select('data').eq('id', 1).maybeSingle(), notesP]);
   if (setRes.error) throw setRes.error;
-  return {jobs, settings:{...clone(DEFAULT_SETTINGS), ...(setRes.data?.data || {})}, seq:0};
+  return {jobs, settings:{...clone(DEFAULT_SETTINGS), ...(setRes.data?.data || {})}, seq:0, notes};
 }
 // expectedUpdatedAt: optimistic lock — the update only applies if nobody saved the row since we loaded it
 async function apiSaveJob(job, expectedUpdatedAt){
@@ -905,6 +1023,17 @@ function subscribeRealtime(){
     })
     .on('postgres_changes', {event:'*', schema:'public', table:'app_settings'}, p => {
       if (p.new?.data){ db.settings = {...clone(DEFAULT_SETTINGS), ...p.new.data}; scheduleRender(); }
+    })
+    .on('postgres_changes', {event:'*', schema:'public', table:'knowledge'}, p => {
+      if (p.eventType === 'DELETE'){ if (!db.notes.some(n => n.id === p.old.id)) return; db.notes = db.notes.filter(n => n.id !== p.old.id); }
+      else {
+        const n = rowToNote(p.new), cur = db.notes.find(x => x.id === n.id);
+        // our own save echoes back here — skip the re-render so the reader keeps its scroll position
+        if (cur && JSON.stringify(noteToRow(cur)) === JSON.stringify(noteToRow(n))) return;
+        mergeNote(n);
+      }
+      if (dlg.open) renderJobKb();
+      scheduleRender();
     })
     .subscribe();
 }
@@ -1096,7 +1225,7 @@ function syncFilterUI(){
 
 /* ================= Views ================= */
 let view = getPrefs().view || 'dashboard';
-const views = {dashboard:renderDashboard, table:renderTable, kanban:renderKanban, calendar:renderCalendar, settings:renderSettings};
+const views = {dashboard:renderDashboard, table:renderTable, kanban:renderKanban, calendar:renderCalendar, knowledge:renderKnowledge, settings:renderSettings};
 const PAGE = {
   dashboard: ['ภาพรวม', () => {
     const open = db.jobs.filter(j => !isDone(j));
@@ -1109,6 +1238,7 @@ const PAGE = {
   table: ['ตารางงาน', () => 'บันทึกและแก้ไขงานทั้งหมด — คลิกแถวเพื่อเปิดรายละเอียด'],
   kanban: ['บอร์ด Kanban', () => 'ลากการ์ดเพื่อเปลี่ยนสถานะ'],
   calendar: ['ปฏิทินงาน', () => 'งานแสดงตามช่วงวันที่เริ่ม → วันที่ส่ง'],
+  knowledge: ['คลังความรู้', () => 'เทคนิค โค้ด และวิธีแก้ปัญหาจากงานที่ผ่านมา'],
   settings: ['ข้อมูล & ตั้งค่า', () => 'นำเข้า / ส่งออกข้อมูล และจัดการตัวเลือกในฟอร์ม'],
 };
 function renderPageHead(){
@@ -1122,7 +1252,8 @@ function renderPageHead(){
     <button class="btn" data-io="xlsx">${icon('download','sm')}Export Excel</button>
     <button class="btn" data-release>${icon('file','sm')}Release note</button>` : '';
   $('#pageHead').innerHTML = `<div><h1>${esc(title)}</h1><p>${esc(sub())}</p></div>
-    <div class="page-actions">${tableTools}${view !== 'settings' ? `<button class="btn primary" data-new>${icon('plus','sm')}เพิ่มงาน</button>` : ''}</div>`;
+    <div class="page-actions">${tableTools}${view === 'knowledge' ? `<button class="btn primary" data-kb-new>${icon('plus','sm')}เพิ่มความรู้</button>`
+      : view !== 'settings' ? `<button class="btn primary" data-new>${icon('plus','sm')}เพิ่มงาน</button>` : ''}</div>`;
   $$('[data-col]').forEach(cb => cb.onchange = () => {
     cb.checked ? hiddenCols.delete(cb.dataset.col) : hiddenCols.add(cb.dataset.col);
     setPref('hiddenCols', [...hiddenCols]);
@@ -1136,7 +1267,8 @@ function render(){
   cDash.textContent = overdue || ''; cDash.classList.toggle('bad', overdue > 0); cDash.title = overdue ? `เลยกำหนด ${overdue} งาน` : '';
   $('[data-count="table"]').textContent = db.jobs.length || '';
   $('[data-count="kanban"]').textContent = db.jobs.filter(j => !isDone(j)).length || '';
-  $('#toolbar').hidden = view === 'settings';
+  $('[data-count="knowledge"]').textContent = db.notes.length || '';
+  $('#toolbar').hidden = view === 'settings' || view === 'knowledge';
   renderSideStats();
   renderBulkBar();
   renderHealthBanner();
@@ -1146,7 +1278,7 @@ function render(){
   const jobs = filtered();
   $('#resultCount').textContent = `${jobs.length} จาก ${db.jobs.length} งาน`;
   destroyCharts();
-  if (view !== 'settings' && !db.jobs.length) return renderWelcome();
+  if (view !== 'settings' && view !== 'knowledge' && !db.jobs.length) return renderWelcome();
   views[view](jobs);
 }
 function go(v){
@@ -1622,6 +1754,7 @@ function renderSettings(){
       ${ta('departments', 'แผนก', 'บรรทัดละ 1 รายการ', s.departments.join('\n'))}
       ${ta('priorities', 'ความสำคัญ', 'บรรทัดละ 1 รายการ', s.priorities.join('\n'))}
       ${ta('jobTypes', 'ลักษณะงาน', 'บรรทัดละ 1 รายการ', s.jobTypes.join('\n'))}
+      ${ta('kbCategories', 'หมวดคลังความรู้', 'บรรทัดละ 1 รายการ', s.kbCategories.join('\n'))}
     </div>
     <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn primary" id="saveSettings">${icon('check','sm')}บันทึกการตั้งค่า</button><button class="btn" id="resetSettings">คืนค่าเริ่มต้น</button></div>`;
 
@@ -1630,7 +1763,7 @@ function renderSettings(){
     const statuses = lines('statuses').map(l => { const [name, color, done] = l.split('|').map(x => (x || '').trim()); return {name, color: /^#[0-9a-f]{3,8}$/i.test(color) ? color : '#64748b', done: done === 'done'}; });
     if (!statuses.length){ toast('ต้องมีสถานะอย่างน้อย 1 รายการ', 'alert'); return; }
     const next = {...db.settings, statuses, modules:lines('modules'), systems:lines('systems'), servers:lines('servers'), assigners:lines('assigners'),
-      departments:lines('departments'), priorities:lines('priorities'), jobTypes:lines('jobTypes')};
+      departments:lines('departments'), priorities:lines('priorities'), jobTypes:lines('jobTypes'), kbCategories:lines('kbCategories')};
     safe(async () => { await apiSaveSettings(next); db.settings = next; persistLocal(); toast('บันทึกการตั้งค่าแล้ว'); render(); });
   };
   $('#resetSettings').onclick = () => {
@@ -1679,6 +1812,7 @@ function openForm(job, isNew = !job?.id){
   $('#formDelete').hidden = isNew;
   $('#formErr').textContent = '';
   const h = editing.history || [];
+  renderJobKb();
   $('#historyBox').innerHTML = !isNew && h.length ? `<div class="section"><h4>${icon('clock','sm')}ประวัติสถานะ</h4><ul class="timeline">${h.slice().reverse().map(x =>
     `<li>${x.from ? `${esc(x.from)} → <b>${esc(x.to)}</b>` : `สร้างงาน · <b>${esc(x.to)}</b>`}<small>${new Date(x.at).toLocaleString('th-TH-u-ca-gregory', {dateStyle:'medium', timeStyle:'short'})}${x.by ? ' · ' + esc(x.by) : ''}</small></li>`).join('')}</ul></div>` : '';
   dlg.showModal();
@@ -1906,28 +2040,490 @@ $('#fileRestore').onchange = e => {
   f.text().then(async t => {
     const d = JSON.parse(t);
     if (!Array.isArray(d.jobs)) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
-    if (!confirm(`Restore ${d.jobs.length} งาน แทนที่ข้อมูลปัจจุบัน?`)) return;
+    const notes = Array.isArray(d.notes) ? d.notes : null;
+    if (!confirm(`Restore ${d.jobs.length} งาน${notes ? ` และคลังความรู้ ${notes.length} เรื่อง` : ''} แทนที่ข้อมูลปัจจุบัน?`)) return;
     const settings = {...clone(DEFAULT_SETTINGS), ...d.settings};
     delete settings.hiddenCols;
     await apiDeleteAll(); db.jobs = []; db.seq = 0;
     await apiSaveSettings(settings); db.settings = settings;
     // accepts both the app's own backup (camelCase) and the GitHub Actions backup (raw table rows)
     await insertJobs(d.jobs.map(j => ({...('job_no' in j ? rowToJob(j) : j), id:''})));
+    // รูปไม่ได้อยู่ในไฟล์ JSON — ไฟล์รูปยังอยู่ใน Storage (หรือกู้จาก backup รูปแยก) จึงใช้ path เดิมได้
+    if (notes){
+      await apiReplaceNotes(notes.map(n => 'job_nos' in n ? rowToNote(n) : n));
+      if (!CLOUD && d.kbImages) db.kbImages = d.kbImages;
+      persistLocal();
+    }
     render(); toast('Restore แล้ว', 'restore');
   }).catch(err => { toast('Restore ไม่สำเร็จ: ' + err.message, 'alert'); render(); });
 };
+
+/* ================= Knowledge base (คลังความรู้) ================= */
+// เนื้อหาเป็นข้อความธรรมดา + ```lang โค้ด``` + ### หัวข้อ + - bullet + รูป ![คำบรรยาย](kb:<path>)
+// รูปถูกย่อในเบราว์เซอร์ (กว้างไม่เกิน 1600px, WebP) แล้วเก็บใน Supabase Storage bucket "knowledge" (private)
+const KB_BUCKET = 'knowledge';
+const KB_MAX_W = 1600, KB_QUALITY = 0.82, KB_MAX_BYTES = 5 * 1048576;
+const KB_IMG_RE = /!\[([^\]\n]*)\]\(kb:([\w\/.-]+)\)/g;
+const KB_FENCE = /^```[ \t]*([\w+#.-]*)[ \t]*\n([\s\S]*?)^```[ \t]*$/m;
+const KB = {q:'', cat:'', sel:'', reading:false, loadError:''};
+const KB_MAP = {title:'title', category:'category', tags:'tags', body:'body', sourceUrl:'source_url', jobNos:'job_nos', pinned:'pinned'};
+const KB_ARR = new Set(['tags','jobNos']);
+function noteToRow(n){
+  const r = {};
+  for (const [k, col] of Object.entries(KB_MAP)) r[col] = k === 'pinned' ? !!n[k] : KB_ARR.has(k) ? (n[k] || []) : (n[k] ?? '');
+  return r;
+}
+function rowToNote(r){
+  const n = {id:r.id, createdAt:r.created_at || '', updatedAt:r.updated_at || '', updatedByEmail:r.updated_by_email || ''};
+  for (const [k, col] of Object.entries(KB_MAP)) n[k] = k === 'pinned' ? !!r[col] : KB_ARR.has(k) ? (r[col] || []) : (r[col] ?? '');
+  return n;
+}
+async function fetchAllNotes(){
+  const out = [];
+  for (let from = 0; ; from += 1000){
+    const {data, error} = await sb.from('knowledge').select('*').order('created_at').range(from, from + 999);
+    if (error) throw error;
+    out.push(...data.map(rowToNote));
+    if (data.length < 1000) return out;
+  }
+}
+async function apiSaveNote(note, expectedUpdatedAt){
+  if (!CLOUD){
+    const now = new Date().toISOString();
+    return {...note, id:note.id || uid(), createdAt:note.createdAt || now, updatedAt:now, updatedByEmail:''};
+  }
+  let q;
+  if (note.id){
+    q = sb.from('knowledge').update(noteToRow(note)).eq('id', note.id);
+    if (expectedUpdatedAt) q = q.eq('updated_at', expectedUpdatedAt);
+  } else q = sb.from('knowledge').insert(noteToRow(note));
+  const {data, error} = await q.select();
+  if (error) throw error;
+  if (!data.length){ const err = new Error('เรื่องนี้ถูกแก้ไขโดยผู้ใช้อื่น'); err.conflict = true; throw err; }
+  return rowToNote(data[0]);
+}
+async function apiDeleteNote(id){
+  if (!CLOUD) return;
+  const {error} = await sb.from('knowledge').delete().eq('id', id);
+  if (error) throw error;
+}
+async function apiReplaceNotes(notes){
+  if (CLOUD){
+    const {error} = await sb.from('knowledge').delete().not('id', 'is', null);
+    if (error) throw error;
+    const out = [];
+    for (let i = 0; i < notes.length; i += 500){
+      const {data, error} = await sb.from('knowledge').insert(notes.slice(i, i + 500).map(noteToRow)).select();
+      if (error) throw error;
+      out.push(...data.map(rowToNote));
+    }
+    db.notes = out;
+  } else db.notes = notes.map(n => ({...n, id:uid()}));
+}
+function mergeNote(n){
+  const i = db.notes.findIndex(x => x.id === n.id);
+  if (i >= 0) db.notes[i] = n; else db.notes.push(n);
+}
+// Save with conflict handling (same idea as saveJob)
+async function kbSave(n, {force = false} = {}){
+  const old = db.notes.find(x => x.id === n.id);
+  try {
+    const saved = await apiSaveNote(n, old && !force ? old.updatedAt : '');
+    mergeNote(saved); persistLocal();
+    return saved;
+  } catch(err){
+    if (!err.conflict) throw err;
+    if (!confirm(`"${n.title}" ถูกแก้ไขโดยผู้ใช้อื่นหลังจากที่คุณเปิดดู\n\nOK = บันทึกทับด้วยข้อมูลของคุณ\nCancel = ไม่บันทึก`)) return undefined;
+    return kbSave(n, {force:true});
+  }
+}
+
+/* ---------- images ---------- */
+const kbImagesOf = body => [...String(body || '').matchAll(KB_IMG_RE)].map(m => m[2]);
+const fmtBytes = b => b >= 1073741824 ? (b / 1073741824).toFixed(2) + ' GB' : b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+async function kbPrepareImage(file){
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, KB_MAX_W / bmp.width);
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(bmp.width * scale); cv.height = Math.round(bmp.height * scale);
+  cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+  bmp.close?.();
+  const blob = await new Promise(res => cv.toBlob(res, 'image/webp', KB_QUALITY));
+  if (!blob) throw new Error('แปลงรูปไม่สำเร็จ');
+  if (blob.size > KB_MAX_BYTES) throw new Error(`รูปใหญ่เกิน 5 MB หลังย่อแล้ว (${fmtBytes(blob.size)})`);
+  return blob;
+}
+async function kbUploadImage(blob){
+  const ext = {'image/webp':'webp', 'image/jpeg':'jpg', 'image/gif':'gif'}[blob.type] || 'png';
+  const d = new Date();
+  const path = `${d.getFullYear()}/${pad(d.getMonth()+1)}/${uid()}.${ext}`;
+  if (!CLOUD){
+    db.kbImages = db.kbImages || {};
+    db.kbImages[path] = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+    return path;
+  }
+  const {error} = await sb.storage.from(KB_BUCKET).upload(path, blob, {contentType:blob.type, cacheControl:'31536000', upsert:false});
+  if (error) throw error;
+  return path;
+}
+const kbUrlCache = new Map(); // path -> {url, exp}
+async function kbRemoveImages(paths){
+  paths = uniq(paths);
+  if (!paths.length) return;
+  paths.forEach(p => kbUrlCache.delete(p));
+  if (!CLOUD){ paths.forEach(p => delete db.kbImages?.[p]); persistLocal(); return; }
+  const {error} = await sb.storage.from(KB_BUCKET).remove(paths);
+  if (error) console.error('remove images', error); // non-fatal: leaves an unused file behind
+}
+async function kbImageUrls(paths){
+  const out = {}, need = [];
+  for (const p of paths){
+    if (!CLOUD){ out[p] = db.kbImages?.[p] || ''; continue; }
+    const c = kbUrlCache.get(p);
+    if (c && c.exp > Date.now()) out[p] = c.url; else need.push(p);
+  }
+  if (need.length){
+    const {data, error} = await sb.storage.from(KB_BUCKET).createSignedUrls(need, 6 * 3600);
+    if (error) throw error;
+    data.forEach(x => { if (x.signedUrl){ kbUrlCache.set(x.path, {url:x.signedUrl, exp:Date.now() + 5.5 * 3600e3}); out[x.path] = x.signedUrl; } });
+  }
+  return out;
+}
+async function hydrateKbImages(root){
+  const imgs = $$('img[data-kb]', root);
+  if (!imgs.length) return;
+  const fail = img => img.closest('figure')?.classList.add('missing');
+  try {
+    const urls = await kbImageUrls(uniq(imgs.map(i => i.dataset.kb)));
+    imgs.forEach(i => { const u = urls[i.dataset.kb]; if (u){ i.onerror = () => fail(i); i.src = u; } else fail(i); });
+  } catch(err){ console.error(err); imgs.forEach(fail); }
+}
+
+/* ---------- rendering ---------- */
+const KB_KW = {
+  'x++':'int|int64|str|real|date|utcdatetime|boolean|void|anytype|public|private|protected|static|final|server|client|display|edit|class|extends|implements|while|do|for|if|else|switch|case|default|break|continue|return|new|super|element|this|select|from|where|join|exists|notexists|outer|firstonly|firstfast|forupdate|crosscompany|order|group|by|asc|desc|ttsbegin|ttscommit|ttsabort|container|try|catch|retry|throw|true|false|null|in|like',
+  sql:'select|from|where|and|or|not|as|join|inner|left|right|full|outer|cross|apply|on|order|by|group|having|update|insert|into|values|delete|top|distinct|case|when|then|else|end|with|nolock|is|null|in|like|between|exists|union|all|create|alter|drop|table|view|procedure|function|index|begin|commit|rollback|tran|transaction|declare|set|exec|execute|return',
+  bash:'git|cd|ls|npm|npx|node|cp|mv|rm|mkdir|echo|curl|sudo|cat|grep|export|if|then|fi|for|do|done',
+  js:'const|let|var|function|return|if|else|for|while|of|in|async|await|new|class|extends|import|export|from|default|try|catch|throw|true|false|null|undefined|this',
+  py:'def|class|import|from|as|return|if|elif|else|for|while|in|not|and|or|is|try|except|finally|with|lambda|yield|pass|break|continue|True|False|None|self',
+};
+const KB_LANG = {xpp:'x++', ax:'x++', tsql:'sql', mssql:'sql', sh:'bash', shell:'bash', powershell:'bash', ps:'bash', cmd:'bash', javascript:'js', ts:'js', typescript:'js', json:'js', python:'py'};
+function kbHighlight(code, lang){
+  lang = KB_LANG[lang] || lang;
+  const kw = KB_KW[lang];
+  if (!kw) return esc(code);
+  const comment = lang === 'sql' ? '--[^\\n]*|/\\*[\\s\\S]*?\\*/' : (lang === 'bash' || lang === 'py') ? '#[^\\n]*' : '//[^\\n]*|/\\*[\\s\\S]*?\\*/';
+  const re = new RegExp(`(${comment})|("(?:[^"\\\\\\n]|\\\\.)*"|'(?:[^'\\\\\\n]|\\\\.)*')|\\b(${kw})\\b|\\b(\\d+(?:\\.\\d+)?)\\b|\\b([A-Za-z_]\\w*)(?=\\s*\\()`, lang === 'sql' ? 'gi' : 'g');
+  let out = '', last = 0, m;
+  while ((m = re.exec(code))){
+    out += esc(code.slice(last, m.index));
+    const cls = m[1] ? 'com' : m[2] ? 'str' : m[3] ? 'kw' : m[4] ? 'num' : 'fn';
+    out += `<span class="hl-${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(code.slice(last));
+}
+const kbInline = s => esc(s)
+  .replace(/`([^`\n]+)`/g, '<code class="inl">$1</code>')
+  .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
+  .replace(/(^|[\s(])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+function kbRenderText(text){
+  let html = '', list = [], para = [];
+  const flushList = () => { if (list.length){ html += `<ul>${list.map(l => `<li>${kbInline(l)}</li>`).join('')}</ul>`; list = []; } };
+  const flushPara = () => { if (para.length){ html += `<p>${para.map(kbInline).join('<br>')}</p>`; para = []; } };
+  for (const raw of text.split('\n')){
+    const line = raw.trimEnd();
+    const img = line.trim().match(/^!\[([^\]\n]*)\]\(kb:([\w\/.-]+)\)$/);
+    if (!line.trim()){ flushList(); flushPara(); }
+    else if (img){ flushList(); flushPara(); html += `<figure class="kb-fig"><img data-kb="${esc(img[2])}" alt="${esc(img[1])}" data-zoom>${img[1] ? `<figcaption>${esc(img[1])}</figcaption>` : ''}</figure>`; }
+    else if (/^#{1,3}\s/.test(line)){ flushList(); flushPara(); html += `<h3>${kbInline(line.replace(/^#+\s*/, ''))}</h3>`; }
+    else if (/^\s*[-*]\s/.test(line)){ flushPara(); list.push(line.replace(/^\s*[-*]\s+/, '')); }
+    else { flushList(); para.push(line); }
+  }
+  flushList(); flushPara();
+  return html;
+}
+function kbRenderBody(src){
+  const parts = String(src || '').replace(/\r\n/g, '\n').split(KB_FENCE);
+  let html = '';
+  for (let i = 0; i < parts.length; i += 3){
+    html += kbRenderText(parts[i]);
+    if (parts[i + 2] === undefined) continue;
+    const lang = (parts[i + 1] || '').toLowerCase();
+    html += `<div class="kb-code"><div class="kb-code-head">${esc(lang || 'code')}<button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div><pre>${kbHighlight(parts[i + 2].replace(/\n$/, ''), lang)}</pre></div>`;
+  }
+  return html;
+}
+const kbSnippet = body => String(body || '').replace(/\r\n/g, '\n').split(KB_FENCE).map((p, i) => i % 3 === 0 ? p : i % 3 === 2 ? ' [โค้ด] ' : '').join('')
+  .replace(KB_IMG_RE, ' [รูป] ').replace(/^#+\s*/gm, '').replace(/^\s*[-*]\s+/gm, '').replace(/[`*]/g, '').replace(/\s+/g, ' ').trim().slice(0, 220);
+function kbColor(c){ let h = 0; for (const ch of c || '') h = (h * 31 + ch.codePointAt(0)) % 360; return `hsl(${h} 60% 50%)`; }
+const kbBadge = c => c ? `<span class="kb-badge"><span class="cdot" style="--c:${kbColor(c)}"></span>${esc(c)}</span>` : '';
+function kbFiltered(){
+  const words = KB.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return db.notes.filter(n => {
+    if (KB.cat && n.category !== KB.cat) return false;
+    if (!words.length) return true;
+    const hay = [n.title, n.body.replace(KB_IMG_RE, '$1'), n.category, n.tags.join(' '), n.jobNos.join(' '), n.sourceUrl].join(' ').toLowerCase();
+    return words.every(w => hay.includes(w));
+  }).sort((a, b) => (b.pinned - a.pinned) || String(b.updatedAt).localeCompare(String(a.updatedAt)));
+}
+
+function renderKnowledge(){
+  const wide = matchMedia('(min-width: 901px)').matches;
+  const rows = kbFiltered();
+  if (KB.sel && !db.notes.some(n => n.id === KB.sel)){ KB.sel = ''; KB.reading = false; }
+  if (!KB.sel && wide && rows.length) KB.sel = rows[0].id;
+  const prev = {sel:KB.sel, list:$('#kbList')?.scrollTop || 0, reader:$('#kbReader')?.scrollTop || 0, focus:document.activeElement?.id === 'kbq'};
+  const cats = uniq([...db.settings.kbCategories, ...db.notes.map(n => n.category)]).filter(c => db.notes.some(n => n.category === c));
+  const count = c => db.notes.filter(n => n.category === c).length;
+  $('#view').innerHTML = `
+    ${KB.loadError ? `<div class="sys-alert warn" style="margin-bottom:12px">${icon('alert')}<div class="msg"><b>ยังเปิดคลังความรู้บน Supabase ไม่ได้</b>
+      <small>ผู้ดูแลระบบต้องรัน supabase/schema.sql (v4) ใน SQL Editor ก่อน · ${esc(KB.loadError)}</small></div></div>` : ''}
+    <div class="kb-tools">
+      <div class="search-box"><svg class="i"><use href="#i-search"/></svg><input id="kbq" type="search" placeholder="ค้นหัวข้อ, โค้ด, tag, Job No…" autocomplete="off" value="${esc(KB.q)}"><kbd>/</kbd></div>
+      <div class="kb-cats">${['', ...cats].map(c => `<button type="button" class="kb-cat ${KB.cat === c ? 'active' : ''}" data-kbcat="${esc(c)}">${c ? `<span class="cdot" style="--c:${kbColor(c)}"></span>${esc(c)}` : 'ทั้งหมด'}<span class="n">${c ? count(c) : db.notes.length}</span></button>`).join('')}</div>
+      <span class="result-count" id="kbCount"></span>
+    </div>
+    <div class="card kb ${KB.reading ? 'reading' : ''}" id="kbPanes"><div class="kb-list" id="kbList"></div><div class="kb-reader" id="kbReader"></div></div>`;
+  kbRenderList();
+  kbRenderReader();
+  if (prev.sel === KB.sel){ $('#kbList').scrollTop = prev.list; $('#kbReader').scrollTop = prev.reader; }
+  const q = $('#kbq');
+  q.oninput = () => { KB.q = q.value; kbRenderList(); };
+  if (prev.focus){ q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+}
+function kbRenderList(){
+  const rows = kbFiltered(), box = $('#kbList');
+  if (!box) return;
+  $('#kbCount').textContent = `${rows.length} จาก ${db.notes.length} เรื่อง`;
+  if (!db.notes.length){
+    box.innerHTML = `<div class="kb-empty">${icon('book')}<p>ยังไม่มีความรู้ในคลัง<br>เริ่มจากเทคนิคที่ใช้บ่อย หรือเปิดงานแล้วกด "บันทึกเป็นความรู้"</p><button type="button" class="btn primary sm" data-kb-new>${icon('plus','sm')}เพิ่มเรื่องแรก</button></div>`;
+    return;
+  }
+  if (!rows.length){ box.innerHTML = `<div class="kb-empty">ไม่พบเรื่องที่ตรงกับคำค้น</div>`; return; }
+  const item = n => `<button type="button" class="kb-item ${n.id === KB.sel ? 'active' : ''}" data-kbsel="${esc(n.id)}">
+      <span class="row"><b>${esc(n.title || '(ไม่มีหัวข้อ)')}</b>${n.pinned ? icon('pin', 'sm pin') : ''}</span>
+      <span class="snip">${esc(kbSnippet(n.body))}</span>
+      <span class="meta">${kbBadge(n.category)}${n.tags.slice(0, 3).map(t => `<span class="tag">${esc(t)}</span>`).join('')}<span class="when">${n.updatedAt ? fmtDate(iso(new Date(n.updatedAt))) : ''}</span></span>
+    </button>`;
+  const pinned = rows.filter(n => n.pinned), rest = rows.filter(n => !n.pinned);
+  box.innerHTML = (pinned.length ? `<div class="kb-group">ปักหมุด</div>${pinned.map(item).join('')}` : '')
+    + (rest.length ? `<div class="kb-group">${pinned.length ? 'ทั้งหมด' : 'แก้ไขล่าสุด'}</div>${rest.map(item).join('')}` : '');
+}
+function kbRenderReader(){
+  const box = $('#kbReader');
+  if (!box) return;
+  const n = db.notes.find(x => x.id === KB.sel);
+  if (!n){ box.innerHTML = db.notes.length ? '<div class="kb-empty">เลือกเรื่องจากรายการด้านซ้าย</div>' : ''; return; }
+  const jobs = n.jobNos.map(no => [no, db.jobs.find(j => j.jobNo === no)]);
+  box.innerHTML = `<article class="kb-doc">
+    <button type="button" class="btn sm kb-back" data-kb-back>${icon('left','sm')}กลับไปรายการ</button>
+    <div class="kb-doc-head">
+      <div style="flex:1;min-width:0">${kbBadge(n.category)}<h2>${esc(n.title || '(ไม่มีหัวข้อ)')}</h2></div>
+      <button type="button" class="icon-btn ${n.pinned ? 'on' : ''}" data-kb-pin title="${n.pinned ? 'เลิกปักหมุด' : 'ปักหมุด'}">${icon('pin')}</button>
+      <button type="button" class="btn sm" data-kb-edit>${icon('edit','sm')}แก้ไข</button>
+    </div>
+    <div class="kb-meta"><span>แก้ไขล่าสุด ${n.updatedAt ? fmtDateTime(n.updatedAt) : '-'}${n.updatedByEmail ? ' · ' + esc(n.updatedByEmail) : ''}</span>${n.tags.length ? `<span>${tagsHtml(n.tags)}</span>` : ''}</div>
+    <div class="kb-body">${kbRenderBody(n.body) || '<p class="muted">ยังไม่มีเนื้อหา</p>'}</div>
+    ${jobs.length ? `<div class="kb-panel"><h4>ใช้ในงาน</h4><div class="kb-links">${jobs.map(([no, j]) =>
+      `<button type="button" class="kb-link" data-kb-job="${esc(no)}"><span class="mono">${esc(no)}</span>${j ? esc(displayTitle(j)) : '<span class="muted">ไม่พบงานนี้</span>'}</button>`).join('')}</div></div>` : ''}
+    ${n.sourceUrl ? `<div class="kb-panel"><h4>แหล่งที่มา</h4><a href="${esc(n.sourceUrl)}" target="_blank" rel="noopener" style="word-break:break-all">${esc(n.sourceUrl)}</a></div>` : ''}
+  </article>`;
+  hydrateKbImages(box);
+}
+function kbOpenNote(id){
+  KB.sel = id; KB.reading = true;
+  if (dlg.open) dlg.close();
+  if (view === 'knowledge') render(); else go('knowledge');
+  $('#kbReader') && ($('#kbReader').scrollTop = 0);
+}
+
+// Related notes inside the job drawer
+function renderJobKb(){
+  const box = $('#jobKbBox');
+  const no = editing?.id ? editing.jobNo : '';
+  if (!no){ box.innerHTML = ''; return; }
+  const notes = db.notes.filter(n => n.jobNos.includes(no));
+  box.innerHTML = `<div class="section"><h4>${icon('book','sm')}คลังความรู้ของงานนี้</h4>
+    ${notes.length ? `<ul class="list">${notes.map(n => `<li data-kb-open="${esc(n.id)}"><div class="grow"><b>${esc(n.title || '(ไม่มีหัวข้อ)')}</b><small>${esc([n.category, n.tags.join(', ')].filter(Boolean).join(' · '))}</small></div>${icon('right','sm')}</li>`).join('')}</ul>` : ''}
+    <button type="button" class="btn sm" data-kb-from-job style="margin-top:8px">${icon('plus','sm')}บันทึกเป็นความรู้</button></div>`;
+}
+function kbDraftFromJob(j){
+  const code = s => s ? '```\n' + s + '\n```' : '';
+  return {title:displayTitle(j), category:j.system === 'AX' ? 'AX / X++' : j.system === 'Odoo' ? 'Odoo' : '', tags:[...(j.modules || [])],
+    jobNos:[j.jobNo], sourceUrl:j.refLink || '', pinned:false,
+    body:[j.note, code(j.projectName), j.formPath ? 'Form / Report: `' + j.formPath.replace(/\n/g, ' · ') + '`' : ''].filter(Boolean).join('\n\n')};
+}
+
+/* ---------- editor ---------- */
+const kbDlg = $('#kbDialog'), kbForm = $('#kbForm');
+const kf = name => kbForm.elements.namedItem(name);
+let kbEditing = null, kbUploads = [], kbBusy = 0, kbSaved = false, kbSnapshot = '';
+const kbFormState = () => JSON.stringify(['title','category','tags','jobNos','sourceUrl','body'].map(k => kf(k).value).concat(kf('pinned').checked));
+function openKbEditor(note, draft){
+  kbEditing = note ? clone(note) : {id:'', title:'', category:KB.cat || '', tags:[], body:'', sourceUrl:'', jobNos:[], pinned:false, ...draft};
+  kbUploads = []; kbSaved = false;
+  kf('title').value = kbEditing.title;
+  kf('category').value = kbEditing.category;
+  kf('tags').value = kbEditing.tags.join(', ');
+  kf('jobNos').value = kbEditing.jobNos.join(', ');
+  kf('sourceUrl').value = kbEditing.sourceUrl;
+  kf('body').value = kbEditing.body;
+  kf('pinned').checked = !!kbEditing.pinned;
+  $('#dlKbCat').innerHTML = uniq([...db.settings.kbCategories, ...db.notes.map(n => n.category)]).map(c => `<option value="${esc(c)}">`).join('');
+  $('#dlJobNo').innerHTML = db.jobs.map(j => j.jobNo).filter(Boolean).sort().reverse().map(no => `<option value="${esc(no)}">`).join('');
+  $('#kbFormTitle').textContent = note ? 'แก้ไขความรู้' : 'เพิ่มความรู้';
+  $('#kbDelete').hidden = !note;
+  $('#kbErr').textContent = '';
+  kbSetMode('write');
+  kbSnapshot = kbFormState();
+  kbDlg.showModal();
+  kbDlg.querySelector('.body').scrollTop = 0;
+  (note ? kf('body') : kf('title')).focus();
+}
+function kbSetMode(mode){
+  $$('[data-kbmode]').forEach(b => b.classList.toggle('active', b.dataset.kbmode === mode));
+  const pv = $('#kbPreview');
+  kf('body').hidden = mode === 'preview';
+  pv.hidden = mode !== 'preview';
+  if (mode === 'preview'){ pv.innerHTML = kbRenderBody(kf('body').value) || '<p class="muted">ยังไม่มีเนื้อหา</p>'; hydrateKbImages(pv); }
+}
+const kbDirty = () => kbUploads.length > 0 || kbFormState() !== kbSnapshot;
+function kbTryClose(){
+  if (kbBusy){ $('#kbErr').textContent = 'กำลังอัปโหลดรูป รอสักครู่'; return; }
+  if (kbDirty() && !confirm('ปิดโดยไม่บันทึก? สิ่งที่แก้ไขจะหายไป')) return;
+  kbDlg.close();
+}
+kbDlg.addEventListener('cancel', e => { e.preventDefault(); kbTryClose(); });
+kbDlg.addEventListener('close', () => {
+  // images uploaded while editing but not kept in a saved note
+  if (!kbSaved){
+    const keep = new Set(kbImagesOf(db.notes.find(n => n.id === kbEditing?.id)?.body));
+    kbRemoveImages(kbUploads.filter(p => !keep.has(p)));
+  }
+  kbUploads = [];
+});
+async function kbAddImages(files){
+  files = [...files].filter(f => f && f.type.startsWith('image/'));
+  if (!files.length) return;
+  const ta = kf('body');
+  kbBusy++; $('#kbErr').textContent = '';
+  toast(`กำลังอัปโหลด ${files.length} รูป…`, 'upload');
+  let before = 0, after = 0, tokens = '';
+  try {
+    for (const f of files){
+      const blob = await kbPrepareImage(f);
+      const path = await kbUploadImage(blob);
+      kbUploads.push(path);
+      before += f.size; after += blob.size;
+      const name = f.name && !/^image\.\w+$/i.test(f.name) ? f.name.replace(/\.\w+$/, '') : 'ภาพหน้าจอ';
+      tokens += `\n![${name.replace(/[\[\]\n]/g, ' ')}](kb:${path})\n`;
+    }
+  } catch(err){ console.error(err); $('#kbErr').textContent = 'อัปโหลดรูปไม่สำเร็จ: ' + (err.message || err); }
+  finally { kbBusy--; }
+  if (!tokens) return;
+  if (ta.hidden) kbSetMode('write');
+  ta.focus();
+  ta.setRangeText(tokens, ta.selectionStart, ta.selectionEnd, 'end');
+  toast(`แนบรูปแล้ว · ${fmtBytes(before)} → ${fmtBytes(after)}`, 'checkcircle');
+}
+kf('body').addEventListener('paste', e => {
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.some(f => f.type.startsWith('image/'))){ e.preventDefault(); kbAddImages(files); }
+});
+kf('body').addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('Files')){ e.preventDefault(); kf('body').classList.add('drop'); } });
+kf('body').addEventListener('dragleave', () => kf('body').classList.remove('drop'));
+kf('body').addEventListener('drop', e => { if (!e.dataTransfer.files.length) return; e.preventDefault(); kf('body').classList.remove('drop'); kbAddImages(e.dataTransfer.files); });
+$('#kbPick').onclick = () => $('#kbFile').click();
+$('#kbFile').onchange = e => { kbAddImages(e.target.files); e.target.value = ''; };
+$('#kbMode').onclick = e => { const b = e.target.closest('[data-kbmode]'); if (b) kbSetMode(b.dataset.kbmode); };
+kbForm.onsubmit = async e => {
+  e.preventDefault();
+  if (kbBusy){ $('#kbErr').textContent = 'รอให้อัปโหลดรูปเสร็จก่อน'; return; }
+  const n = {...kbEditing,
+    title:kf('title').value.trim(), category:kf('category').value.trim(),
+    tags:uniq(kf('tags').value.split(',').map(x => x.trim())),
+    jobNos:uniq(kf('jobNos').value.split(/[,\s]+/).map(x => x.trim().toUpperCase())),
+    sourceUrl:kf('sourceUrl').value.trim(), body:kf('body').value.replace(/\s+$/, ''), pinned:kf('pinned').checked};
+  if (!n.title){ $('#kbErr').textContent = 'กรุณาใส่หัวข้อ'; kf('title').focus(); return; }
+  const oldBody = db.notes.find(x => x.id === n.id)?.body || '';
+  const btn = kbForm.querySelector('[type=submit]');
+  btn.disabled = true;
+  const saved = await safe(() => kbSave(n));
+  btn.disabled = false;
+  if (!saved) return;
+  const keep = new Set(kbImagesOf(saved.body));
+  kbRemoveImages([...kbImagesOf(oldBody), ...kbUploads].filter(p => !keep.has(p)));
+  kbSaved = true; kbUploads = [];
+  kbDlg.close();
+  KB.sel = saved.id; KB.reading = true;
+  if (dlg.open) renderJobKb();
+  if (view === 'knowledge') render();
+  toast(oldBody || n.id ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มความรู้แล้ว');
+};
+$('#kbDelete').onclick = () => {
+  const n = db.notes.find(x => x.id === kbEditing?.id);
+  if (!n || !confirm(`ลบ "${n.title}"? รูปในเรื่องนี้จะถูกลบด้วย`)) return;
+  safe(async () => {
+    await apiDeleteNote(n.id);
+    db.notes = db.notes.filter(x => x.id !== n.id);
+    persistLocal();
+    kbRemoveImages([...kbImagesOf(n.body), ...kbUploads]);
+    kbSaved = true; kbDlg.close();
+    if (dlg.open) renderJobKb();
+    render(); toast('ลบแล้ว', 'trash');
+  });
+};
+
+function kbClick(e){
+  const t = e.target;
+  const hit = sel => t.closest(sel);
+  let el;
+  if (hit('[data-kb-new]')){ openKbEditor(); return true; }
+  if (hit('[data-kb-cancel]')){ kbTryClose(); return true; }
+  if ((el = hit('[data-kbcat]'))){ KB.cat = el.dataset.kbcat; render(); return true; }
+  if ((el = hit('[data-kbsel]'))){ KB.sel = el.dataset.kbsel; KB.reading = true; $('#kbPanes').classList.add('reading'); kbRenderList(); kbRenderReader(); $('#kbReader').scrollTop = 0; return true; }
+  if (hit('[data-kb-back]')){ KB.reading = false; $('#kbPanes').classList.remove('reading'); return true; }
+  if (hit('[data-kb-edit]')){ openKbEditor(db.notes.find(n => n.id === KB.sel)); return true; }
+  if (hit('[data-kb-pin]')){
+    const n = db.notes.find(x => x.id === KB.sel);
+    if (n) safe(async () => { const s = await kbSave({...n, pinned:!n.pinned}); if (s){ render(); toast(s.pinned ? 'ปักหมุดแล้ว' : 'เลิกปักหมุดแล้ว'); } });
+    return true;
+  }
+  if ((el = hit('[data-kb-copy]'))){
+    const pre = el.closest('.kb-code').querySelector('pre');
+    navigator.clipboard.writeText(pre.textContent).then(() => toast('คัดลอกโค้ดแล้ว', 'copy'), () => {
+      const r = document.createRange(); r.selectNodeContents(pre);
+      getSelection().removeAllRanges(); getSelection().addRange(r);
+      toast('เลือกโค้ดแล้ว กด Ctrl+C เพื่อคัดลอก', 'copy');
+    });
+    return true;
+  }
+  if ((el = hit('img[data-zoom]')) && el.src){ const lb = $('#lightbox'); lb.querySelector('img').src = el.src; lb.querySelector('img').alt = el.alt; lb.showModal(); return true; }
+  if ((el = hit('[data-kb-job]'))){
+    const j = db.jobs.find(x => x.jobNo === el.dataset.kbJob);
+    if (j) openForm(j); else toast(`ไม่พบงาน ${el.dataset.kbJob}`, 'alert');
+    return true;
+  }
+  if ((el = hit('[data-kb-open]'))){ kbOpenNote(el.dataset.kbOpen); return true; }
+  if (hit('[data-kb-from-job]')){ openKbEditor(null, kbDraftFromJob(editing)); return true; }
+  return false;
+}
+$('#lightbox').onclick = () => $('#lightbox').close();
 
 /* ================= Wiring ================= */
 $$('.nav-item[data-view]').forEach(b => b.onclick = () => go(b.dataset.view));
 document.addEventListener('click', e => {
   const io = e.target.closest('[data-io]'); if (io) return handleIO(io.dataset.io);
   if (e.target.closest('[data-new]')) return openForm(null, true);
+  if (kbClick(e)) return;
   if (e.target.closest('[data-clear]')){ Object.assign(F, F_DEFAULT); return render(); }
   const unf = e.target.closest('[data-unf]'); if (unf){ F[unf.dataset.unf] = ''; return render(); }
   const bulk = e.target.closest('[data-bulk]'); if (bulk) return handleBulk(bulk.dataset.bulk);
   if (e.target.closest('[data-release]')) return openRelease([]);
   const close = e.target.closest('[data-close]'); if (close) return close.closest('dialog').close();
-  if (e.target.tagName === 'DIALOG') e.target.close(); // backdrop click
+  // backdrop click (not for the knowledge editor: a stray click would throw away a long note)
+  if (e.target.tagName === 'DIALOG' && e.target.id !== 'kbDialog') e.target.close();
   const cp = $('.colpicker[open]'); if (cp && !cp.contains(e.target)) cp.open = false;
 });
 for (const [id, k] of Object.entries(FILTER_INPUTS)){
@@ -1940,8 +2536,8 @@ if (getPrefs().adv) $('#adv').classList.add('open');
 
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey || $('#app').hidden || $('dialog[open]') || e.target.closest('input,textarea,select')) return;
-  if (e.code === 'KeyN'){ e.preventDefault(); openForm(null, true); }
-  else if (e.code === 'Slash' && view !== 'settings'){ e.preventDefault(); $('#fq').focus(); }
+  if (e.code === 'KeyN'){ e.preventDefault(); view === 'knowledge' ? openKbEditor() : openForm(null, true); }
+  else if (e.code === 'Slash' && view !== 'settings'){ e.preventDefault(); $(view === 'knowledge' ? '#kbq' : '#fq')?.focus(); }
 });
 
 // Theme: light / auto / dark
@@ -1992,6 +2588,12 @@ const dbStats = () => {
   const mb = HEALTH.db.db_bytes / 1048576;
   return {mb, pct: mb / DB_LIMIT_MB * 100, jobs: HEALTH.db.jobs};
 };
+const STORAGE_LIMIT_MB = +CFG.STORAGE_LIMIT_MB || 1024;
+const storageStats = () => {
+  if (HEALTH.db?.storage_bytes == null) return null; // schema v4 not applied yet
+  const mb = HEALTH.db.storage_bytes / 1048576;
+  return {mb, pct: mb / STORAGE_LIMIT_MB * 100, files: HEALTH.db.files || 0, bytes: HEALTH.db.storage_bytes};
+};
 const fmtDateTime = s => new Date(s).toLocaleString('th-TH-u-ca-gregory', {dateStyle:'medium', timeStyle:'short'});
 function healthAlerts(){
   const out = [];
@@ -2001,6 +2603,10 @@ function healthAlerts(){
   if (s && s.pct >= 80) out.push({id:'db' + Math.floor(s.pct / 5), level:s.pct >= 90 ? 'bad' : 'warn',
     text:`ฐานข้อมูลใกล้เต็ม: ใช้ไป ${s.mb.toFixed(0)} MB จาก ${DB_LIMIT_MB} MB (${s.pct.toFixed(0)}%)`,
     sub:'ถ้าเต็ม จะบันทึกงานใหม่ไม่ได้ — แจ้งผู้ดูแลระบบ (Export งานเก่าเก็บเป็น Excel แล้วลบ หรืออัปเกรดแผน)'});
+  const st = storageStats();
+  if (st && st.pct >= 80) out.push({id:'st' + Math.floor(st.pct / 5), level:st.pct >= 90 ? 'bad' : 'warn',
+    text:`พื้นที่รูปในคลังความรู้ใกล้เต็ม: ใช้ไป ${fmtBytes(st.bytes)} จาก ${fmtBytes(STORAGE_LIMIT_MB * 1048576)} (${st.pct.toFixed(0)}%)`,
+    sub:'ถ้าเต็ม จะแนบรูปใหม่ไม่ได้ — แจ้งผู้ดูแลระบบ (ลบเรื่องที่ไม่ใช้แล้ว อัปเกรดแผน หรือย้ายรูปไปที่อื่น)'});
   const b = HEALTH.backup;
   if (b){
     const hrs = b.lastOk ? (Date.now() - new Date(b.lastOk.at)) / 3600000 : Infinity;
@@ -2034,12 +2640,18 @@ function healthCardHtml(){
     ? `<div><div class="bar ${lvl(s.pct)}"><i style="width:${Math.min(100, s.pct).toFixed(1)}%"></i></div>
        <small>${s.mb.toFixed(1)} MB จาก ${DB_LIMIT_MB} MB (${s.pct.toFixed(1)}%) · ${s.jobs} งาน · เตือนเมื่อเกิน 80%</small></div>`
     : `<small>${HEALTH.dbError ? 'อ่านขนาดไม่ได้ — ผู้ดูแลระบบต้องรัน supabase/schema.sql (v3)' : 'กำลังตรวจ…'}</small>`;
+  const st = storageStats();
+  const stRow = st
+    ? `<div><div class="bar ${lvl(st.pct)}"><i style="width:${Math.min(100, st.pct).toFixed(1)}%"></i></div>
+       <small>${fmtBytes(st.bytes)} จาก ${fmtBytes(STORAGE_LIMIT_MB * 1048576)} (${st.pct.toFixed(1)}%) · ${st.files} ไฟล์ · คลังความรู้ ${db.notes.length} เรื่อง · เตือนเมื่อเกิน 80%</small></div>`
+    : `<small>${HEALTH.db || HEALTH.dbError ? 'ยังวัดไม่ได้ — ผู้ดูแลระบบต้องรัน supabase/schema.sql (v4)' : 'กำลังตรวจ…'}</small>`;
   const bkRow = !CFG.GITHUB_REPO ? '<small>ไม่ได้ตั้งค่า GITHUB_REPO ใน config.js</small>'
     : !b ? '<small>กำลังตรวจ… (หรือเรียก GitHub API ไม่ได้)</small>'
     : `<div>${b.last ? (b.last.conclusion === 'success' ? `<span class="due ok">${icon('check','sm')}สำเร็จ</span>` : `<span class="due bad">${icon('alert','sm')}ล้มเหลว</span>`) : ''}
        <small>${b.lastOk ? ` สำเร็จล่าสุด ${fmtDateTime(b.lastOk.at)}` : ' ยังไม่มีครั้งที่สำเร็จ'} · ทุกวัน 01:00 น. เก็บ 90 วัน · <a href="${esc(b.url)}" target="_blank" rel="noopener">GitHub Actions</a></small></div>`;
   return `<div class="card" style="margin-bottom:14px">${head}<div class="card-body"><div class="health-rows">
     <div class="health-row"><b>พื้นที่ฐานข้อมูล</b>${dbRow}</div>
+    <div class="health-row"><b>พื้นที่รูป (Storage)</b>${stRow}</div>
     <div class="health-row"><b>Backup อัตโนมัติ</b>${bkRow}</div>
     <div class="health-row"><b>การเชื่อมต่อ</b><small>${HEALTH.loadError ? `<span class="due bad">${icon('alert','sm')}เชื่อมต่อไม่ได้</span> ${esc(HEALTH.loadError)}` : '<span class="due ok">ปกติ</span> · แผน Free จะ pause เมื่อไม่มีการใช้งาน 7 วัน (backup รายวันช่วยกันไว้)'}</small></div>
   </div></div></div>`;

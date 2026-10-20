@@ -16,7 +16,7 @@
 | Dashboard | https://supabase.com/dashboard/project/raqwyoatasstnadwxkro |
 | Region / Compute | Northeast Asia (Tokyo) `ap-northeast-1` · Nano |
 | anon key | อยู่ใน `config.js` (Legacy API Keys → anon/public — เปิดเผยได้) |
-| Schema | รัน `supabase/schema.sql` แล้ว — ตาราง `jobs`, `app_settings`, RLS เฉพาะผู้ใช้ที่ login, realtime เปิดแล้ว |
+| Schema | รัน `supabase/schema.sql` แล้ว — ตาราง `jobs`, `app_settings`, RLS เฉพาะผู้ใช้ที่ login, realtime เปิดแล้ว · **v4 (คลังความรู้) ต้องรันเพิ่ม** ดูหัวข้อ "อัปเดต schema (v4)" |
 | Auth | Email + Password · ปิดการสมัครเอง (`disable_signup = true`) |
 | เพิ่มผู้ใช้ | Authentication → Users → Add user → Create new user → ติ๊ก **Auto Confirm User** |
 
@@ -25,7 +25,8 @@
 - Supabase ไม่มี backup ให้ในแผน Free → ใช้ **backup อัตโนมัติผ่าน GitHub Actions** + ปุ่ม *Backup JSON* ในแอปเป็นครั้งคราว
 
 ### Backup อัตโนมัติรายวัน (GitHub Actions)
-ไฟล์ `.github/workflows/backup.yml` — ทุกวัน 01:00 น. ดึงตาราง `jobs` + `app_settings` → **เข้ารหัส AES-256** → เก็บใน Actions artifacts 90 วัน
+ไฟล์ `.github/workflows/backup.yml` — ทุกวัน 01:00 น. ดึงตาราง `jobs` + `app_settings` + `knowledge` และรูปในคลังความรู้ → **เข้ารหัส AES-256** → เก็บใน Actions artifacts 90 วัน
+(artifact มี 2 ไฟล์: `job-schedule-backup-*.json.gpg` = ข้อมูล, `job-schedule-images-*.tar.gpg` = รูป — มีเฉพาะเมื่อมีรูป)
 (repo เป็น public จึงต้องเข้ารหัส — artifact ของ repo public ผู้ใช้ GitHub ทุกคนดาวน์โหลดได้)
 
 ตั้งค่าครั้งเดียว: GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**
@@ -39,7 +40,8 @@
 กู้คืนจาก backup:
 1. ดาวน์โหลด artifact (.zip) → แตกไฟล์ได้ `job-schedule-backup-YYYY-MM-DD.json.gpg`
 2. เปิด Git Bash แล้วถอดรหัส: `gpg -d job-schedule-backup-YYYY-MM-DD.json.gpg > backup.json` (ใส่ BACKUP_PASSPHRASE)
-3. ในแอป: ข้อมูล & ตั้งค่า → **Restore JSON** → เลือก `backup.json` (แทนที่ข้อมูลทั้งหมด)
+3. ในแอป: ข้อมูล & ตั้งค่า → **Restore JSON** → เลือก `backup.json` (แทนที่งานและคลังความรู้ทั้งหมด)
+4. ถ้ารูปใน Storage หายด้วย: `gpg -d job-schedule-images-YYYY-MM-DD.tar.gpg > images.tar` → `tar -xf images.tar -C images` → Supabase → Storage → bucket `knowledge` → อัปโหลดโฟลเดอร์ปี (เช่น `2026/`) ให้ path ตรงเดิม
 
 หมายเหตุ: GitHub จะปิด scheduled workflow อัตโนมัติถ้า repo public ไม่มีความเคลื่อนไหว 60 วัน — ถ้าได้อีเมลแจ้ง ให้เข้าแท็บ Actions กด Enable
 
@@ -50,10 +52,20 @@
 | Backup รายวันล้มเหลว | GitHub Issue ป้าย `backup-failed` + อีเมล workflow failed ของ GitHub + แถบเตือนในแอป — ปิด issue เองเมื่อรันสำเร็จ |
 | ไม่มี backup สำเร็จเกิน 36 ชม. (เช่น GitHub ปิด schedule) | แถบเตือนในแอป |
 | เชื่อมต่อฐานข้อมูลไม่ได้ (project ถูก pause) | แถบเตือนในแอป + backup รายวันล้มเหลว → issue |
+| Storage (รูปในคลังความรู้) เกิน 80% ของ 1 GB | GitHub Issue ป้าย `storage-alert` + แถบเตือนในแอป — ปิด issue เองเมื่อต่ำกว่า 80% |
 
 ต้องรัน `supabase/schema.sql` (v3 — เพิ่มฟังก์ชัน `db_usage()`) ก่อน จึงจะวัดขนาดฐานข้อมูลได้ ·
-ตั้งค่าใน `config.js`: `GITHUB_REPO` (repo ที่รัน backup) และ `DB_LIMIT_MB` (เปลี่ยนเมื่ออัปเกรดแผน)
+ตั้งค่าใน `config.js`: `GITHUB_REPO` (repo ที่รัน backup), `DB_LIMIT_MB` และ `STORAGE_LIMIT_MB` (เปลี่ยนเมื่ออัปเกรดแผน — แก้ใน `backup.yml` ด้วย)
 ให้แน่ใจว่าได้รับอีเมล: GitHub → Settings → Notifications → Actions = "Only notify for failed workflows" และ Watch repo นี้ (ค่าเริ่มต้นของเจ้าของ repo)
+
+### อัปเดต schema (v4 — 20 ต.ค. 2026): คลังความรู้
+รัน `supabase/schema.sql` ซ้ำใน SQL Editor 1 ครั้ง (ไม่ทำข้อมูลหาย) — สร้าง:
+- ตาราง `knowledge` (หัวข้อ, หมวด, tags, เนื้อหา, Job No ที่เกี่ยวข้อง, ปักหมุด) + RLS + realtime
+- Storage bucket `knowledge` แบบ **private** (ต้อง login ถึงจะเปิดรูปได้) จำกัด 5 MB/ไฟล์ ชนิด webp/png/jpeg/gif + policy ให้ผู้ใช้ที่ login อ่าน/อัปโหลด/ลบได้
+- `db_usage()` คืนค่า `storage_bytes`, `files`, `notes` เพิ่ม (ใช้แสดง/เตือนพื้นที่รูป)
+
+ตรวจหลังรัน: Storage → ต้องเห็น bucket `knowledge` · เปิดแอป → คลังความรู้ → เพิ่มเรื่องที่มีรูป → ข้อมูล & ตั้งค่า → สถานะระบบ ต้องเห็นแถว "พื้นที่รูป (Storage)"
+รูปถูกย่อในเบราว์เซอร์ก่อนอัปโหลด (กว้างไม่เกิน 1600px, WebP ราว 80–150 KB) → 1 GB เก็บได้ประมาณ 7,000–10,000 รูป
 
 ### อัปเดต schema (v2 — 17 ต.ค. 2026)
 รัน `supabase/schema.sql` ซ้ำใน SQL Editor 1 ครั้ง (ไม่ทำข้อมูลหาย) — เพิ่มคอลัมน์ `updated_by_email` เพื่อให้คำเตือน "มีคนแก้งานนี้ไปก่อน" บอกได้ว่าใครแก้

@@ -1,5 +1,6 @@
 # สำรองข้อมูล Supabase ทุกวัน → เก็บเป็นไฟล์เข้ารหัส (.json.gpg) ใน Actions artifacts 90 วัน
-# + ตรวจขนาดฐานข้อมูล (แผน Free จำกัด 500 MB) และแจ้งเตือนผ่าน GitHub Issue (GitHub ส่งอีเมลให้เจ้าของ repo)
+# + รูปในคลังความรู้ (Storage bucket "knowledge") เข้ารหัสเป็นไฟล์แยก job-schedule-images-*.tar.gpg
+# + ตรวจขนาดฐานข้อมูล (500 MB) และ Storage (1 GB) ของแผน Free แจ้งเตือนผ่าน GitHub Issue (GitHub ส่งอีเมลให้เจ้าของ repo)
 # ต้องตั้ง repository secrets: SUPABASE_SERVICE_ROLE_KEY, BACKUP_PASSPHRASE (ดู SETUP.md)
 # ผลพลอยได้: มีการเรียกฐานข้อมูลทุกวัน project แผน Free จึงไม่ถูก pause
 name: Daily Supabase backup
@@ -16,14 +17,15 @@ permissions:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     env:
       SUPABASE_URL: https://raqwyoatasstnadwxkro.supabase.co
       SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
       GH_TOKEN: ${{ github.token }}
       DB_LIMIT_MB: 500      # แผน Free
-      DB_WARN_PCT: 80       # เตือนเมื่อใช้เกิน 80% (400 MB)
+      DB_WARN_PCT: 80       # เตือนเมื่อใช้เกิน 80% (400 MB) — ใช้กับ Storage ด้วย
+      STORAGE_LIMIT_MB: 1024  # แผน Free (รูปในคลังความรู้)
     steps:
       - name: Check secrets
         run: |
@@ -38,7 +40,7 @@ jobs:
             local off=0 i=0 n
             while :; do
               curl -sS --fail-with-body "$SUPABASE_URL/rest/v1/$1?select=*&order=$2&offset=$off&limit=1000" \
-                -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY" -o "pages/$1_$i.json"
+                -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY" -o "pages/$1_$i.json" || return 1
               n=$(jq length "pages/$1_$i.json")
               i=$((i+1))
               [ "$n" -lt 1000 ] && break
@@ -48,22 +50,46 @@ jobs:
           }
           fetch jobs created_at.asc
           fetch app_settings id.asc
+          # คลังความรู้ (schema v4) — ถ้ายังไม่ได้สร้างตาราง ให้ backup ส่วนอื่นต่อไปได้
+          if ! fetch knowledge created_at.asc; then
+            echo "::warning::อ่านตาราง knowledge ไม่ได้ — รัน supabase/schema.sql (v4) ใน SQL Editor ก่อน"
+            echo '[]' > knowledge.json
+          fi
           STAMP=$(TZ=Asia/Bangkok date +%F)
-          jq -n --slurpfile jobs jobs.json --slurpfile s app_settings.json --arg at "$(date -u +%FT%TZ)" \
-            '{source:"github-actions", exported_at:$at, jobs:$jobs[0], settings:($s[0][0].data // {})}' > "job-schedule-backup-$STAMP.json"
-          echo "jobs: $(jq length jobs.json)"
+          jq -n --slurpfile jobs jobs.json --slurpfile s app_settings.json --slurpfile notes knowledge.json --arg at "$(date -u +%FT%TZ)" \
+            '{source:"github-actions", exported_at:$at, jobs:$jobs[0], settings:($s[0][0].data // {}), notes:$notes[0]}' > "job-schedule-backup-$STAMP.json"
+          echo "jobs: $(jq length jobs.json) · notes: $(jq length knowledge.json)"
+          # รูปที่เนื้อหาอ้างถึง ![…](kb:<path>) → images/<path>
+          mkdir -p images
+          { jq -r '.[].body' knowledge.json | grep -oE '\(kb:[A-Za-z0-9/._-]+\)' | sed -E 's/^\(kb:(.*)\)$/\1/' | sort -u > images.txt; } || true
+          ok=0; miss=0
+          while read -r p; do
+            case "$p" in ''|*..*) continue;; esac
+            mkdir -p "images/$(dirname "$p")"
+            if curl -sS --fail -o "images/$p" "$SUPABASE_URL/storage/v1/object/knowledge/$p" \
+                 -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY"; then ok=$((ok+1)); else miss=$((miss+1)); rm -f "images/$p"; fi
+          done < images.txt
+          echo "images: $ok (missing $miss)"
+          [ "$miss" -eq 0 ] || echo "::warning::ดาวน์โหลดรูปไม่ได้ $miss ไฟล์ (อาจถูกลบไปแล้วแต่เนื้อหายังอ้างถึง)"
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
 
       - name: Encrypt
         run: |
           gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
             --symmetric --cipher-algo AES256 -o "job-schedule-backup-$STAMP.json.gpg" "job-schedule-backup-$STAMP.json"
-          rm -rf pages jobs.json app_settings.json "job-schedule-backup-$STAMP.json"
+          if [ -n "$(ls -A images)" ]; then
+            tar -cf images.tar -C images .
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+              --symmetric --cipher-algo AES256 -o "job-schedule-images-$STAMP.tar.gpg" images.tar
+          fi
+          rm -rf pages images images.tar images.txt jobs.json app_settings.json knowledge.json "job-schedule-backup-$STAMP.json"
 
       - uses: actions/upload-artifact@v4
         with:
           name: job-schedule-backup-${{ env.STAMP }}
-          path: job-schedule-backup-*.json.gpg
+          path: |
+            job-schedule-backup-*.json.gpg
+            job-schedule-images-*.tar.gpg
           retention-days: 90
           if-no-files-found: error
 
@@ -80,6 +106,14 @@ jobs:
           echo "### ฐานข้อมูล: ${mb} MB จาก ${DB_LIMIT_MB} MB (${pct}%) · ${jobs} งาน" >> "$GITHUB_STEP_SUMMARY"
           echo "DB ${mb} MB / ${DB_LIMIT_MB} MB (${pct}%), jobs=${jobs}"
           { echo "pct=$pct"; echo "mb=$mb"; echo "jobs=$jobs"; } >> "$GITHUB_OUTPUT"
+          sbytes=$(jq -r '.storage_bytes // -1' <<<"$usage")
+          if [ "$sbytes" -ge 0 ]; then
+            smb=$(( sbytes / 1048576 )); spct=$(( sbytes * 100 / (STORAGE_LIMIT_MB * 1048576) )); files=$(jq -r '.files // 0' <<<"$usage")
+            echo "### Storage (รูป): ${smb} MB จาก ${STORAGE_LIMIT_MB} MB (${spct}%) · ${files} ไฟล์" >> "$GITHUB_STEP_SUMMARY"
+            { echo "spct=$spct"; echo "smb=$smb"; } >> "$GITHUB_OUTPUT"
+          else
+            echo "spct=-1" >> "$GITHUB_OUTPUT"
+          fi
 
       # ---------- alerts (GitHub emails the repo owner when an issue is opened) ----------
       - name: Alert — database almost full
@@ -98,6 +132,24 @@ jobs:
         run: |
           for n in $(gh issue list -R "$GITHUB_REPOSITORY" --label db-alert --state open --json number -q '.[].number'); do
             gh issue close "$n" -R "$GITHUB_REPOSITORY" --comment "กลับมาปกติ: ${{ steps.health.outputs.mb }} MB (${{ steps.health.outputs.pct }}%)"
+          done
+
+      - name: Alert — storage almost full
+        if: steps.health.outputs.spct != '' && fromJSON(steps.health.outputs.spct) >= fromJSON(env.DB_WARN_PCT)
+        run: |
+          gh label create storage-alert --color D93F0B --description "แจ้งเตือนพื้นที่รูปใกล้เต็ม" --force -R "$GITHUB_REPOSITORY"
+          msg="Supabase Storage (รูปในคลังความรู้) ใช้ไป **${{ steps.health.outputs.smb }} MB จาก ${STORAGE_LIMIT_MB} MB (${{ steps.health.outputs.spct }}%)**
+          ถ้าเต็ม 1 GB จะแนบรูปใหม่ไม่ได้ — ทางเลือก: ลบเรื่องที่ไม่ใช้แล้ว (รูปถูกลบตาม) หรืออัปเกรด Supabase Pro
+          รายละเอียด: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          n=$(gh issue list -R "$GITHUB_REPOSITORY" --label storage-alert --state open --json number -q '.[0].number')
+          if [ -n "$n" ]; then gh issue comment "$n" -R "$GITHUB_REPOSITORY" --body "$msg"
+          else gh issue create -R "$GITHUB_REPOSITORY" --label storage-alert --title "⚠️ พื้นที่รูปใกล้เต็ม (${{ steps.health.outputs.spct }}%)" --body "$msg"; fi
+
+      - name: Resolve — storage back to normal
+        if: steps.health.outputs.spct != '' && fromJSON(steps.health.outputs.spct) >= 0 && fromJSON(steps.health.outputs.spct) < fromJSON(env.DB_WARN_PCT)
+        run: |
+          for n in $(gh issue list -R "$GITHUB_REPOSITORY" --label storage-alert --state open --json number -q '.[].number' 2>/dev/null); do
+            gh issue close "$n" -R "$GITHUB_REPOSITORY" --comment "กลับมาปกติ: ${{ steps.health.outputs.smb }} MB (${{ steps.health.outputs.spct }}%)"
           done
 
       - name: Alert — backup failed

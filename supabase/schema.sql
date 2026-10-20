@@ -105,13 +105,78 @@ create policy "team can read settings"   on public.app_settings for select to au
 create policy "team can write settings"  on public.app_settings for insert to authenticated with check (true);
 create policy "team can update settings" on public.app_settings for update to authenticated using (true) with check (true);
 
--- ---------- v3: ขนาดฐานข้อมูล (แจ้งเตือนเมื่อใกล้เต็ม 500 MB ของแผน Free) ----------
+-- ---------- v4: คลังความรู้ (knowledge) + รูปใน Storage bucket "knowledge" ----------
+create table if not exists public.knowledge (
+  id               uuid primary key default gen_random_uuid(),
+  title            text not null default '',
+  category         text not null default '',
+  tags             text[] not null default '{}',
+  body             text not null default '',      -- ข้อความ + โค้ด (```x++ … ```) + รูป ![คำบรรยาย](kb:<path ใน bucket>)
+  source_url       text not null default '',
+  job_nos          text[] not null default '{}',  -- Job No ที่เกี่ยวข้อง
+  pinned           boolean not null default false,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  created_by       uuid default auth.uid() references auth.users(id) on delete set null,
+  updated_by       uuid default auth.uid() references auth.users(id) on delete set null,
+  updated_by_email text not null default ''
+);
+create index if not exists knowledge_job_nos_idx on public.knowledge using gin (job_nos);
+
+create or replace function public.knowledge_before_write() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  new.updated_by_email := coalesce(auth.jwt() ->> 'email', '');
+  if tg_op = 'UPDATE' then
+    new.updated_at := now();
+    new.updated_by := auth.uid();
+    new.created_at := old.created_at;
+    new.created_by := old.created_by;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists knowledge_before_write on public.knowledge;
+create trigger knowledge_before_write before insert or update on public.knowledge
+  for each row execute function public.knowledge_before_write();
+
+grant select, insert, update, delete on public.knowledge to authenticated;
+revoke all on public.knowledge from anon;
+alter table public.knowledge enable row level security;
+
+drop policy if exists "team can read knowledge"   on public.knowledge;
+drop policy if exists "team can insert knowledge" on public.knowledge;
+drop policy if exists "team can update knowledge" on public.knowledge;
+drop policy if exists "team can delete knowledge" on public.knowledge;
+create policy "team can read knowledge"   on public.knowledge for select to authenticated using (true);
+create policy "team can insert knowledge" on public.knowledge for insert to authenticated with check (true);
+create policy "team can update knowledge" on public.knowledge for update to authenticated using (true) with check (true);
+create policy "team can delete knowledge" on public.knowledge for delete to authenticated using (true);
+
+-- รูปเก็บแบบ private (ต้อง login ถึงจะเปิดได้) · จำกัด 5 MB ต่อไฟล์ (แอปย่อรูปเหลือราว 100 KB ก่อนอัปโหลด)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('knowledge', 'knowledge', false, 5242880, array['image/webp','image/png','image/jpeg','image/gif'])
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "team can read knowledge files"   on storage.objects;
+drop policy if exists "team can upload knowledge files" on storage.objects;
+drop policy if exists "team can update knowledge files" on storage.objects;
+drop policy if exists "team can delete knowledge files" on storage.objects;
+create policy "team can read knowledge files"   on storage.objects for select to authenticated using (bucket_id = 'knowledge');
+create policy "team can upload knowledge files" on storage.objects for insert to authenticated with check (bucket_id = 'knowledge');
+create policy "team can update knowledge files" on storage.objects for update to authenticated using (bucket_id = 'knowledge') with check (bucket_id = 'knowledge');
+create policy "team can delete knowledge files" on storage.objects for delete to authenticated using (bucket_id = 'knowledge');
+
+-- ---------- v3 (+v4): ขนาดฐานข้อมูล 500 MB และพื้นที่ Storage 1 GB ของแผน Free ----------
 create or replace function public.db_usage() returns json
 language sql stable security definer set search_path = public as $$
   select json_build_object(
-    'db_bytes',   pg_database_size(current_database()),
-    'jobs',       (select count(*) from public.jobs),
-    'checked_at', now())
+    'db_bytes',      pg_database_size(current_database()),
+    'jobs',          (select count(*) from public.jobs),
+    'notes',         (select count(*) from public.knowledge),
+    'storage_bytes', (select coalesce(sum((metadata ->> 'size')::bigint), 0) from storage.objects),
+    'files',         (select count(*) from storage.objects),
+    'checked_at',    now())
 $$;
 revoke all on function public.db_usage() from public, anon;
 grant execute on function public.db_usage() to authenticated, service_role;
@@ -124,5 +189,8 @@ begin
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'app_settings') then
     alter publication supabase_realtime add table public.app_settings;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'knowledge') then
+    alter publication supabase_realtime add table public.knowledge;
   end if;
 end $$;

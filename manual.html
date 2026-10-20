@@ -182,16 +182,17 @@ td.nw{white-space:nowrap}
       <a href="#calendar">8. ปฏิทิน</a>
       <a href="#dashboard">9. ภาพรวม (Dashboard)</a>
       <a href="#deploy">10. ขึ้น STD66 / LIVE &amp; Release note</a>
+      <a href="#knowledge">11. คลังความรู้</a>
       <div class="grp">ข้อมูล</div>
-      <a href="#import">11. Import จาก Excel</a>
-      <a href="#export">12. Export &amp; Backup</a>
-      <a href="#team">13. ทำงานพร้อมกันหลายคน</a>
-      <a href="#settings">14. ตั้งค่าตัวเลือก</a>
+      <a href="#import">12. Import จาก Excel</a>
+      <a href="#export">13. Export &amp; Backup</a>
+      <a href="#team">14. ทำงานพร้อมกันหลายคน</a>
+      <a href="#settings">15. ตั้งค่าตัวเลือก</a>
       <div class="grp">อื่น ๆ</div>
-      <a href="#shortcuts">15. คีย์ลัด</a>
-      <a href="#admin">16. สำหรับผู้ดูแลระบบ</a>
-      <a href="#faq">17. คำถามที่พบบ่อย</a>
-      <a href="#changelog">18. ประวัติการปรับปรุง</a>
+      <a href="#shortcuts">16. คีย์ลัด</a>
+      <a href="#admin">17. สำหรับผู้ดูแลระบบ</a>
+      <a href="#faq">18. คำถามที่พบบ่อย</a>
+      <a href="#changelog">19. ประวัติการปรับปรุง</a>
     </nav>
   </aside>
 
@@ -215,7 +216,7 @@ td.nw{white-space:nowrap}
         <li>เปิดเว็บ แล้วกรอก <b>อีเมล</b> และ <b>รหัสผ่าน</b> ที่ผู้ดูแลระบบสร้างให้ → กด <span class="ui">เข้าสู่ระบบ</span></li>
         <li>ระบบจำการ login ไว้ ครั้งต่อไปเปิดเว็บก็เข้าได้เลย — ออกจากระบบได้ที่ไอคอนท้ายอีเมลมุมซ้ายล่าง</li>
       </ol>
-      <div class="callout info"><span class="ic">i</span><p>ระบบ<b>ไม่เปิดให้สมัครเอง</b> — ถ้ายังไม่มีบัญชีหรือลืมรหัสผ่าน ติดต่อผู้ดูแลระบบ (ดูหัวข้อ <a href="#admin">16</a>)</p></div>
+      <div class="callout info"><span class="ic">i</span><p>ระบบ<b>ไม่เปิดให้สมัครเอง</b> — ถ้ายังไม่มีบัญชีหรือลืมรหัสผ่าน ติดต่อผู้ดูแลระบบ (ดูหัวข้อ <a href="#admin">17</a>)</p></div>
       <figure><a href="manual/login.png" target="_blank"><img src="manual/login.png" alt="หน้าเข้าสู่ระบบ" loading="lazy"></a><figcaption>หน้าเข้าสู่ระบบ</figcaption></figure>
 
       <h3>ส่วนประกอบของหน้าจอ</h3>
@@ -380,8 +381,24 @@ td.nw{white-space:nowrap}
     </section>
 
     <!-- 11 -->
+    <section id="knowledge">
+      <h2><span class="num">11</span>คลังความรู้</h2>
+      <p class="lead">เก็บเทคนิค โค้ด และวิธีแก้ปัญหาจากงานที่ผ่านมาไว้ในที่เดียว (แทนสมุด OneNote) ทั้งทีมเห็นและค้นหาได้</p>
+      <ul>
+        <li><b>เพิ่ม:</b> เมนู <b>คลังความรู้</b> → ปุ่ม <b>+ เพิ่มความรู้</b> (หรือกด <kbd>N</kbd> ในหน้านี้) → ใส่หัวข้อ หมวด Tags แล้วเขียนเนื้อหา</li>
+        <li><b>โค้ด:</b> วางระหว่าง <code>```x++</code> กับ <code>```</code> (รองรับ x++, sql, bash, js, python) จะมีสีและปุ่ม <b>คัดลอก</b> · หัวข้อย่อยขึ้นต้นด้วย <code>###</code> · bullet ขึ้นต้นด้วย <code>-</code></li>
+        <li><b>รูปหน้าจอ:</b> กด <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> แคปหน้าจอ แล้วคลิกในช่องเนื้อหา กด <kbd>Ctrl</kbd>+<kbd>V</kbd> · ลากไฟล์มาวาง หรือกด <b>แนบรูป</b> ก็ได้ — ระบบย่อรูปให้เอง (ราว 100 KB ต่อรูป) แล้วใส่บรรทัด <code>![ภาพหน้าจอ](kb:…)</code> ในเนื้อหา แก้คำบรรยายหรือย้ายบรรทัดนี้ได้ · ลบบรรทัดนี้ = ลบรูป</li>
+        <li>ปุ่ม <b>ดูตัวอย่าง</b> ในฟอร์ม = ดูหน้าตาก่อนบันทึก · คลิกรูปเพื่อดูภาพใหญ่</li>
+        <li><b>ค้นหา:</b> พิมพ์ได้หลายคำ (ต้องเจอทุกคำ) ค้นทั้งหัวข้อ เนื้อหา โค้ด Tags และ Job No · กดหมวดด้านบนเพื่อกรอง · ปุ่มรูปหมุดในหน้าอ่าน = ปักหมุดไว้บนสุด</li>
+        <li><b>ผูกกับงาน:</b> ใส่ Job No ในช่อง "ใช้ในงาน" — เปิดงานนั้นจะเห็นหัวข้อ <b>คลังความรู้ของงานนี้</b> · ในหน้ารายละเอียดงานกด <b>บันทึกเป็นความรู้</b> เพื่อสร้างเรื่องใหม่โดยดึงชื่องาน หมายเหตุ และ ProjectName มาให้</li>
+        <li>หมวดในรายการเลือกแก้ได้ที่ ข้อมูล &amp; ตั้งค่า → <b>หมวดคลังความรู้</b></li>
+      </ul>
+      <div class="callout info"><span class="ic">i</span><p>รูปเก็บใน Supabase Storage แผน Free (1 GB ≈ 7,000–10,000 รูป) ดูพื้นที่ที่ใช้ได้ที่ ข้อมูล &amp; ตั้งค่า → สถานะระบบ · ลบเรื่อง = ลบรูปในเรื่องนั้นด้วย</p></div>
+    </section>
+
+    <!-- 12 -->
     <section id="import">
-      <h2><span class="num">11</span>Import จาก Excel</h2>
+      <h2><span class="num">12</span>Import จาก Excel</h2>
       <p class="lead">เมนู <b>ข้อมูล &amp; ตั้งค่า → Import Excel / CSV</b> หรือปุ่ม <span class="ui">Import</span> ในหน้าตาราง</p>
       <ol class="steps">
         <li>เลือกไฟล์ <code>.xlsx</code> / <code>.xls</code> / <code>.csv</code></li>
@@ -402,9 +419,9 @@ td.nw{white-space:nowrap}
       <div class="callout warn"><span class="ic">!</span><p><b>"แทนที่ข้อมูลทั้งหมด" จะลบงานทุกงานของทั้งทีม</b> ก่อนนำเข้า — Backup ก่อนทุกครั้ง และระวัง sheet สรุปที่ copy งานซ้ำจาก sheet อื่น (เอาออกก่อนนำเข้า)</p></div>
     </section>
 
-    <!-- 12 -->
+    <!-- 13 -->
     <section id="export">
-      <h2><span class="num">12</span>Export &amp; Backup</h2>
+      <h2><span class="num">13</span>Export &amp; Backup</h2>
       <figure><a href="manual/settings.png" target="_blank"><img src="manual/settings.png" alt="ข้อมูลและตั้งค่า" loading="lazy"></a><figcaption>เมนู ข้อมูล &amp; ตั้งค่า</figcaption></figure>
       <div class="tbl"><table>
         <tr><th>คำสั่ง</th><th>ได้อะไร</th></tr>
@@ -416,9 +433,9 @@ td.nw{white-space:nowrap}
       <div class="callout info"><span class="ic">i</span><p>นอกจากนี้ระบบ <b>backup อัตโนมัติทุกวัน 01:00 น.</b> เก็บย้อนหลัง 90 วัน (ไฟล์เข้ารหัส — ผู้ดูแลระบบเป็นคนกู้คืน)</p></div>
     </section>
 
-    <!-- 13 -->
+    <!-- 14 -->
     <section id="team">
-      <h2><span class="num">13</span>ทำงานพร้อมกันหลายคน</h2>
+      <h2><span class="num">14</span>ทำงานพร้อมกันหลายคน</h2>
       <ul>
         <li><b>Realtime</b> — เมื่อเพื่อนร่วมทีมเพิ่ม แก้ หรือลากการ์ด หน้าจอของคุณอัปเดตเองภายในไม่กี่วินาที ไม่ต้อง refresh</li>
         <li><b>กันบันทึกทับกัน</b> — ถ้าคุณเปิดงานค้างไว้ แล้วมีคนอื่นบันทึกงานเดียวกันก่อน ตอนกดบันทึกจะขึ้นเตือน
@@ -432,9 +449,9 @@ td.nw{white-space:nowrap}
       </ul>
     </section>
 
-    <!-- 14 -->
+    <!-- 15 -->
     <section id="settings">
-      <h2><span class="num">14</span>ตั้งค่าตัวเลือก</h2>
+      <h2><span class="num">15</span>ตั้งค่าตัวเลือก</h2>
       <p>เมนู <b>ข้อมูล &amp; ตั้งค่า → Master list</b> — แก้ตัวเลือกที่ใช้ในฟอร์มและตัวกรอง (บรรทัดละ 1 รายการ) แล้วกด <span class="ui">บันทึกการตั้งค่า</span> · <b>มีผลกับทุกคนในทีม</b></p>
       <ul>
         <li><b>สถานะงาน</b> ใช้รูปแบบ <code>ชื่อ|สี|done</code> เช่น <code>รอ UAT|#0ea5e9</code> หรือ <code>ปิดงาน|#10b981|done</code> — ใส่ <code>done</code> เมื่อสถานะนั้นนับว่างานปิดแล้ว</li>
@@ -444,21 +461,21 @@ td.nw{white-space:nowrap}
       <div class="callout warn"><span class="ic">!</span><p>เปลี่ยน<b>ชื่อ</b>สถานะ งานเดิมที่ใช้ชื่อเก่าจะไม่เปลี่ยนตาม (ยังแสดงเป็นคอลัมน์แยกใน Kanban) — ใช้การเลือกหลายงานเปลี่ยนสถานะให้งานเหล่านั้น</p></div>
     </section>
 
-    <!-- 15 -->
+    <!-- 16 -->
     <section id="shortcuts">
-      <h2><span class="num">15</span>คีย์ลัด</h2>
+      <h2><span class="num">16</span>คีย์ลัด</h2>
       <div class="tbl"><table>
         <tr><th>คีย์</th><th>ทำอะไร</th></tr>
-        <tr><td><kbd>N</kbd></td><td>เพิ่มงานใหม่ (ใช้ได้แม้แป้นพิมพ์เป็นภาษาไทย)</td></tr>
+        <tr><td><kbd>N</kbd></td><td>เพิ่มงานใหม่ (ใช้ได้แม้แป้นพิมพ์เป็นภาษาไทย) · ในหน้าคลังความรู้ = เพิ่มความรู้</td></tr>
         <tr><td><kbd>/</kbd></td><td>ไปที่ช่องค้นหา</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>ปิดฟอร์ม / หน้าต่าง</td></tr>
         <tr><td><kbd>Enter</kbd></td><td>ในช่อง "+ เพิ่ม Module" = เพิ่ม Module ใหม่</td></tr>
       </table></div>
     </section>
 
-    <!-- 16 -->
+    <!-- 17 -->
     <section id="admin">
-      <h2><span class="num">16</span>สำหรับผู้ดูแลระบบ</h2>
+      <h2><span class="num">17</span>สำหรับผู้ดูแลระบบ</h2>
       <p class="lead">รายละเอียดเชิงเทคนิคทั้งหมดอยู่ใน <a href="https://github.com/Weerapol8049/job-schedule/blob/main/SETUP.md" target="_blank" rel="noopener">SETUP.md</a></p>
       <div class="tbl"><table>
         <tr><th>งาน</th><th>ทำที่</th></tr>
@@ -466,16 +483,17 @@ td.nw{white-space:nowrap}
         <tr><td class="nw">รีเซ็ตรหัสผ่าน / ลบผู้ใช้</td><td>Supabase → Authentication → Users → เมนู ⋯ ของผู้ใช้</td></tr>
         <tr><td class="nw">แก้หน้าเว็บ</td><td>แก้โค้ด → push ขึ้น GitHub branch <code>main</code> → Vercel deploy เอง (~1 นาที)</td></tr>
         <tr><td class="nw">แก้โครงสร้างตาราง</td><td>แก้ <code>supabase/schema.sql</code> → รันใน SQL Editor (รันซ้ำได้)</td></tr>
-        <tr><td class="nw">ดู backup อัตโนมัติ</td><td>GitHub → Actions → <b>Daily Supabase backup</b> → Artifacts</td></tr>
+        <tr><td class="nw">ดู backup อัตโนมัติ</td><td>GitHub → Actions → <b>Daily Supabase backup</b> → Artifacts (ข้อมูล <code>.json.gpg</code> + รูปคลังความรู้ <code>images.tar.gpg</code>)</td></tr>
+        <tr><td class="nw">รูปในคลังความรู้</td><td>Supabase → Storage → bucket <code>knowledge</code> (private) · เตือนเมื่อใช้เกิน 80% ของ 1 GB (GitHub Issue ป้าย <code>storage-alert</code>)</td></tr>
         <tr><td class="nw">แจ้งเตือนระบบ</td><td>workflow รายวันเปิด <b>GitHub Issue</b> (ส่งอีเมลถึงเจ้าของ repo) เมื่อฐานข้อมูลใช้เกิน 80% ของ 500 MB หรือ backup ล้มเหลว — ปิด issue เองเมื่อกลับมาปกติ · ในแอปดูได้ที่ ข้อมูล &amp; ตั้งค่า → <b>สถานะระบบ</b></td></tr>
         <tr><td class="nw">กู้คืนจาก backup อัตโนมัติ</td><td>ดาวน์โหลด artifact → แตก zip → Git Bash: <code>gpg -d ไฟล์.json.gpg &gt; backup.json</code> → ในแอป Restore JSON</td></tr>
       </table></div>
       <div class="callout warn"><span class="ic">!</span><p>ห้ามใส่ <code>service_role</code> key หรือ passphrase ของ backup ในไฟล์ใด ๆ ของ repo (repo เป็น public) · Supabase แผน Free จะ pause ถ้าไม่มีการใช้งาน 7 วัน (backup รายวันช่วยกันไว้)</p></div>
     </section>
 
-    <!-- 17 -->
+    <!-- 18 -->
     <section id="faq" class="faq">
-      <h2><span class="num">17</span>คำถามที่พบบ่อย</h2>
+      <h2><span class="num">18</span>คำถามที่พบบ่อย</h2>
       <details><summary>เข้าสู่ระบบไม่ได้ — "อีเมลหรือรหัสผ่านไม่ถูกต้อง"</summary><div>ตรวจตัวพิมพ์เล็ก/ใหญ่ของรหัสผ่าน · ถ้ายังไม่ได้ ให้ผู้ดูแลระบบตรวจว่าบัญชีถูกสร้างและติ๊ก Auto Confirm แล้ว</div></details>
       <details><summary>ไม่เห็นปุ่ม / ฟีเจอร์ใหม่ที่คู่มือพูดถึง</summary><div>browser อาจจำหน้าเก่าไว้ — กด <kbd>Ctrl</kbd>+<kbd>F5</kbd> (Mac: <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>)</div></details>
       <details><summary>เปิดเว็บแล้วขึ้น "โหลดข้อมูลไม่สำเร็จ"</summary><div>ฐานข้อมูลอาจถูก pause (แผน Free ไม่มีใช้งาน 7 วัน) — แจ้งผู้ดูแลระบบให้เข้า Supabase Dashboard กด Restore project แล้วรอ 1–2 นาที</div></details>
@@ -485,17 +503,20 @@ td.nw{white-space:nowrap}
         <li><b>เชื่อมต่อฐานข้อมูลไม่ได้</b> — ฐานข้อมูลอาจถูก pause</li></ul>
         แจ้งผู้ดูแลระบบ · กด ✕ เพื่อซ่อนชั่วคราว (จะขึ้นใหม่เมื่อเปิดเว็บครั้งถัดไปถ้ายังไม่แก้)</div></details>
       <details><summary>เพื่อนแก้งานแล้ว แต่หน้าจอฉันไม่เปลี่ยน</summary><div>ปกติจะอัปเดตเองภายในไม่กี่วินาที ถ้าเปิดค้างไว้นานหรือเน็ตหลุด ให้ refresh หน้าเว็บ</div></details>
-      <details><summary>Import แล้วขึ้น "ไม่พบแถวหัวตาราง"</summary><div>หัวคอลัมน์ต้องอยู่ใน 15 แถวแรก และสะกดตรงกับที่ระบบรู้จัก (ดูหัวข้อ <a href="#import">11</a>) อย่างน้อย 2 คอลัมน์</div></details>
+      <details><summary>Import แล้วขึ้น "ไม่พบแถวหัวตาราง"</summary><div>หัวคอลัมน์ต้องอยู่ใน 15 แถวแรก และสะกดตรงกับที่ระบบรู้จัก (ดูหัวข้อ <a href="#import">12</a>) อย่างน้อย 2 คอลัมน์</div></details>
       <details><summary>Import แล้วสถานะเป็น "ใหม่" เกือบทั้งหมด</summary><div>Excel เดิมใช้สีบอกสถานะ ระบบอ่านไม่ได้ — กรองงานเก่า → ติ๊กหัวตาราง → เปลี่ยนสถานะเป็น "เสร็จ" ทีเดียว (หัวข้อ <a href="#bulk">5</a>)</div></details>
       <details><summary>วันที่หรือ Job No เป็นปี พ.ศ. (เช่น 2567)</summary><div>ไฟล์ที่ import ก่อน 17 ต.ค. 2026 อาจเป็นแบบนี้ — ผู้ดูแลระบบรัน <code>supabase/fix-buddhist-years.sql</code> ครั้งเดียว · import ใหม่หลังจากนั้นแปลงให้อัตโนมัติ</div></details>
+      <details><summary>คลังความรู้ขึ้น "ยังเปิดคลังความรู้บน Supabase ไม่ได้"</summary><div>ผู้ดูแลระบบยังไม่ได้รัน <code>supabase/schema.sql</code> (v4) — รันใน SQL Editor ครั้งเดียว แล้ว refresh หน้าเว็บ</div></details>
+      <details><summary>วางรูปแล้วขึ้น "อัปโหลดรูปไม่สำเร็จ"</summary><div>ตรวจอินเทอร์เน็ต · ไฟล์ต้องเป็นรูป (png/jpg/webp/gif) · ถ้าพื้นที่รูปเต็ม 1 GB จะอัปโหลดไม่ได้ — แจ้งผู้ดูแลระบบ</div></details>
       <details><summary>ลบงานผิด กู้คืนได้ไหม?</summary><div>ตอนนี้ยังไม่มีถังขยะ — ผู้ดูแลระบบกู้จาก backup รายวันได้ (ข้อมูลย้อนไปถึงเวลา 01:00 น. ของวันนั้น) จึงควรตรวจก่อนกดลบทุกครั้ง</div></details>
     </section>
 
-    <!-- 18 -->
+    <!-- 19 -->
     <section id="changelog">
-      <h2><span class="num">18</span>ประวัติการปรับปรุง</h2>
+      <h2><span class="num">19</span>ประวัติการปรับปรุง</h2>
       <div class="tbl"><table>
         <tr><th>วันที่</th><th>รายการ</th></tr>
+        <tr><td class="nw">20 ต.ค. 2026</td><td>เพิ่ม <b>คลังความรู้</b>: เก็บเทคนิค/โค้ด (มีสีและปุ่มคัดลอก) · วางรูปหน้าจอด้วย Ctrl+V (ย่อรูปอัตโนมัติ) · ผูกกับ Job No · แจ้งเตือนพื้นที่รูป · backup รูปรายวัน · ตารางงานเรียงตาม Tags และวันที่รับงานล่าสุด</td></tr>
         <tr><td class="nw">18 ต.ค. 2026</td><td>แจ้งเตือนสถานะระบบ: ฐานข้อมูลใกล้เต็ม · backup ล้มเหลว/หยุดรัน · เชื่อมต่อฐานข้อมูลไม่ได้ (ในแอป + GitHub Issue ทางอีเมล) · การ์ด "สถานะระบบ" ในหน้า ข้อมูล &amp; ตั้งค่า</td></tr>
         <tr><td class="nw">17 ต.ค. 2026</td><td>เปิดใช้งาน: ตาราง / Kanban / ปฏิทิน / ภาพรวม · Import-Export Excel (หลาย sheet) · ฐานข้อมูล Supabase + login + realtime · เลือกหลายงาน · Release note · กันบันทึกทับกัน · backup อัตโนมัติรายวัน · แปลงปี พ.ศ. ตอน Import</td></tr>
       </table></div>
