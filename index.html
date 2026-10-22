@@ -1457,9 +1457,8 @@ function renderTable(jobs){
   const cmp = (x, y) => typeof x === 'string' && typeof y === 'string' ? x.localeCompare(y, undefined, {numeric:true}) : (x < y ? -1 : x > y ? 1 : 0);
   const rows = [...jobs].sort((a, b) =>
     cmp(sortVal(a, sort.key), sortVal(b, sort.key)) * sort.dir
-    // ค่าเท่ากัน → วันที่รับงานล่าสุดก่อน แล้วตาม Job No มาก→น้อย
-    || cmp(b.receivedDate || '', a.receivedDate || '')
-    || cmp(b.jobNo || '', a.jobNo || ''));
+    // ค่าเท่ากัน → Job No น้อย→มาก
+    || cmp(a.jobNo || '', b.jobNo || ''));
   // keep the checkbox, Job No and งาน pinned on the left while scrolling sideways
   const stick = {};
   let left = SEL_W;
