@@ -455,6 +455,13 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
 #kbBody.drop{border-color:var(--accent);box-shadow:var(--ring);background:var(--accent-soft)}
 #kbPreview{min-height:320px;max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:14px 16px}
 .kb-pinrow{padding:12px 0 4px}
+.kb-sec{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+.kb-sec-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kb-sec-head .spacer{flex:1}
+.kb-sec ul{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.kb-sec li{display:flex;gap:8px;align-items:baseline;font-size:12.5px;color:var(--text-2);min-width:0}
+.kb-sec code{font:12px "IBM Plex Mono",monospace;overflow-wrap:anywhere;min-width:0}
+.kb-sec .mask{color:var(--danger);letter-spacing:.1em}
 
 .toast{position:fixed;bottom:22px;right:22px;display:flex;align-items:center;gap:10px;background:var(--text);color:var(--bg);padding:11px 16px;border-radius:12px;z-index:100;opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px);box-shadow:var(--shadow-lg);font-weight:500}
 .toast.show{opacity:1;transform:none}
@@ -783,6 +790,15 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
   </div>
 </dialog>
 <input type="file" id="kbImportFile" accept=".mht,.mhtml" hidden>
+
+<!-- Secret scan -->
+<dialog id="kbSecretDialog" class="modal">
+  <div class="dlg">
+    <header><h2>ตรวจรหัสผ่านในคลังความรู้</h2><span class="chip-no" id="kbSecCount"></span><button type="button" class="icon-btn" data-close title="ปิด"><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="body"><p class="muted" id="kbSecInfo" style="margin:14px 0 12px"></p><div id="kbSecList"></div></div>
+    <footer><span class="muted" style="font-size:12.5px">ตรวจได้เฉพาะข้อความ — รูปหน้าจอที่มีรหัสผ่านต้องดูเอง</span><span class="spacer"></span><button type="button" class="btn" data-close>ปิด</button><button type="button" class="btn primary" id="kbSecAll">แทนที่ทั้งหมดเป็น &lt;password&gt;</button></footer>
+  </div>
+</dialog>
 <input type="file" id="kbFile" accept="image/*" multiple hidden>
 <datalist id="dlKbCat"></datalist>
 <datalist id="dlJobNo"></datalist>
@@ -1283,7 +1299,7 @@ function renderPageHead(){
     <button class="btn" data-io="xlsx">${icon('download','sm')}Export Excel</button>
     <button class="btn" data-release>${icon('file','sm')}Release note</button>` : '';
   $('#pageHead').innerHTML = `<div><h1>${esc(title)}</h1><p>${esc(sub())}</p></div>
-    <div class="page-actions">${tableTools}${view === 'knowledge' ? `<button class="btn" data-kb-import title="OneNote → File → Export → Section → Single File Web Page (*.mht)">${icon('upload','sm')}Import OneNote</button><button class="btn primary" data-kb-new>${icon('plus','sm')}เพิ่มความรู้</button>`
+    <div class="page-actions">${tableTools}${view === 'knowledge' ? `<button class="btn" data-kb-secrets title="หาข้อความที่น่าจะเป็นรหัสผ่านในทุกเรื่อง">${icon('alert','sm')}ตรวจรหัสผ่าน${(() => { const c = kbSecretNotes().length; return c ? `<span class="dotcount" style="background:var(--danger)">${c}</span>` : ''; })()}</button><button class="btn" data-kb-import title="OneNote → File → Export → Section → Single File Web Page (*.mht)">${icon('upload','sm')}Import OneNote</button><button class="btn primary" data-kb-new>${icon('plus','sm')}เพิ่มความรู้</button>`
       : view !== 'settings' ? `<button class="btn primary" data-new>${icon('plus','sm')}เพิ่มงาน</button>` : ''}</div>`;
   $$('[data-col]').forEach(cb => cb.onchange = () => {
     cb.checked ? hiddenCols.delete(cb.dataset.col) : hiddenCols.add(cb.dataset.col);
@@ -2168,6 +2184,74 @@ async function kbSave(n, {force = false} = {}){
   }
 }
 
+/* ---------- secrets ---------- */
+// Notebooks often hold credentials, but the knowledge base is readable by the whole team.
+// Each rule captures the secret VALUE (group 1) so it can be masked or replaced with <password>.
+const KB_SECRET_RULES = [
+  ['รหัสผ่าน',   /(?:password|passwd|\bpwd|\bpass|รหัสผ่าน|รหัส|secret|api[ _-]?key|\btoken)\s*[:=]\s*([^\n]+)/gid],
+  ['user / รหัส', /\b(?:user(?:name)?|login|ผู้ใช้)\s*[:=]?\s*[\w.@\\-]+\s+\/\s+([^\n]+)/gid],
+  ['JSON',       /"(?:password|passwd|pwd|api_?key|token|secret)"\s*:\s*"([^"\n]+)"/gid],
+  ['JSON-RPC',   /"args"\s*:\s*\[\s*"[^"\n]*"\s*,\s*\d+\s*,\s*"([^"\n]+)"/gd],
+  ['API key',    /\b(sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,}|[a-f0-9]{32,})\b/gid],
+];
+// values that are placeholders or code, not a real secret
+const KB_NOT_SECRET = /^(?:<[^>]*>|\*+|x+|•+|\.{3}|none|null|true|false)$|^(?:_|self\.|this\.|fields\.|request\.|args\b|\$|%|\{\{|new\s|ดู|see\b)/i;
+function kbFindSecrets(body){
+  body = String(body || '');
+  const found = [];
+  for (const [kind, re] of KB_SECRET_RULES){
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(body))){
+      let [start, end] = m.indices[1];
+      let v = body.slice(start, end);
+      // trim spaces, trailing punctuation and surrounding quotes
+      const lead = v.match(/^[\s"'`]*/)[0].length, trail = v.match(/[\s"'`,;)]*$/)[0].length;
+      start += lead; end -= trail;
+      v = body.slice(start, end);
+      // KEY=value / --flag=value: the value ends at the first space
+      if (body[start - 1] === '=' && /\s/.test(v)){ end = start + v.search(/\s/); v = body.slice(start, end); }
+      // "API KEY : host : value" → only the last part is the secret
+      const lastSep = v.lastIndexOf(' : ');
+      if (lastSep >= 0){ start += lastSep + 3; v = body.slice(start, end); }
+      if (!v || v.length < 3 || KB_NOT_SECRET.test(v) || /\(|<password>/i.test(v)) continue;
+      if (/!\[[^\]]*\]\(kb:/.test(body.slice(body.lastIndexOf('\n', start) + 1, start))) continue; // inside an image token
+      found.push({kind, start, end});
+    }
+  }
+  found.sort((a, b) => a.start - b.start);
+  return found.filter((f, i) => !found.slice(0, i).some(g => f.start < g.end && g.start < f.end));
+}
+function kbMaskedLine(body, f){
+  const ls = body.lastIndexOf('\n', f.start - 1) + 1, le = body.indexOf('\n', f.end);
+  let before = body.slice(ls, f.start), after = body.slice(f.end, le < 0 ? body.length : le);
+  if (before.length > 70) before = '…' + before.slice(-70);
+  if (after.length > 50) after = after.slice(0, 50) + '…';
+  return {before, after};
+}
+const kbSecretNotes = () => db.notes.map(n => ({n, f:kbFindSecrets(n.body)})).filter(x => x.f.length);
+async function kbFixSecrets(n){
+  const f = kbFindSecrets(n.body);
+  if (!f.length) return n;
+  let body = n.body;
+  for (const x of [...f].reverse()) body = body.slice(0, x.start) + '<password>' + body.slice(x.end);
+  return kbSave({...n, body});
+}
+function kbRenderSecrets(){
+  const list = kbSecretNotes(), total = list.reduce((s, x) => s + x.f.length, 0);
+  $('#kbSecCount').textContent = list.length ? `${list.length} เรื่อง · ${total} จุด` : '';
+  $('#kbSecInfo').textContent = list.length
+    ? 'ค่าที่น่าจะเป็นรหัสผ่านถูกปิดไว้เป็น •••••• · กด "แทนที่เป็น <password>" เพื่อลบรหัสออกจากเรื่องนั้น (ถ้าเป็นข้อความที่ไม่ใช่รหัสผ่าน ปล่อยไว้ได้) · ควรเปลี่ยนรหัสจริงที่ระบบนั้นด้วย เพราะรหัสเดิมยังอยู่ใน backup และ OneNote'
+    : 'ไม่พบข้อความที่น่าจะเป็นรหัสผ่านในคลังความรู้';
+  $('#kbSecAll').hidden = !list.length;
+  $('#kbSecList').innerHTML = list.map(({n, f}) => `<div class="kb-sec">
+      <div class="kb-sec-head"><b>${esc(n.title)}</b>${kbBadge(n.category)}<span class="spacer"></span>
+        <button type="button" class="btn sm" data-sec-open="${esc(n.id)}">${icon('edit','sm')}เปิดแก้ไข</button>
+        <button type="button" class="btn sm primary" data-sec-fix="${esc(n.id)}">แทนที่เป็น &lt;password&gt;</button></div>
+      <ul>${f.map(x => { const l = kbMaskedLine(n.body, x); return `<li><span class="kb-badge">${esc(x.kind)}</span> <code>${esc(l.before)}<b class="mask">••••••</b>${esc(l.after)}</code></li>`; }).join('')}</ul>
+    </div>`).join('');
+}
+
 /* ---------- images ---------- */
 const kbImagesOf = body => [...String(body || '').matchAll(KB_IMG_RE)].map(m => m[2]);
 const fmtBytes = b => b >= 1073741824 ? (b / 1073741824).toFixed(2) + ' GB' : b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
@@ -2483,6 +2567,7 @@ function kbRenderReader(){
       <button type="button" class="btn sm" data-kb-edit>${icon('edit','sm')}แก้ไข</button>
     </div>
     <div class="kb-meta"><span>แก้ไขล่าสุด ${n.updatedAt ? fmtDateTime(n.updatedAt) : '-'}${n.updatedByEmail ? ' · ' + esc(n.updatedByEmail) : ''}</span>${n.tags.length ? `<span>${tagsHtml(n.tags)}</span>` : ''}</div>
+    ${(() => { const s = kbFindSecrets(n.body).length; return s ? `<div class="sys-alert warn" style="margin-bottom:16px">${icon('alert')}<div class="msg"><b>เรื่องนี้น่าจะมีรหัสผ่าน ${s} จุด</b><small>ทุกคนในทีมเห็นคลังความรู้ — แทนที่ด้วย &lt;password&gt; แล้วเก็บรหัสจริงใน password manager</small></div><button type="button" class="btn sm" data-sec-fix="${esc(n.id)}">แทนที่เป็น &lt;password&gt;</button></div>` : ''; })()}
     <div class="kb-body">${kbRenderBody(n.body) || '<p class="muted">ยังไม่มีเนื้อหา</p>'}</div>
     ${jobs.length ? `<div class="kb-panel"><h4>ใช้ในงาน</h4><div class="kb-links">${jobs.map(([no, j]) =>
       `<button type="button" class="kb-link" data-kb-job="${esc(no)}"><span class="mono">${esc(no)}</span>${j ? esc(displayTitle(j)) : '<span class="muted">ไม่พบงานนี้</span>'}</button>`).join('')}</div></div>` : ''}
@@ -2609,6 +2694,9 @@ kbForm.onsubmit = async e => {
     sourceUrl:kf('sourceUrl').value.trim(), body:kf('body').value.replace(/\s+$/, ''), pinned:kf('pinned').checked};
   if (!n.title){ $('#kbErr').textContent = 'กรุณาใส่หัวข้อ'; kf('title').focus(); return; }
   const oldBody = db.notes.find(x => x.id === n.id)?.body || '';
+  const secretsNow = kbFindSecrets(n.body).length;
+  if (secretsNow > kbFindSecrets(oldBody).length
+    && !confirm(`พบข้อความที่น่าจะเป็นรหัสผ่าน ${secretsNow} จุด — ทุกคนในทีมจะเห็น\n\nOK = บันทึกต่อ\nCancel = กลับไปแก้ (แนะนำให้แทนรหัสด้วย <password>)`)) return;
   const btn = kbForm.querySelector('[type=submit]');
   btn.disabled = true;
   const saved = await safe(() => kbSave(n));
@@ -2620,6 +2708,7 @@ kbForm.onsubmit = async e => {
   kbDlg.close();
   KB.sel = saved.id; KB.reading = true;
   if (dlg.open) renderJobKb();
+  if ($('#kbSecretDialog').open) kbRenderSecrets();
   if (view === 'knowledge') render();
   toast(oldBody || n.id ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มความรู้แล้ว');
 };
@@ -2643,6 +2732,26 @@ function kbClick(e){
   let el;
   if (hit('[data-kb-new]')){ openKbEditor(); return true; }
   if (hit('[data-kb-import]')){ $('#kbImportFile').click(); return true; }
+  if (hit('[data-kb-secrets]')){ kbRenderSecrets(); $('#kbSecretDialog').showModal(); return true; }
+  if ((el = hit('[data-sec-fix]'))){
+    const n = db.notes.find(x => x.id === el.dataset.secFix);
+    if (n){
+      el.disabled = true;
+      safe(async () => {
+        const s = await kbFixSecrets(n);
+        if (s){ toast(`แทนที่รหัสผ่านใน "${s.title}" แล้ว`); render(); if ($('#kbSecretDialog').open) kbRenderSecrets(); }
+      });
+    }
+    return true;
+  }
+  if ((el = hit('[data-sec-open]'))){
+    const n = db.notes.find(x => x.id === el.dataset.secOpen), f = n && kbFindSecrets(n.body)[0];
+    if (n){
+      openKbEditor(n);
+      if (f){ const ta = kf('body'); ta.focus(); ta.setSelectionRange(f.start, f.end); ta.scrollTop = Math.max(0, ta.value.slice(0, f.start).split('\n').length * 20 - 80); }
+    }
+    return true;
+  }
   if (hit('[data-kb-imp-close]')){ if (!kbImp.busy) $('#kbImportDialog').close(); return true; }
   if (hit('[data-kb-cancel]')){ kbTryClose(); return true; }
   if ((el = hit('[data-kbcat]'))){ KB.cat = el.dataset.kbcat; render(); return true; }
@@ -2674,6 +2783,17 @@ function kbClick(e){
   return false;
 }
 $('#lightbox').onclick = () => $('#lightbox').close();
+$('#kbSecAll').onclick = () => {
+  const list = kbSecretNotes();
+  if (!list.length || !confirm(`แทนที่รหัสผ่านทั้งหมด ${list.reduce((s, x) => s + x.f.length, 0)} จุด ใน ${list.length} เรื่อง ด้วย <password>?\n\nตรวจรายการก่อน — ถ้ามีข้อความที่ไม่ใช่รหัสผ่าน ให้กดแทนที่ทีละเรื่องแทน`)) return;
+  const btn = $('#kbSecAll');
+  btn.disabled = true;
+  safe(async () => {
+    let done = 0;
+    for (const {n} of list){ if (await kbFixSecrets(n)) done++; }
+    toast(`แทนที่รหัสผ่านแล้ว ${done} เรื่อง`); render(); kbRenderSecrets();
+  }).finally(() => { btn.disabled = false; });
+};
 
 /* ---------- OneNote import (.mht from File → Export → Section → Single File Web Page) ---------- */
 // Each page is a <div style="...border-width:100%"> holding: title (20pt) · date line · outline divs.
@@ -2846,7 +2966,7 @@ function kbConvertPage(pageEl, files, imgSeq){
   if (!title) body = body.replace(/^(\s*([^\n]{1,60})\n?)(\s*\d{1,2}:\d{2}(\s*[AP]M)?\s*\n?)?/i, (m, a, line) => {
     const d = kbParseOneNoteDate(m); if (!d) return m; dateFromBody = d; return ''; }).trim();
   const fallbackTitle = (body.split('\n').find(l => /[\p{L}\p{N}]/u.test(l) && !/^(```|!\[)/.test(l)) || '').replace(/[*`]/g, '').trim().slice(0, 80);
-  return {title: title || fallbackTitle || '(ไม่มีหัวข้อ)', createdAt: createdAt || dateFromBody, body, sourceUrl, images, secret: KB_SECRET_RE.test(body)};
+  return {title: title || fallbackTitle || '(ไม่มีหัวข้อ)', createdAt: createdAt || dateFromBody, body, sourceUrl, images, secret: kbFindSecrets(body).length > 0};
 }
 function kbParseOneNote(html, files){
   const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -2855,8 +2975,6 @@ function kbParseOneNote(html, files){
   const seq = {n:0};
   return pageEls.map(el => kbConvertPage(el, files, seq)).filter(p => p.body || p.images.length);
 }
-// personal notebooks often hold credentials; the knowledge base is readable by the whole team
-const KB_SECRET_RE = /(password|passwd|\bpwd\b|รหัสผ่าน|secret|api[ _-]?key|token)\s*[:=]/i;
 const kbIsDup = (p, cat) => db.notes.some(n => n.title.trim().toLowerCase() === p.title.trim().toLowerCase() && n.category === cat);
 // A OneNote section like "Error" mixes programs → category = program, section name → tag.
 // Titles decide (they usually start with "AX …", "VS 2013 …", "SQL …"); AX-only words in the body are the fallback.
