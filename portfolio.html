@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weerapol Kumsap · ERP Developer</title>
+<meta name="description" content="ERP Developer — Microsoft Dynamics AX 2012 (X++), Odoo และการเชื่อมต่อระบบผ่าน API">
+<meta property="og:title" content="Weerapol Kumsap · ERP Developer">
+<meta property="og:description" content="Microsoft Dynamics AX 2012 · Odoo · SQL Server · System Integration">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fa; --surface:#ffffff; --surface-2:#f0f2f6;
+  --text:#121722; --text-2:#4a5468; --muted:#8a92a3; --border:#e3e7ee;
+  --accent:#2f54d6; --accent-2:#0ea5a4; --accent-soft:#e9eeff; --accent-text:#ffffff;
+  --code-bg:#0f1522; --code-text:#d6deeb;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.15);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0d14; --surface:#121722; --surface-2:#1a2130;
+    --text:#e8ecf3; --text-2:#aeb7c8; --muted:#768096; --border:#232b3a;
+    --accent:#7d9bff; --accent-2:#2dd4bf; --accent-soft:#1a2347; --accent-text:#0a0d14;
+    --code-bg:#070a10;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0d14; --surface:#121722; --surface-2:#1a2130;
+  --text:#e8ecf3; --text-2:#aeb7c8; --muted:#768096; --border:#232b3a;
+  --accent:#7d9bff; --accent-2:#2dd4bf; --accent-soft:#1a2347; --accent-text:#0a0d14;
+  --code-bg:#070a10;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.65 "IBM Plex Sans Thai",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:30;background:color-mix(in srgb, var(--bg) 82%, transparent);backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color .2s}
+.nav.scrolled{border-bottom-color:var(--border)}
+.nav .wrap{display:flex;align-items:center;gap:20px;height:64px}
+.mark{display:flex;align-items:center;gap:10px;font-weight:700;margin-right:auto}
+.mark span{width:34px;height:34px;border-radius:10px;background:var(--text);color:var(--bg);display:grid;place-items:center;font:600 13px "IBM Plex Mono",monospace}
+.links{display:flex;gap:4px}
+.links a{padding:6px 12px;border-radius:8px;color:var(--text-2);font-size:14.5px;font-weight:500}
+.links a:hover{color:var(--text);background:var(--surface-2)}
+.tools{display:flex;gap:6px}
+.pill{height:34px;min-width:34px;padding:0 10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:inline-grid;place-items:center;font-size:13px;font-weight:600}
+.pill:hover{border-color:var(--muted)}
+
+/* hero */
+.hero{padding:88px 0 64px}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
+.hero .wrap>*,.about>*{min-width:0}
+.hero .wrap.stats-wrap{display:block;margin-top:48px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:99px}
+.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent-2) 25%, transparent)}
+h1{font-size:clamp(40px,6vw,64px);line-height:1.08;margin:18px 0 10px;letter-spacing:-.02em}
+.role{font-size:clamp(18px,2.2vw,22px);font-weight:600;color:var(--text-2);margin:0 0 18px}
+.lead{font-size:17.5px;color:var(--text-2);max-width:34em;margin:0 0 30px}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 20px;border-radius:12px;font-weight:600;font-size:15px;border:1px solid var(--border);background:var(--surface);transition:transform .15s,border-color .15s}
+.btn:hover{transform:translateY(-1px);border-color:var(--muted)}
+.btn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+.code{background:var(--code-bg);color:var(--code-text);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;font:13.5px/1.75 "IBM Plex Mono",monospace;border:1px solid color-mix(in srgb, #fff 8%, transparent)}
+.code-top{display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);color:#7b8496;font-size:12px}
+.code-top i{width:11px;height:11px;border-radius:50%;background:#3a4252}
+.code-top i:nth-child(1){background:#ff5f57}.code-top i:nth-child(2){background:#febc2e}.code-top i:nth-child(3){background:#28c840}
+.code-top b{margin-left:auto;font-weight:400}
+.code pre{margin:0;padding:18px 20px 22px;overflow-x:auto;white-space:pre}
+.k{color:#c792ea}.t{color:#82aaff}.s{color:#c3e88d}.c{color:#637089}.n{color:#f78c6c}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px}
+.stat b{display:block;font-size:34px;line-height:1.1;letter-spacing:-.02em}
+.stat span{color:var(--text-2);font-size:14px}
+
+/* sections */
+section{padding:72px 0}
+.sec-h{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:32px;flex-wrap:wrap}
+.sec-h small{display:block;font:500 12.5px "IBM Plex Mono",monospace;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+h2{font-size:clamp(28px,3.6vw,38px);line-height:1.2;margin:0;letter-spacing:-.01em}
+.sec-h p{margin:0;color:var(--text-2);max-width:30em}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px}
+
+.about{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.about p{margin:0 0 14px;color:var(--text-2)}
+.about p:last-child{margin-bottom:0}
+.chart-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:18px}
+.chart-h h3{margin:0;font-size:16px}
+.legend{display:flex;gap:14px;font-size:12.5px;color:var(--text-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;background:var(--accent)}
+.legend i.o{background:var(--accent-2)}
+.bars{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;align-items:end;height:200px;padding-top:20px;border-bottom:1px solid var(--border)}
+.bar{display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative}
+.bar .v{position:absolute;left:0;right:0;text-align:center;font:500 12px "IBM Plex Mono",monospace;color:var(--text-2)}
+.bar .seg{background:var(--accent);border-radius:6px 6px 0 0}
+.bar .seg.o{background:var(--accent-2);border-radius:0}
+.bar .seg.o:first-child{border-radius:6px 6px 0 0}
+.years{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:8px;text-align:center;font:500 12.5px "IBM Plex Mono",monospace;color:var(--muted)}
+.chart-note{font-size:13px;color:var(--muted);margin:14px 0 0}
+
+.skills{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.skill .ico{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin-bottom:16px}
+.skill h3{margin:0 0 12px;font-size:17px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:13px;padding:3px 10px;border-radius:7px;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+
+.timeline{position:relative;display:grid;gap:14px}
+.tl{display:grid;grid-template-columns:120px 1fr;gap:24px;align-items:start}
+.tl .yr{font:600 15px "IBM Plex Mono",monospace;color:var(--accent);padding-top:26px;text-align:right}
+.tl .card{position:relative}
+.tl .card::before{content:"";position:absolute;left:-17px;top:32px;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--bg)}
+.timeline::before{content:"";position:absolute;left:131px;top:20px;bottom:20px;width:2px;background:var(--border)}
+.tl h3{margin:0 0 6px;font-size:18px}
+.tl p{margin:0;color:var(--text-2)}
+.job-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.job-head span{color:var(--muted);font-size:14px}
+.job ul{margin:0;padding-left:20px;color:var(--text-2)}
+.job li{margin:4px 0}
+
+.projects{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.proj{display:flex;flex-direction:column;transition:transform .2s,border-color .2s}
+.proj:hover{transform:translateY(-3px);border-color:color-mix(in srgb, var(--accent) 40%, var(--border))}
+.proj-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.proj-top .yr{font:500 13px "IBM Plex Mono",monospace;color:var(--muted)}
+.proj-ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:#fff}
+.proj h3{margin:0 0 8px;font-size:19px}
+.proj p{margin:0 0 18px;color:var(--text-2);flex:1}
+.proj .more{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-weight:600;font-size:14px;color:var(--accent)}
+
+.contact{text-align:center;padding:56px 32px;background:var(--text);color:var(--bg);border-radius:24px;position:relative;overflow:hidden}
+.contact::after{content:"";position:absolute;inset:auto -10% -60% -10%;height:120%;background:radial-gradient(closest-side, color-mix(in srgb, var(--accent) 45%, transparent), transparent);opacity:.5;pointer-events:none}
+.contact>*{position:relative;z-index:1}
+.contact h2{color:var(--bg)}
+.contact p{opacity:.75;max-width:32em;margin:12px auto 28px}
+.contact .cta{justify-content:center}
+.contact .btn{background:var(--bg);color:var(--text);border-color:var(--bg)}
+.contact .btn.ghost{background:transparent;color:var(--bg);border-color:color-mix(in srgb, var(--bg) 35%, transparent)}
+footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){ .reveal{opacity:1;transform:none;transition:none} html{scroll-behavior:auto} }
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,10px);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;font-weight:500;opacity:0;transition:.2s;pointer-events:none;z-index:50}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:960px){
+  .hero .wrap,.about{grid-template-columns:1fr}
+  .hero{padding:56px 0 40px}
+  .skills{grid-template-columns:repeat(2,1fr)}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .links{display:none}
+}
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  .projects,.skills{grid-template-columns:1fr}
+  section{padding:52px 0}
+  .tl{grid-template-columns:1fr;gap:6px}
+  .tl .yr{text-align:left;padding:0}
+  .timeline::before,.tl .card::before{display:none}
+  .bars,.years{gap:8px}
+  .code{font-size:12px}
+  .card{padding:20px}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v2M11 11v6M15 7v10M19 12v5"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 .7V2l-1 .7-3-2-3 2-3-2-3 2-3-2z"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+  <symbol id="i-factory" viewBox="0 0 24 24"><path d="M2 20V9l6 4V9l6 4V4h8v16z"/><path d="M6 17h2M11 17h2M16 17h2"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M16 13h2M2 10h20M6 6V4h10v2"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-gh" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3.1-.4 6.4-1.5 6.4-6.9A5.4 5.4 0 0 0 20 4.8 5 5 0 0 0 19.9 1S18.7.7 16 2.5a13.4 13.4 0 0 0-7 0C6.3.7 5.1 1 5.1 1A5 5 0 0 0 5 4.8a5.4 5.4 0 0 0-1.5 3.7c0 5.4 3.3 6.5 6.4 6.9a3.4 3.4 0 0 0-.9 2.6V22"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+</svg>
+
+<nav class="nav" id="nav">
+  <div class="wrap">
+    <a class="mark" href="#top"><span>WK</span>Weerapol</a>
+    <div class="links" id="links"></div>
+    <div class="tools">
+      <button class="pill" id="langBtn" title="Language">EN</button>
+      <button class="pill" id="themeBtn" title="Theme"><svg class="i"><use href="#i-moon"/></svg></button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+  <header class="hero">
+    <div class="wrap">
+      <div class="reveal">
+        <span class="eyebrow" data-t="hero.badge"></span>
+        <h1>Weerapol Kumsap</h1>
+        <p class="role" data-t="hero.role"></p>
+        <p class="lead" data-t="hero.lead"></p>
+        <div class="cta">
+          <a class="btn primary" href="#projects"><span data-t="hero.cta1"></span><svg class="i"><use href="#i-arrow"/></svg></a>
+          <a class="btn" id="cvBtn" href="resume.pdf" download hidden><svg class="i"><use href="#i-down"/></svg><span data-t="hero.cta2"></span></a>
+        </div>
+      </div>
+      <div class="code reveal" aria-hidden="true">
+        <div class="code-top"><i></i><i></i><i></i><b>Developer.xpp</b></div>
+<pre><span class="k">class</span> <span class="t">Developer</span> <span class="k">extends</span> <span class="t">RunBase</span>
+{
+    <span class="t">str</span>       name     = <span class="s">"Weerapol Kumsap"</span>;
+    <span class="t">str</span>       role     = <span class="s">"ERP Developer"</span>;
+    <span class="t">container</span> stack    = [<span class="s">"AX 2012 R3"</span>, <span class="s">"X++"</span>,
+                          <span class="s">"Odoo"</span>, <span class="s">"SQL Server"</span>];
+    <span class="t">int</span>       tasks    = <span class="n">870</span>;  <span class="c">// and counting</span>
+
+    <span class="k">public void</span> <span class="t">run</span>()
+    {
+        <span class="k">while</span> (business.hasRequest())
+            <span class="k">this</span>.<span class="t">solve</span>(business.nextRequest());
+    }
+}</pre>
+      </div>
+    </div>
+    <div class="wrap stats-wrap"><div class="stats reveal" id="stats"></div></div>
+  </header>
+
+  <section id="about">
+    <div class="wrap">
+      <div class="sec-h reveal"><div><small data-t="about.kicker"></small><h2 data-t="about.title"></h2></div></div>
+      <div class="about">
+        <div class="card reveal" id="aboutText"></div>
+        <div class="card reveal">
+          <div class="chart-h"><h3 data-t="about.chart"></h3>
+            <div class="legend"><span><i></i>AX / <span data-t="about.other"></span></span><span><i class="o"></i>Odoo</span></div></div>
+          <div class="bars" id="bars"></div>
+          <div class="years" id="years"></div>
+          <p class="chart-note" data-t="about.note"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="skills">
+    <div class="wrap">
+      <div class="sec-h reveal"><div><small data-t="skills.kicker"></small><h2 data-t="skills.title"></h2></div><p data-t="skills.sub"></p></div>
+      <div class="skills" id="skillGrid"></div>
+    </div>
+  </section>
+
+  <section id="experience">
+    <div class="wrap">
+      <div class="sec-h reveal"><div><small data-t="exp.kicker"></small><h2 data-t="exp.title"></h2></div></div>
+      <div class="card job reveal" id="job" style="margin-bottom:28px"></div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </section>
+
+  <section id="projects">
+    <div class="wrap">
+      <div class="sec-h reveal"><div><small data-t="proj.kicker"></small><h2 data-t="proj.title"></h2></div><p data-t="proj.sub"></p></div>
+      <div class="projects" id="projGrid"></div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap">
+      <div class="contact reveal">
+        <h2 data-t="contact.title"></h2>
+        <p data-t="contact.sub"></p>
+        <div class="cta">
+          <a class="btn" id="mailBtn"><svg class="i"><use href="#i-mail"/></svg><span id="mailText"></span></a>
+          <a class="btn ghost" id="ghBtn" target="_blank" rel="noopener"><svg class="i"><use href="#i-gh"/></svg>GitHub</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap"><span>© <span id="yr"></span> Weerapol Kumsap</span><span data-t="footer"></span></div></footer>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== Edit your content here =====
+const PROFILE = {
+  email: 'weerapol.tor@gmail.com',
+  github: 'https://github.com/Weerapol8049',
+  stats: [
+    { value: '6', th: 'ปีในสาย ERP', en: 'years in ERP' },
+    { value: '870+', th: 'งานพัฒนาและซัพพอร์ต', en: 'dev & support tasks' },
+    { value: '150+', th: 'รายงานและแบบฟอร์ม', en: 'reports & forms' },
+    { value: '180+', th: 'บทความในคลังความรู้', en: 'knowledge-base articles' }
+  ],
+  // tasks per year from the job log (Odoo share highlighted)
+  workload: [
+    { year: 2021, total: 170, odoo: 0 },
+    { year: 2022, total: 138, odoo: 0 },
+    { year: 2023, total: 119, odoo: 0 },
+    { year: 2024, total: 158, odoo: 0 },
+    { year: 2025, total: 141, odoo: 19 },
+    { year: 2026, total: 152, odoo: 89 }
+  ],
+  skills: [
+    { icon: 'i-layers', th: 'ERP Development', en: 'ERP Development', tags: ['Dynamics AX 2012 R3', 'X++', 'Odoo', 'Python', 'XML views'] },
+    { icon: 'i-db', th: 'ฐานข้อมูลและเซิร์ฟเวอร์', en: 'Database & Server', tags: ['SQL Server', 'T-SQL', 'Backup / Restore', 'AOS / Reporting Services'] },
+    { icon: 'i-plug', th: 'เชื่อมต่อระบบ', en: 'Integration', tags: ['REST API', 'C#', 'Visual Studio', 'JavaScript'] },
+    { icon: 'i-chart', th: 'รายงานและเอกสาร', en: 'Reporting', tags: ['SSRS', 'Crystal Reports', 'e-Tax Invoice', 'Excel'] }
+  ],
+  job: {
+    role: 'ERP Developer',
+    company: { th: '(ชื่อบริษัท)', en: '(Company name)' },
+    period: { th: 'ม.ค. 2564 – ปัจจุบัน', en: 'Jan 2021 – Present' },
+    bullets: {
+      th: [
+        'พัฒนาและปรับแต่ง Microsoft Dynamics AX 2012 R3 ด้วย X++ ครอบคลุมโมดูล PM, PC, IM, PS, AP/AR, GL และ SM',
+        'สร้างและปรับปรุงรายงานและแบบฟอร์มเอกสารกว่า 150 รายการ เช่น ใบวางบิล ใบส่งมอบงาน และ Detailed Trial Balance',
+        'พัฒนาโมดูล Odoo และสร้าง API เชื่อมต่อ Odoo กับ AX ทั้งข้อมูลสินค้า BOM และการเปิด PO',
+        'ดูแล SQL Server และเซิร์ฟเวอร์ AX: ติดตั้ง backup/restore และตั้ง job อัตโนมัติ',
+        'ซัพพอร์ตผู้ใช้หลายแผนก และจัดทำคลังความรู้ภายในกว่า 180 บทความ'
+      ],
+      en: [
+        'Develop and customise Microsoft Dynamics AX 2012 R3 in X++ across PM, PC, IM, PS, AP/AR, GL and SM modules',
+        'Built and maintained 150+ business reports and document forms such as billing notes, delivery notes and detailed trial balance',
+        'Develop Odoo modules and REST APIs linking Odoo with AX for items, BOMs and purchase orders',
+        'Administer SQL Server and AX servers: installation, backup/restore and scheduled jobs',
+        'Support users across departments and maintain an internal knowledge base of 180+ articles'
+      ]
+    }
+  },
+  timeline: [
+    { year: '2021', th: ['เริ่มงาน ERP Developer', 'พัฒนาฟอร์ม ฟิลด์ และรายงานบน AX 2012 R3 พร้อมติดตั้งเซิร์ฟเวอร์ AX และ SQL Server'],
+                    en: ['Joined as ERP Developer', 'Forms, fields and reports on AX 2012 R3; set up AX and SQL Server environments'] },
+    { year: '2024', th: ['e-Tax Invoice', 'พัฒนาและขึ้นระบบใบกำกับภาษีอิเล็กทรอนิกส์ เชื่อมกับงานบัญชีลูกหนี้และเจ้าหนี้'],
+                    en: ['e-Tax Invoice', 'Developed and launched electronic tax invoicing tied into AR and AP'] },
+    { year: '2025', th: ['เริ่มพัฒนาบน Odoo', 'สร้างโมดูลบัญชี/e-Tax ใบเสนอราคา การขาย และ CRM'],
+                    en: ['Moved into Odoo', 'Built accounting/e-Tax, quotation, sales and CRM modules'] },
+    { year: '2026', th: ['เชื่อมต่อระบบด้วย API', 'เชื่อม Odoo กับ AX และพัฒนา StarNexus / Smart Production'],
+                    en: ['API integration', 'Odoo ↔ AX integration and the StarNexus / Smart Production apps'] }
+  ],
+  projects: [
+    { icon: 'i-receipt', color: '#2f54d6', year: '2024 – 2025', tags: ['AX 2012', 'Odoo', 'e-Tax'],
+      th: ['ระบบ e-Tax Invoice', 'ส่งใบแจ้งหนี้และใบลดหนี้เข้าระบบ e-Tax พร้อมแนบ PDF รองรับการอ้างอิงใบลดหนี้และตรวจสอบยอดก่อนส่ง'],
+      en: ['e-Tax Invoice', 'Submits invoices and credit notes with PDF attachments, handles credit-note references and pre-submission checks'] },
+    { icon: 'i-factory', color: '#0e9f8f', year: '2026', tags: ['Odoo', 'REST API', 'AX'],
+      th: ['StarNexus / Smart Production', 'แอปฝั่งการผลิตบน Odoo ดึงข้อมูลสินค้าและ BOM จาก AX ผ่าน API และค้นหา item ที่ใกล้เคียงอัตโนมัติ'],
+      en: ['StarNexus / Smart Production', 'Production apps on Odoo that pull items and BOMs from AX via API, with fuzzy item matching'] },
+    { icon: 'i-wallet', color: '#c2410c', year: 'AX 2012', tags: ['X++', 'Forms', 'Reports'],
+      th: ['Cash Control & Repair Management', 'โมดูลเพิ่มเติมบน AX 2012 สำหรับควบคุมเงินสดและติดตามงานซ่อมตั้งแต่รับแจ้งจนปิดงาน'],
+      en: ['Cash Control & Repair Management', 'Custom AX 2012 modules for cash control and tracking repair jobs end to end'] },
+    { icon: 'i-cal', color: '#7c3aed', year: '2026', tags: ['JavaScript', 'Supabase', 'Vercel'], link: 'https://job-schedule-cyan.vercel.app',
+      th: ['Job Schedule', 'เว็บแอปบันทึกและติดตามงาน มีตาราง Kanban ปฏิทิน คลังความรู้ และ backup อัตโนมัติด้วย GitHub Actions'],
+      en: ['Job Schedule', 'Task tracker with table, Kanban, calendar, knowledge base and automated GitHub Actions backups'] }
+  ]
+};
+
+const T = {
+  th: {
+    nav: [['#about','เกี่ยวกับ'],['#skills','ทักษะ'],['#experience','ประสบการณ์'],['#projects','ผลงาน'],['#contact','ติดต่อ']],
+    'hero.badge': 'พร้อมรับโอกาสใหม่',
+    'hero.role': 'ERP Developer · Microsoft Dynamics AX 2012 / Odoo',
+    'hero.lead': 'พัฒนา ปรับแต่ง และเชื่อมต่อระบบ ERP ให้ฝ่ายบัญชี จัดซื้อ ขาย คลังสินค้า และการผลิต ทำงานบนข้อมูลชุดเดียวกันได้จริง',
+    'hero.cta1': 'ดูผลงาน', 'hero.cta2': 'ดาวน์โหลด Resume',
+    'about.kicker': 'About', 'about.title': 'เกี่ยวกับ',
+    'about.text': [
+      'นักพัฒนาระบบ ERP ประสบการณ์เกือบ 6 ปี เริ่มจาก Microsoft Dynamics AX 2012 R3 ด้วย X++ ตั้งแต่ฟอร์ม ฟิลด์ รายงาน ไปจนถึงการดูแลเซิร์ฟเวอร์และฐานข้อมูล',
+      'ตั้งแต่ปี 2568 ขยายมาพัฒนาบน Odoo และเชื่อมต่อทั้งสองระบบผ่าน API เพื่อให้ข้อมูลสินค้า BOM และเอกสารจัดซื้อไหลถึงกันโดยไม่ต้องคีย์ซ้ำ',
+      'ทำงานใกล้ชิดกับผู้ใช้ทุกแผนก ทุกงานถูกบันทึกและติดตาม และทุกปัญหาที่แก้แล้วถูกเขียนเป็นบทความไว้ในคลังความรู้'
+    ],
+    'about.chart': 'งานที่รับผิดชอบต่อปี', 'about.other': 'อื่น ๆ',
+    'about.note': 'จากบันทึกงานจริงในระบบ Job Schedule — สัดส่วนงาน Odoo เพิ่มขึ้นชัดเจนตั้งแต่ปี 2025',
+    'skills.kicker': 'Skills', 'skills.title': 'ทักษะ', 'skills.sub': 'เครื่องมือที่ใช้ทำงานจริงในแต่ละวัน ตั้งแต่โค้ดฝั่ง ERP ไปจนถึงฐานข้อมูลและการเชื่อมต่อระบบ',
+    'exp.kicker': 'Experience', 'exp.title': 'ประสบการณ์',
+    'proj.kicker': 'Projects', 'proj.title': 'ผลงานที่เลือกมา', 'proj.sub': 'ตัวอย่างงานที่ส่งผลต่อการทำงานของหลายแผนก',
+    'proj.open': 'เปิดดู',
+    'contact.title': 'มาคุยกันได้', 'contact.sub': 'สนใจร่วมงาน หรืออยากปรึกษาเรื่อง AX / Odoo ติดต่อทางอีเมลได้เลย',
+    'footer': 'ERP Developer · AX 2012 · Odoo', 'copied': 'คัดลอกอีเมลแล้ว'
+  },
+  en: {
+    nav: [['#about','About'],['#skills','Skills'],['#experience','Experience'],['#projects','Projects'],['#contact','Contact']],
+    'hero.badge': 'Open to new opportunities',
+    'hero.role': 'ERP Developer · Microsoft Dynamics AX 2012 / Odoo',
+    'hero.lead': 'I build, customise and connect ERP systems so finance, purchasing, sales, inventory and production work from one source of truth.',
+    'hero.cta1': 'View projects', 'hero.cta2': 'Download résumé',
+    'about.kicker': 'About', 'about.title': 'About',
+    'about.text': [
+      'ERP developer with nearly six years of experience, starting on Microsoft Dynamics AX 2012 R3 in X++, from forms, fields and reports to server and database administration.',
+      'Since 2025 I have also built on Odoo and connected both systems through APIs, so items, BOMs and purchasing documents flow between them without re-keying.',
+      'I work closely with users in every department: every request is logged and tracked, and every solved problem becomes a knowledge-base article.'
+    ],
+    'about.chart': 'Tasks handled per year', 'about.other': 'Other',
+    'about.note': 'From the real job log in Job Schedule. The Odoo share grows sharply from 2025.',
+    'skills.kicker': 'Skills', 'skills.title': 'Skills', 'skills.sub': 'The tools I use every day, from ERP code to databases and integrations.',
+    'exp.kicker': 'Experience', 'exp.title': 'Experience',
+    'proj.kicker': 'Projects', 'proj.title': 'Selected work', 'proj.sub': 'Work that changed how several departments operate.',
+    'proj.open': 'Open',
+    'contact.title': "Let's talk", 'contact.sub': 'Interested in working together or need help with AX / Odoo? Drop me an email.',
+    'footer': 'ERP Developer · AX 2012 · Odoo', 'copied': 'Email copied'
+  }
+};
+// ===== end of content =====
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+};
+let lang = store.get('pf-lang') || 'th';
+
+function render(){
+  const t = T[lang], P = PROFILE;
+  document.documentElement.lang = lang;
+  $('#langBtn').textContent = lang === 'th' ? 'EN' : 'TH';
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t[el.dataset.t] ?? ''; });
+  $('#links').innerHTML = t.nav.map(([h, l]) => `<a href="${h}">${l}</a>`).join('');
+
+  $('#stats').innerHTML = P.stats.map(s => `<div class="stat"><b>${esc(s.value)}</b><span>${esc(s[lang])}</span></div>`).join('');
+  $('#aboutText').innerHTML = t['about.text'].map(p => `<p>${esc(p)}</p>`).join('');
+
+  const max = Math.max(...P.workload.map(w => w.total));
+  $('#bars').innerHTML = P.workload.map(w => {
+    const h = w.total / max * 100, o = w.odoo / w.total * 100;
+    return `<div class="bar" title="${w.year}: ${w.total}"><span class="v" style="bottom:calc(${h}% + 4px)">${w.total}</span>
+      <div style="height:${h}%;display:flex;flex-direction:column">${w.odoo ? `<div class="seg o" style="height:${o}%"></div>` : ''}<div class="seg" style="flex:1;${w.odoo ? 'border-radius:0' : ''}"></div></div></div>`;
+  }).join('');
+  $('#years').innerHTML = P.workload.map(w => `<span>${w.year}</span>`).join('');
+
+  $('#skillGrid').innerHTML = P.skills.map(s => `<div class="card skill reveal in"><div class="ico"><svg class="i"><use href="#${s.icon}"/></svg></div>
+    <h3>${esc(s[lang])}</h3><div class="tags">${s.tags.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div></div>`).join('');
+
+  const j = P.job;
+  $('#job').innerHTML = `<div class="job-head"><div><h3 style="margin:0;font-size:20px">${esc(j.role)}</h3><span>${esc(j.company[lang])}</span></div><span class="mono">${esc(j.period[lang])}</span></div>
+    <ul>${j.bullets[lang].map(b => `<li>${esc(b)}</li>`).join('')}</ul>`;
+  $('#timeline').innerHTML = P.timeline.map(x => `<div class="tl reveal in"><div class="yr">${x.year}</div><div class="card"><h3>${esc(x[lang][0])}</h3><p>${esc(x[lang][1])}</p></div></div>`).join('');
+
+  $('#projGrid').innerHTML = P.projects.map(p => `<article class="card proj reveal in">
+    <div class="proj-top"><div class="proj-ico" style="background:${p.color}"><svg class="i"><use href="#${p.icon}"/></svg></div><span class="yr">${esc(p.year)}</span></div>
+    <h3>${esc(p[lang][0])}</h3><p>${esc(p[lang][1])}</p>
+    <div class="tags">${p.tags.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div>
+    ${p.link ? `<a class="more" href="${p.link}" target="_blank" rel="noopener">${t['proj.open']}<svg class="i"><use href="#i-arrow"/></svg></a>` : ''}</article>`).join('');
+
+  $('#mailBtn').href = 'mailto:' + P.email;
+  $('#mailText').textContent = P.email;
+  $('#ghBtn').href = P.github;
+}
+
+$('#langBtn').addEventListener('click', () => { lang = lang === 'th' ? 'en' : 'th'; store.set('pf-lang', lang); render(); });
+
+function applyTheme(th){
+  if(th) document.documentElement.dataset.theme = th;
+  const dark = th ? th === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  $('#themeBtn').innerHTML = `<svg class="i"><use href="#${dark ? 'i-sun' : 'i-moon'}"/></svg>`;
+}
+$('#themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  store.set('pf-theme', next); applyTheme(next);
+});
+applyTheme(store.get('pf-theme'));
+
+// copy email on click as well as opening the mail client
+$('#mailBtn').addEventListener('click', () => {
+  navigator.clipboard && navigator.clipboard.writeText(PROFILE.email).then(() => {
+    const el = $('#toast'); el.textContent = T[lang].copied; el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2000);
+  }).catch(() => {});
+});
+
+addEventListener('scroll', () => $('#nav').classList.toggle('scrolled', scrollY > 8), { passive: true });
+
+render();
+$('#yr').textContent = new Date().getFullYear();
+
+// show the résumé button only once resume.pdf has been added next to this page
+fetch("resume.pdf", { method: "HEAD" }).then(r => { if(r.ok) $("#cvBtn").hidden = false; }).catch(() => {});
+
+const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+  if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+}), { threshold: .12 }) : null;
+document.querySelectorAll('.reveal:not(.in)').forEach(el => io ? io.observe(el) : el.classList.add('in'));
+</script>
+</body>
+</html>
