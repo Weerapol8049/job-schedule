@@ -58,6 +58,16 @@
 ตั้งค่าใน `config.js`: `GITHUB_REPO` (repo ที่รัน backup), `DB_LIMIT_MB` และ `STORAGE_LIMIT_MB` (เปลี่ยนเมื่ออัปเกรดแผน — แก้ใน `backup.yml` ด้วย)
 ให้แน่ใจว่าได้รับอีเมล: GitHub → Settings → Notifications → Actions = "Only notify for failed workflows" และ Watch repo นี้ (ค่าเริ่มต้นของเจ้าของ repo)
 
+### อัปเดต schema (v5 — 23 ต.ค. 2026): Resume ต้อง login
+รัน `supabase/schema.sql` ซ้ำใน SQL Editor 1 ครั้ง (ไม่ทำข้อมูลหาย) — สร้างตาราง `resumes` (1 แถวต่อผู้ใช้, เก็บข้อมูล Resume เป็น JSON) + RLS ให้แต่ละคนอ่าน/แก้ได้เฉพาะของตัวเอง
+
+- `resume.html` ใช้บัญชีเดียวกับแอปหลัก (login ที่หน้าไหนก็เข้าได้ทั้งคู่) และบันทึกขึ้น Supabase อัตโนมัติ
+- ครั้งแรกที่ login ถ้าเบราว์เซอร์นั้นมี Resume เวอร์ชันเก่า (ก่อนมี login) จะย้ายขึ้น Supabase ให้แล้วลบออกจากเบราว์เซอร์
+- backup รายวันรวมตาราง `resumes` ด้วย (ฟิลด์ `resumes` ในไฟล์ JSON)
+- `portfolio.html` ยังเปิดสาธารณะ ไม่ต้อง login
+
+ตรวจหลังรัน: Table Editor → ต้องเห็นตาราง `resumes` · เปิด `/resume.html` → login → แก้ข้อมูล → มุมขวาบนต้องขึ้น "บันทึกแล้ว"
+
 ### อัปเดต schema (v4 — 20 ต.ค. 2026): คลังความรู้
 รัน `supabase/schema.sql` ซ้ำใน SQL Editor 1 ครั้ง (ไม่ทำข้อมูลหาย) — สร้าง:
 - ตาราง `knowledge` (หัวข้อ, หมวด, tags, เนื้อหา, Job No ที่เกี่ยวข้อง, ปักหมุด) + RLS + realtime

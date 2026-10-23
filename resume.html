@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <style>
 :root{
   --bg:#f4f5f8; --surface:#ffffff; --surface-2:#f8f9fb; --surface-3:#eef0f4;
@@ -61,6 +63,21 @@ button,input,select,textarea{font:inherit;color:inherit}
 .btn.danger:hover{color:var(--danger);background:var(--danger-soft)}
 .save-state{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
 .save-state::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.save-state.saving::before{background:var(--muted)}
+.save-state.error{color:var(--danger)}
+.save-state.error::before{background:var(--danger)}
+.user{font-size:12.5px;color:var(--text-2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- login gate ---------- */
+.gate{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:radial-gradient(900px 500px at 15% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent),var(--bg)}
+.gate-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow-lg);padding:28px}
+.gate-card .logo{width:40px;height:40px;border-radius:11px;background:var(--accent);color:var(--accent-text);display:grid;place-items:center}
+.gate-card h1{font-size:20px;margin:14px 0 4px}
+.gate-card p{margin:0 0 18px;color:var(--text-2);font-size:13.5px}
+.gate-card form,.gate-msg{display:flex;flex-direction:column;gap:12px}
+.gate-card .btn{height:40px;justify-content:center}
+.gate-card .back{display:block;text-align:center;margin-top:16px;font-size:13px;color:var(--text-2);text-decoration:none}
+.err{color:var(--danger);font-size:13px;min-height:1em;margin:0}
 
 .layout{display:grid;grid-template-columns:minmax(380px,520px) 1fr;min-height:calc(100vh - 55px)}
 .editor{padding:16px;border-right:1px solid var(--border);overflow:auto;height:calc(100vh - 55px);position:sticky;top:55px}
@@ -192,7 +209,7 @@ textarea.input{height:auto;min-height:84px;padding:8px 10px;resize:vertical;line
 @page{size:A4;margin:12mm 0}
 @media print{
   body{background:#fff}
-  .top,.editor,.tabs,.toast,.pb{display:none!important}
+  .top,.editor,.tabs,.toast,.pb,.gate{display:none!important}
   .layout,.stage{display:block!important;padding:0!important;height:auto!important;overflow:visible!important;position:static!important}
   .holder{width:auto!important;height:auto!important}
   .sheet{transform:none!important;width:auto;min-height:0;padding:0 16mm;box-shadow:none;border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -210,12 +227,33 @@ textarea.input{height:auto;min-height:84px;padding:8px 10px;resize:vertical;line
   <button class="btn ghost" data-act="import" title="นำเข้าไฟล์ข้อมูล (.json)"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg><span class="lbl">นำเข้า</span></button>
   <button class="btn ghost" data-act="exportJson" title="สำรองข้อมูลเป็นไฟล์ .json"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span class="lbl">สำรองข้อมูล</span></button>
   <button class="btn primary" data-act="pdf"><svg class="i" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span class="lbl">Export PDF</span></button>
+  <span class="user" id="userEmail" hidden></span>
+  <button class="btn ghost" id="logoutBtn" title="ออกจากระบบ" hidden><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
   <input type="file" id="importFile" accept="application/json,.json" hidden>
 </header>
 
+<div class="gate" id="gate" hidden>
+  <div class="gate-card">
+    <div class="logo"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div>
+    <h1>Resume Builder</h1>
+    <p>เข้าสู่ระบบด้วยบัญชีเดียวกับ Job Schedule — Resume ของคุณจะเก็บบน Supabase และเห็นได้เฉพาะคุณ</p>
+    <form id="loginForm">
+      <label class="field"><span>อีเมล</span><input class="input" type="email" id="loginEmail" autocomplete="username" required></label>
+      <label class="field"><span>รหัสผ่าน</span><input class="input" type="password" id="loginPassword" autocomplete="current-password" required></label>
+      <p class="err" id="loginErr"></p>
+      <button class="btn primary" type="submit" id="loginBtn">เข้าสู่ระบบ</button>
+    </form>
+    <div class="gate-msg" id="gateMsg" hidden>
+      <p class="err" id="gateErr"></p>
+      <button class="btn" id="gateLogout" hidden>ออกจากระบบ</button>
+    </div>
+    <a class="back" href="index.html">← กลับไป Job Schedule</a>
+  </div>
+</div>
+
 <div class="tabs"><div class="seg" id="viewTabs"><button aria-pressed="true" data-view="edit">แก้ไขข้อมูล</button><button aria-pressed="false" data-view="preview">ดูตัวอย่าง</button></div></div>
 
-<div class="layout">
+<div class="layout" id="layout" hidden>
   <aside class="editor" id="editor"></aside>
   <main class="stage" id="stage"><div class="holder" id="holder"><div class="sheet" id="sheet"></div></div></main>
 </div>
@@ -281,16 +319,23 @@ function sample(){
 }
 
 // ---------- state ----------
-let state = load();
+// With Supabase configured the resume lives in public.resumes (one row per user, RLS: owner only);
+// without it the page falls back to localStorage like the prototype.
+const CFG = window.APP_CONFIG || {};
+const CLOUD_CONFIGURED = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY);
+const sb = CLOUD_CONFIGURED && window.supabase ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
+let user = null;
+
+let state = blank();
 const openItems = new WeakSet();               // which list items are expanded in the form
 const openPanels = new Set(['style','personal']);
 
-function load(){
+function readLocal(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
     if(raw) return normalize(JSON.parse(raw));
   }catch(e){}
-  return sample();
+  return null;
 }
 function normalize(d){
   const b = blank();
@@ -304,20 +349,40 @@ function normalize(d){
   out.settings.hidden = out.settings.hidden || {};
   return out;
 }
-let saveTimer;
-function save(){
-  try{
-    localStorage.setItem(STORE_KEY, JSON.stringify(state));
-    $('#saveState').textContent = 'บันทึกในเครื่องแล้ว';
-  }catch(e){
-    $('#saveState').textContent = 'บันทึกไม่ได้ (พื้นที่เต็ม?)';
+let saveTimer, saving = false, dirty = false;
+function setSaveState(text, cls){
+  const el = $('#saveState');
+  el.textContent = text; el.className = 'save-state ' + (cls || '');
+}
+async function save(){
+  clearTimeout(saveTimer);
+  if(!sb){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); setSaveState('บันทึกในเครื่องแล้ว'); }
+    catch(e){ setSaveState('บันทึกไม่ได้ (พื้นที่เต็ม?)', 'error'); }
+    return;
   }
+  if(!user || saving) return;            // an in-flight save re-runs itself if more edits arrived
+  saving = true; dirty = false;
+  setSaveState('กำลังบันทึก…', 'saving');
+  const { error } = await sb.from('resumes').upsert({ user_id: user.id, data: state });
+  saving = false;
+  if(error){
+    dirty = true;
+    setSaveState('บันทึกไม่สำเร็จ', 'error');
+    toast('บันทึกไม่สำเร็จ: ' + error.message, 5000);
+    return;
+  }
+  if(dirty) save(); else setSaveState('บันทึกแล้ว');
 }
 function changed(){
+  dirty = true;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(save, 300);
+  saveTimer = setTimeout(save, sb ? 1000 : 300);
   schedulePreview();
 }
+addEventListener('beforeunload', e => {
+  if(sb && (dirty || saving)){ save(); e.preventDefault(); e.returnValue = ''; }
+});
 
 // ---------- helpers ----------
 const $ = s => document.querySelector(s);
@@ -668,7 +733,7 @@ function exportPdf(){
   setTimeout(() => { window.print(); document.title = old; }, 150);
 }
 document.addEventListener('keydown', e => {
-  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p'){ e.preventDefault(); exportPdf(); }
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p' && !$('#layout').hidden){ e.preventDefault(); exportPdf(); }
 });
 
 $('#viewTabs').addEventListener('click', e => {
@@ -679,10 +744,77 @@ $('#viewTabs').addEventListener('click', e => {
 });
 
 new ResizeObserver(fit).observe($('#stage'));
-document.fonts && document.fonts.ready.then(renderPreview);
+document.fonts && document.fonts.ready.then(() => { if(!$('#layout').hidden) renderPreview(); });
 
-renderForm();
-renderPreview();
+// ---------- login / boot ----------
+function start(){
+  $('#layout').hidden = false;
+  renderForm();
+  renderPreview();
+}
+
+function showGate(){
+  $('#gate').hidden = false;
+  $('#loginForm').hidden = false; $('#gateMsg').hidden = true;
+  $('#loginEmail').focus();
+}
+function showGateError(msg){
+  $('#gate').hidden = false; $('#layout').hidden = true;
+  $('#loginForm').hidden = true; $('#gateMsg').hidden = false;
+  $('#gateErr').textContent = msg;
+  $('#gateLogout').hidden = !user;
+}
+
+async function enter(u){
+  user = u;
+  $('#gate').hidden = true;
+  $('#userEmail').textContent = u.email; $('#userEmail').hidden = false;
+  $('#logoutBtn').hidden = false;
+  setSaveState('กำลังโหลด…', 'saving');
+  const { data, error } = await sb.from('resumes').select('data').eq('user_id', u.id).maybeSingle();
+  if(error){
+    const missing = /42P01|PGRST205|resumes/.test(`${error.code} ${error.message}`);
+    showGateError(missing
+      ? 'ยังไม่ได้สร้างตาราง resumes — ให้ผู้ดูแลรัน supabase/schema.sql (v5) ใน Supabase SQL Editor'
+      : 'โหลดข้อมูลไม่สำเร็จ: ' + error.message);
+    return;
+  }
+  if(data){
+    state = normalize(data.data); start(); setSaveState('บันทึกแล้ว');
+    return;
+  }
+  // first visit: move a resume kept in this browser (pre-login version) up to Supabase
+  const local = readLocal();
+  state = local || sample();
+  start();
+  dirty = true;
+  await save();
+  if(local && !dirty){
+    try{ localStorage.removeItem(STORE_KEY); }catch(e){}
+    toast('ย้าย Resume ที่เคยเก็บในเบราว์เซอร์นี้ขึ้น Supabase แล้ว', 4000);
+  }
+}
+
+$('#loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('#loginBtn');
+  btn.disabled = true; $('#loginErr').textContent = '';
+  const { data, error } = await sb.auth.signInWithPassword({ email: $('#loginEmail').value.trim(), password: $('#loginPassword').value });
+  btn.disabled = false;
+  if(error){ $('#loginErr').textContent = /invalid/i.test(error.message) ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' : error.message; return; }
+  enter(data.user);
+});
+$('#logoutBtn').addEventListener('click', () => sb.auth.signOut());
+$('#gateLogout').addEventListener('click', () => sb.auth.signOut());
+
+async function boot(){
+  if(!CLOUD_CONFIGURED){ state = readLocal() || sample(); start(); return; }
+  if(!sb){ showGateError('โหลดไลบรารี Supabase ไม่สำเร็จ — ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่'); return; }
+  sb.auth.onAuthStateChange(event => { if(event === 'SIGNED_OUT') location.reload(); });
+  const { data: { session } } = await sb.auth.getSession();
+  if(session) enter(session.user); else showGate();
+}
+boot();
 </script>
 </body>
 </html>

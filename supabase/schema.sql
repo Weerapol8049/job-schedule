@@ -181,6 +181,37 @@ $$;
 revoke all on function public.db_usage() from public, anon;
 grant execute on function public.db_usage() to authenticated, service_role;
 
+-- ---------- v5: Resume ส่วนตัว (resume.html) — แต่ละคนเห็นและแก้ได้เฉพาะของตัวเอง ----------
+create table if not exists public.resumes (
+  user_id    uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  data       jsonb not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.resumes_before_write() returns trigger
+language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end $$;
+
+drop trigger if exists resumes_before_write on public.resumes;
+create trigger resumes_before_write before insert or update on public.resumes
+  for each row execute function public.resumes_before_write();
+
+grant select, insert, update, delete on public.resumes to authenticated;
+revoke all on public.resumes from anon;
+alter table public.resumes enable row level security;
+
+drop policy if exists "owner can read resume"   on public.resumes;
+drop policy if exists "owner can insert resume" on public.resumes;
+drop policy if exists "owner can update resume" on public.resumes;
+drop policy if exists "owner can delete resume" on public.resumes;
+create policy "owner can read resume"   on public.resumes for select to authenticated using (user_id = (select auth.uid()));
+create policy "owner can insert resume" on public.resumes for insert to authenticated with check (user_id = (select auth.uid()));
+create policy "owner can update resume" on public.resumes for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "owner can delete resume" on public.resumes for delete to authenticated using (user_id = (select auth.uid()));
+
 -- ---------- realtime: เห็นการแก้ไขของเพื่อนร่วมทีมทันที ----------
 do $$
 begin
