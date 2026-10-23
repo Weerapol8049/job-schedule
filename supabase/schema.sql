@@ -212,6 +212,39 @@ create policy "owner can insert resume" on public.resumes for insert to authenti
 create policy "owner can update resume" on public.resumes for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 create policy "owner can delete resume" on public.resumes for delete to authenticated using (user_id = (select auth.uid()));
 
+-- ---------- v6: สถิติสาธารณะสำหรับ portfolio.html ----------
+-- คืนเฉพาะ "ตัวเลขรวม" (ไม่มีชื่องาน รายละเอียด หรือเนื้อหาบทความ) จึงเปิดให้ anon เรียกได้
+create or replace function public.portfolio_stats() returns json
+language sql stable security definer set search_path = public as $$
+  with j as (
+    select status, modules, system_name, project_name,
+           case when received_date >= '2400-01-01' then (received_date - interval '543 years')::date else received_date end as d
+    from public.jobs
+  ), y as (
+    select extract(year from d)::int as yr, count(*) as total,
+           count(*) filter (where system_name ilike '%odoo%' or project_name ~* '^(buz|biz)_') as odoo
+    from j where d is not null group by 1
+  ), m as (
+    select trim(x) as name, count(*) as n from j, unnest(modules) as x
+    where trim(x) <> '' group by 1 order by n desc limit 8
+  ), k as (
+    select category as name, count(*) as n from public.knowledge
+    where category <> '' group by 1 order by n desc limit 8
+  )
+  select json_build_object(
+    'jobs',            (select count(*) from j),
+    'done',            (select count(*) from j where status = 'เสร็จ'),
+    'reports',         (select count(*) from j where system_name ~* '(report|รายงาน|form|ฟอร์ม)'),
+    'first_date',      (select min(d) from j),
+    'per_year',        (select coalesce(json_agg(json_build_object('year', yr, 'total', total, 'odoo', odoo) order by yr), '[]') from y),
+    'modules',         (select coalesce(json_agg(json_build_object('name', name, 'n', n) order by n desc), '[]') from m),
+    'notes',           (select count(*) from public.knowledge),
+    'note_categories', (select coalesce(json_agg(json_build_object('name', name, 'n', n) order by n desc), '[]') from k),
+    'updated_at',      now())
+$$;
+revoke all on function public.portfolio_stats() from public;
+grant execute on function public.portfolio_stats() to anon, authenticated;
+
 -- ---------- realtime: เห็นการแก้ไขของเพื่อนร่วมทีมทันที ----------
 do $$
 begin

@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
 <style>
 :root{
   --bg:#f6f7fa; --surface:#ffffff; --surface-2:#f0f2f6;
@@ -115,6 +116,16 @@ h2{font-size:clamp(28px,3.6vw,38px);line-height:1.2;margin:0;letter-spacing:-.01
 .bar .seg.o:first-child{border-radius:6px 6px 0 0}
 .years{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:8px;text-align:center;font:500 12.5px "IBM Plex Mono",monospace;color:var(--muted)}
 .chart-note{font-size:13px;color:var(--muted);margin:14px 0 0}
+.hbars{display:flex;flex-direction:column;gap:10px}
+.hb{display:grid;grid-template-columns:minmax(90px,30%) 1fr 44px;gap:12px;align-items:center;font-size:14px}
+.hb .nm{color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .tr{height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden}
+.hb .tr i{display:block;height:100%;background:var(--accent);border-radius:5px}
+.hbars.kb .hb .tr i{background:var(--accent-2)}
+.hb .ct{font:500 12.5px "IBM Plex Mono",monospace;color:var(--muted);text-align:right}
+.live{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:16px 0 0}
+.live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.live.on::before{background:var(--accent-2);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent-2) 25%, transparent)}
 
 .skills{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .skill .ico{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin-bottom:16px}
@@ -234,7 +245,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
     <span class="t">str</span>       role     = <span class="s">"ERP Developer"</span>;
     <span class="t">container</span> stack    = [<span class="s">"AX 2012 R3"</span>, <span class="s">"X++"</span>,
                           <span class="s">"Odoo"</span>, <span class="s">"SQL Server"</span>];
-    <span class="t">int</span>       tasks    = <span class="n">870</span>;  <span class="c">// and counting</span>
+    <span class="t">int</span>       tasks    = <span class="n" id="taskN">870</span>;  <span class="c">// and counting</span>
 
     <span class="k">public void</span> <span class="t">run</span>()
     {
@@ -267,6 +278,17 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
     <div class="wrap">
       <div class="sec-h reveal"><div><small data-t="skills.kicker"></small><h2 data-t="skills.title"></h2></div><p data-t="skills.sub"></p></div>
       <div class="skills" id="skillGrid"></div>
+    </div>
+  </section>
+
+  <section id="insights">
+    <div class="wrap">
+      <div class="sec-h reveal"><div><small data-t="ins.kicker"></small><h2 data-t="ins.title"></h2></div><p data-t="ins.sub"></p></div>
+      <div class="about">
+        <div class="card reveal"><div class="chart-h"><h3 data-t="ins.modules"></h3></div><div class="hbars" id="modBars"></div></div>
+        <div class="card reveal"><div class="chart-h"><h3 data-t="ins.kb"></h3></div><div class="hbars kb" id="kbBars"></div></div>
+      </div>
+      <p class="live" id="liveNote"></p>
     </div>
   </section>
 
@@ -310,7 +332,7 @@ const PROFILE = {
   stats: [
     { value: '6', th: 'ปีในสาย ERP', en: 'years in ERP' },
     { value: '870+', th: 'งานพัฒนาและซัพพอร์ต', en: 'dev & support tasks' },
-    { value: '150+', th: 'รายงานและแบบฟอร์ม', en: 'reports & forms' },
+    { value: '280+', th: 'งานรายงานและแบบฟอร์ม', en: 'report & form tasks' },
     { value: '180+', th: 'บทความในคลังความรู้', en: 'knowledge-base articles' }
   ],
   // tasks per year from the job log (Odoo share highlighted)
@@ -322,6 +344,11 @@ const PROFILE = {
     { year: 2025, total: 141, odoo: 19 },
     { year: 2026, total: 152, odoo: 89 }
   ],
+  // most-worked ERP modules and knowledge-base categories
+  modules: [['PM',134],['PC',86],['IM',66],['PS',46],['AP',38],['SM',38],['STM',31],['Sales',26]].map(([name, n]) => ({ name, n })),
+  kbCats: [['AX 2012',74],['AX / X++',48],['Odoo',41],['Visual Studio',8],['SQL Server',4],['C#',4],['Windows / Server',3],['JavaScript',2]].map(([name, n]) => ({ name, n })),
+  // the numbers above are a snapshot; loadLive() replaces them with portfolio_stats() from Supabase
+  liveAt: null,
   skills: [
     { icon: 'i-layers', th: 'ERP Development', en: 'ERP Development', tags: ['Dynamics AX 2012 R3', 'X++', 'Odoo', 'Python', 'XML views'] },
     { icon: 'i-db', th: 'ฐานข้อมูลและเซิร์ฟเวอร์', en: 'Database & Server', tags: ['SQL Server', 'T-SQL', 'Backup / Restore', 'AOS / Reporting Services'] },
@@ -335,14 +362,14 @@ const PROFILE = {
     bullets: {
       th: [
         'พัฒนาและปรับแต่ง Microsoft Dynamics AX 2012 R3 ด้วย X++ ครอบคลุมโมดูล PM, PC, IM, PS, AP/AR, GL และ SM',
-        'สร้างและปรับปรุงรายงานและแบบฟอร์มเอกสารกว่า 150 รายการ เช่น ใบวางบิล ใบส่งมอบงาน และ Detailed Trial Balance',
+        'สร้างและปรับปรุงรายงานและแบบฟอร์มเอกสาร (กว่า 280 งาน) เช่น ใบวางบิล ใบส่งมอบงาน และ Detailed Trial Balance',
         'พัฒนาโมดูล Odoo และสร้าง API เชื่อมต่อ Odoo กับ AX ทั้งข้อมูลสินค้า BOM และการเปิด PO',
         'ดูแล SQL Server และเซิร์ฟเวอร์ AX: ติดตั้ง backup/restore และตั้ง job อัตโนมัติ',
         'ซัพพอร์ตผู้ใช้หลายแผนก และจัดทำคลังความรู้ภายในกว่า 180 บทความ'
       ],
       en: [
         'Develop and customise Microsoft Dynamics AX 2012 R3 in X++ across PM, PC, IM, PS, AP/AR, GL and SM modules',
-        'Built and maintained 150+ business reports and document forms such as billing notes, delivery notes and detailed trial balance',
+        'Built and maintained business reports and document forms (280+ tasks) such as billing notes, delivery notes and detailed trial balance',
         'Develop Odoo modules and REST APIs linking Odoo with AX for items, BOMs and purchase orders',
         'Administer SQL Server and AX servers: installation, backup/restore and scheduled jobs',
         'Support users across departments and maintain an internal knowledge base of 180+ articles'
@@ -395,6 +422,9 @@ const T = {
     'proj.kicker': 'Projects', 'proj.title': 'ผลงานที่เลือกมา', 'proj.sub': 'ตัวอย่างงานที่ส่งผลต่อการทำงานของหลายแผนก',
     'proj.open': 'เปิดดู',
     'contact.title': 'มาคุยกันได้', 'contact.sub': 'สนใจร่วมงาน หรืออยากปรึกษาเรื่อง AX / Odoo ติดต่อทางอีเมลได้เลย',
+    'ins.kicker': 'Insights', 'ins.title': 'จากบันทึกงานจริง', 'ins.sub': 'สรุปจากระบบ Job Schedule และคลังความรู้ที่ใช้ทำงานทุกวัน — แสดงเฉพาะตัวเลขรวม',
+    'ins.modules': 'โมดูล ERP ที่ทำงานบ่อยที่สุด', 'ins.kb': 'บทความในคลังความรู้ตามหมวด',
+    'live.on': 'อัปเดตอัตโนมัติจาก Job Schedule · ข้อมูล ณ ', 'live.off': 'ข้อมูลสรุป ณ 22 ต.ค. 2026',
     'footer': 'ERP Developer · AX 2012 · Odoo', 'copied': 'คัดลอกอีเมลแล้ว'
   },
   en: {
@@ -416,6 +446,9 @@ const T = {
     'proj.kicker': 'Projects', 'proj.title': 'Selected work', 'proj.sub': 'Work that changed how several departments operate.',
     'proj.open': 'Open',
     'contact.title': "Let's talk", 'contact.sub': 'Interested in working together or need help with AX / Odoo? Drop me an email.',
+    'ins.kicker': 'Insights', 'ins.title': 'From the work log', 'ins.sub': 'Drawn from the Job Schedule tracker and knowledge base I use every day. Totals only.',
+    'ins.modules': 'Most-worked ERP modules', 'ins.kb': 'Knowledge-base articles by topic',
+    'live.on': 'Updated automatically from Job Schedule · as of ', 'live.off': 'Snapshot as of 22 Oct 2026',
     'footer': 'ERP Developer · AX 2012 · Odoo', 'copied': 'Email copied'
   }
 };
@@ -446,6 +479,20 @@ function render(){
       <div style="height:${h}%;display:flex;flex-direction:column">${w.odoo ? `<div class="seg o" style="height:${o}%"></div>` : ''}<div class="seg" style="flex:1;${w.odoo ? 'border-radius:0' : ''}"></div></div></div>`;
   }).join('');
   $('#years').innerHTML = P.workload.map(w => `<span>${w.year}</span>`).join('');
+  const cols = `repeat(${P.workload.length},1fr)`;
+  $('#bars').style.gridTemplateColumns = $('#years').style.gridTemplateColumns = cols;
+
+  const hbars = list => {
+    const top = Math.max(1, ...list.map(x => x.n));
+    return list.map(x => `<div class="hb"><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span><span class="tr"><i style="width:${x.n / top * 100}%"></i></span><span class="ct">${x.n}</span></div>`).join('');
+  };
+  $('#modBars').innerHTML = hbars(P.modules);
+  $('#kbBars').innerHTML = hbars(P.kbCats);
+  const live = $('#liveNote');
+  live.classList.toggle('on', !!P.liveAt);
+  live.textContent = P.liveAt
+    ? t['live.on'] + new Date(P.liveAt).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : t['live.off'];
 
   $('#skillGrid').innerHTML = P.skills.map(s => `<div class="card skill reveal in"><div class="ico"><svg class="i"><use href="#${s.icon}"/></svg></div>
     <h3>${esc(s[lang])}</h3><div class="tags">${s.tags.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div></div>`).join('');
@@ -492,6 +539,35 @@ addEventListener('scroll', () => $('#nav').classList.toggle('scrolled', scrollY 
 
 render();
 $('#yr').textContent = new Date().getFullYear();
+
+// Live totals from Supabase (schema v6: portfolio_stats() returns counts only, callable with the anon key).
+// Any failure keeps the snapshot values above.
+async function loadLive(){
+  const C = window.APP_CONFIG || {};
+  if(!C.SUPABASE_URL || !C.SUPABASE_ANON_KEY) return;
+  try{
+    const r = await fetch(`${C.SUPABASE_URL}/rest/v1/rpc/portfolio_stats`, {
+      method: 'POST', body: '{}',
+      headers: { apikey: C.SUPABASE_ANON_KEY, Authorization: `Bearer ${C.SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' }
+    });
+    if(!r.ok) return;
+    const s = await r.json();
+    if(!s || !s.jobs) return;
+    const plus = n => n >= 100 ? `${Math.floor(n / 10) * 10}+` : String(n);
+    const P = PROFILE;
+    if(s.first_date) P.stats[0].value = String(Math.round((Date.now() - new Date(s.first_date)) / 31557600000));
+    P.stats[1].value = plus(s.jobs);
+    P.stats[2].value = plus(s.reports);
+    P.stats[3].value = plus(s.notes);
+    if(s.per_year?.length) P.workload = s.per_year.slice(-6);
+    if(s.modules?.length) P.modules = s.modules;
+    if(s.note_categories?.length) P.kbCats = s.note_categories;
+    P.liveAt = s.updated_at;
+    $('#taskN').textContent = s.jobs;
+    render();
+  }catch(e){}
+}
+loadLive();
 
 // show the résumé button only once resume.pdf has been added next to this page
 fetch("resume.pdf", { method: "HEAD" }).then(r => { if(r.ok) $("#cvBtn").hidden = false; }).catch(() => {});
