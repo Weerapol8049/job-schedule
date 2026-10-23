@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resume Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f8; --surface:#ffffff; --surface-2:#f8f9fb; --surface-3:#eef0f4;
+  --text:#141923; --text-2:#475066; --muted:#8a92a3; --border:#e6e9ef; --border-strong:#d4d9e2;
+  --accent:#4f46e5; --accent-hover:#4338ca; --accent-text:#ffffff; --accent-soft:#eef0ff; --accent-soft-text:#4338ca;
+  --danger:#e11d48; --danger-soft:#fff0f3; --ok:#059669;
+  --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+  --shadow-lg:0 16px 40px -12px rgba(16,24,40,.22),0 4px 10px -4px rgba(16,24,40,.08);
+  --ring:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  --radius:14px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0e13; --surface:#131821; --surface-2:#171d27; --surface-3:#1e2531;
+    --text:#e9ecf2; --text-2:#b3bbca; --muted:#7b8496; --border:#232b37; --border-strong:#313b4a;
+    --accent:#7c83ff; --accent-hover:#959bff; --accent-text:#0b0d1a; --accent-soft:#1d2042; --accent-soft-text:#b0b5ff;
+    --danger:#fb7185; --danger-soft:#2b141a; --ok:#34d399;
+    --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 16px 40px -12px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0e13; --surface:#131821; --surface-2:#171d27; --surface-3:#1e2531;
+  --text:#e9ecf2; --text-2:#b3bbca; --muted:#7b8496; --border:#232b37; --border-strong:#313b4a;
+  --accent:#7c83ff; --accent-hover:#959bff; --accent-text:#0b0d1a; --accent-soft:#1d2042; --accent-soft-text:#b0b5ff;
+  --danger:#fb7185; --danger-soft:#2b141a; --ok:#34d399;
+  --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 16px 40px -12px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.55 "IBM Plex Sans Thai",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- app shell ---------- */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:10px 16px;background:color-mix(in srgb, var(--surface) 88%, transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;margin-right:auto;min-width:0}
+.brand .logo{width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--accent-text);display:grid;place-items:center;flex:none}
+.brand small{font-weight:400;color:var(--muted);font-size:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--border-strong);background:var(--surface);cursor:pointer;font-weight:500;font-size:13px;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn:focus-visible{outline:none;box-shadow:var(--ring)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.btn.primary:hover{background:var(--accent-hover)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--surface-3)}
+.btn.sm{height:28px;padding:0 9px;font-size:12px;border-radius:7px}
+.btn.icon{width:28px;padding:0;justify-content:center}
+.btn.danger:hover{color:var(--danger);background:var(--danger-soft)}
+.save-state{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.save-state::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok)}
+
+.layout{display:grid;grid-template-columns:minmax(380px,520px) 1fr;min-height:calc(100vh - 55px)}
+.editor{padding:16px;border-right:1px solid var(--border);overflow:auto;height:calc(100vh - 55px);position:sticky;top:55px}
+.stage{padding:24px 16px 48px;overflow:auto;height:calc(100vh - 55px);position:sticky;top:55px}
+.holder{margin:0 auto;position:relative}
+.tabs{display:none}
+
+/* ---------- form ---------- */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px}
+.panel>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:600}
+.panel>summary::-webkit-details-marker{display:none}
+.panel>summary .chev{margin-left:auto;transition:transform .15s;color:var(--muted)}
+.panel[open]>summary .chev{transform:rotate(90deg)}
+.panel>summary .count{font-weight:500;font-size:11px;color:var(--muted);background:var(--surface-3);border-radius:99px;padding:0 7px}
+.panel-body{padding:0 14px 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>span{font-size:12px;color:var(--text-2);font-weight:500}
+.input{width:100%;height:36px;padding:0 10px;border-radius:9px;border:1px solid var(--border-strong);background:var(--surface-2);outline:none}
+textarea.input{height:auto;min-height:84px;padding:8px 10px;resize:vertical;line-height:1.5}
+.input:focus{border-color:var(--accent);box-shadow:var(--ring);background:var(--surface)}
+.hint{font-size:11.5px;color:var(--muted)}
+.check{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;user-select:none}
+.check input{width:16px;height:16px;accent-color:var(--accent)}
+.item{border:1px solid var(--border);border-radius:11px;background:var(--surface-2);margin-bottom:8px}
+.item>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:7px 8px 7px 12px;font-weight:500;font-size:13px}
+.item>summary::-webkit-details-marker{display:none}
+.item>summary .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item>summary .t.empty{color:var(--muted);font-weight:400}
+.item .grid{padding:4px 12px 12px}
+.add{width:100%;justify-content:center;border-style:dashed;color:var(--text-2)}
+.photo-row{display:flex;align-items:center;gap:12px}
+.photo-prev{width:64px;height:64px;border-radius:50%;background:var(--surface-3) center/cover;border:1px solid var(--border);flex:none;display:grid;place-items:center;color:var(--muted)}
+.swatches{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border-strong);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--text)}
+.sw-custom{width:30px;height:30px;border:none;background:none;padding:0;cursor:pointer}
+.seg{display:inline-flex;background:var(--surface-3);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:none;background:none;height:28px;padding:0 10px;border-radius:7px;cursor:pointer;font-size:12.5px;font-weight:500;color:var(--text-2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.order{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.order li{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);font-size:13px}
+.order li .n{flex:1}
+.order li.off .n{color:var(--muted);text-decoration:line-through}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,10px);background:var(--text);color:var(--bg);padding:11px 16px;border-radius:12px;z-index:100;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px);box-shadow:var(--shadow-lg);font-weight:500;font-size:13px}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- paper (always light) ---------- */
+.sheet{--ac:#4f46e5;--fs:10.5pt;--rf:"IBM Plex Sans Thai";width:210mm;min-height:297mm;background:#fff;color:#1f2430;padding:12mm 16mm;font-family:var(--rf),system-ui,sans-serif;font-size:var(--fs);line-height:1.5;position:relative;transform-origin:top left;box-shadow:0 1px 3px rgba(0,0,0,.12),0 12px 32px -12px rgba(0,0,0,.25);border-radius:2px;color-scheme:light}
+.sheet *{box-sizing:border-box}
+.sheet h1{font-size:2.25em;line-height:1.15;margin:0;font-weight:700;color:#141923}
+.sheet .jt{color:var(--ac);font-weight:600;font-size:1.15em;margin-top:.15em}
+.sheet h2{font-size:1em;text-transform:uppercase;color:var(--ac);margin:0 0 .5em;padding-bottom:.25em;border-bottom:1.5px solid color-mix(in srgb, var(--ac) 30%, #fff);font-weight:700;break-after:avoid}
+.sheet .sec{margin-top:1.1em}
+.sheet.lang-en h2{letter-spacing:.06em}
+.t-minimal.lang-en h2{letter-spacing:.1em}
+.sheet .ent{break-inside:avoid;margin-bottom:.7em}
+.sheet .ent:last-child{margin-bottom:0}
+.sheet .ent-h{display:flex;justify-content:space-between;gap:1em;align-items:baseline}
+.sheet .ent-h b{font-weight:600;color:#141923}
+.sheet .org{color:#4b5563}
+.sheet .date{color:#6b7280;white-space:nowrap;font-size:.9em}
+.sheet ul{margin:.2em 0 0;padding-left:1.2em}
+.sheet li{margin:.08em 0}
+.sheet p{margin:.2em 0}
+.sheet a{color:inherit;text-decoration:none}
+.sheet .contact{display:flex;flex-wrap:wrap;gap:.25em 1.1em;color:#4b5563;font-size:.92em;margin-top:.55em}
+.sheet .contact span{display:inline-flex;gap:.4em;align-items:center;min-width:0;overflow-wrap:anywhere}
+.sheet .contact svg{width:1em;height:1em;stroke:var(--ac);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sheet .photo{width:32mm;height:32mm;object-fit:cover;border-radius:50%;display:block}
+.sheet .chips{display:flex;flex-wrap:wrap;gap:.35em}
+.sheet .chip{border:1px solid #d9dde5;border-radius:999px;padding:.02em .75em;font-size:.92em}
+.sheet .sk{margin-bottom:.45em;break-inside:avoid}
+.sheet .sk-h{display:flex;justify-content:space-between;gap:.5em;font-size:.95em}
+.sheet .bar{height:4px;background:#e5e7eb;border-radius:2px;margin-top:.2em;overflow:hidden}
+.sheet .bar i{display:block;height:100%;background:var(--ac);border-radius:2px}
+.sheet .kv{display:flex;justify-content:space-between;gap:.75em}
+.sheet .kv span:last-child{color:#6b7280}
+.sheet .sum{white-space:normal}
+.sheet .pb{position:absolute;left:0;right:0;border-top:1.5px dashed #f43f5e;pointer-events:none}
+.sheet .pb span{position:absolute;right:4px;top:2px;font:500 9px/1 "IBM Plex Sans Thai",sans-serif;color:#f43f5e;background:#fff;padding:2px 4px;border-radius:3px}
+.sheet .empty-note{color:#9ca3af;text-align:center;margin-top:40mm;font-size:1.1em}
+
+/* classic: centred header, single column */
+.t-classic .hd{text-align:center}
+.t-classic .hd .photo{margin:0 auto .6em}
+.t-classic .contact{justify-content:center}
+.t-classic .hd{padding-bottom:.4em}
+
+/* modern: header with photo, two columns */
+.t-modern .hd{display:flex;align-items:center;gap:7mm;padding-bottom:5mm;border-bottom:3px solid var(--ac)}
+.t-modern .hd h1{color:var(--ac)}
+.t-modern .hd .jt{color:#374151}
+.t-modern .cols{display:grid;grid-template-columns:60mm 1fr;gap:8mm}
+.t-modern .side{padding-right:0}
+.t-modern .side .contact{flex-direction:column;margin-top:0;gap:.45em}
+.t-modern h2{border-bottom:none;display:flex;align-items:center;gap:.5em;padding-bottom:0}
+.t-modern h2::before{content:"";width:.55em;height:.55em;background:var(--ac);border-radius:2px;flex:none}
+.t-modern .side .sec:first-child,.t-modern .main .sec:first-child{margin-top:1.2em}
+
+/* minimal: label gutter */
+.t-minimal .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:6mm;padding-bottom:4mm}
+.t-minimal .hd h1{font-weight:600;letter-spacing:-.01em}
+.t-minimal .photo{border-radius:6px;width:28mm;height:34mm}
+.t-minimal .sec{display:grid;grid-template-columns:34mm 1fr;gap:5mm;border-top:1px solid #e5e7eb;padding-top:.8em;margin-top:.8em}
+.t-minimal h2{border:none;color:#6b7280;font-size:.85em;padding:0;margin:.15em 0 0}
+.t-minimal .jt{color:#4b5563;font-weight:500}
+.t-minimal .contact svg{stroke:#6b7280}
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .editor,.stage{height:auto;position:static;border-right:none}
+  .tabs{display:flex;justify-content:center;padding:10px 16px 0}
+  body:not(.show-preview) .stage{display:none}
+  body.show-preview .editor{display:none}
+  .top .btn .lbl{display:none}
+  .brand small{display:none}
+}
+@media (max-width:520px){
+  .grid{grid-template-columns:1fr}
+  .save-state{display:none}
+}
+
+/* ---------- print: only the paper ---------- */
+@page{size:A4;margin:12mm 0}
+@media print{
+  body{background:#fff}
+  .top,.editor,.tabs,.toast,.pb{display:none!important}
+  .layout,.stage{display:block!important;padding:0!important;height:auto!important;overflow:visible!important;position:static!important}
+  .holder{width:auto!important;height:auto!important}
+  .sheet{transform:none!important;width:auto;min-height:0;padding:0 16mm;box-shadow:none;border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="logo"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div>
+    <div>Resume Builder <small>· สร้างและแก้ไข Resume / CV</small></div>
+  </div>
+  <span class="save-state" id="saveState">บันทึกในเครื่องแล้ว</span>
+  <button class="btn ghost" data-act="import" title="นำเข้าไฟล์ข้อมูล (.json)"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg><span class="lbl">นำเข้า</span></button>
+  <button class="btn ghost" data-act="exportJson" title="สำรองข้อมูลเป็นไฟล์ .json"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span class="lbl">สำรองข้อมูล</span></button>
+  <button class="btn primary" data-act="pdf"><svg class="i" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span class="lbl">Export PDF</span></button>
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
+</header>
+
+<div class="tabs"><div class="seg" id="viewTabs"><button aria-pressed="true" data-view="edit">แก้ไขข้อมูล</button><button aria-pressed="false" data-view="preview">ดูตัวอย่าง</button></div></div>
+
+<div class="layout">
+  <aside class="editor" id="editor"></aside>
+  <main class="stage" id="stage"><div class="holder" id="holder"><div class="sheet" id="sheet"></div></div></main>
+</div>
+<input type="file" id="photoFile" accept="image/*" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_KEY = 'resume-builder-v1';
+
+const SECTION_IDS = ['summary','experience','education','projects','skills','languages','certifications','references'];
+const SIDEBAR = new Set(['skills','languages','certifications']);   // modern template's left column
+
+const HEAD = {
+  th:{summary:'ข้อมูลโดยย่อ',experience:'ประสบการณ์ทำงาน',education:'การศึกษา',projects:'โครงการ / ผลงาน',skills:'ทักษะ',languages:'ภาษา',certifications:'ใบรับรองและรางวัล',references:'บุคคลอ้างอิง',contact:'ติดต่อ',present:'ปัจจุบัน',gpa:'เกรดเฉลี่ย'},
+  en:{summary:'Profile',experience:'Experience',education:'Education',projects:'Projects',skills:'Skills',languages:'Languages',certifications:'Certifications & Awards',references:'References',contact:'Contact',present:'Present',gpa:'GPA'}
+};
+
+const ACCENTS = ['#4f46e5','#1e3a5f','#0f766e','#047857','#b91c1c','#9d174d','#b45309','#374151'];
+const FONTS = [['IBM Plex Sans Thai','IBM Plex Sans Thai'],['Sarabun','Sarabun'],['Noto Sans Thai','Noto Sans Thai']];
+
+// Repeatable sections: field = [key, label, kind]; kind: '' text | half | area | check | level
+const LISTS = {
+  experience:{label:'ประสบการณ์ทำงาน', add:'เพิ่มประสบการณ์', title:i=>[i.role,i.company].filter(Boolean).join(' · '),
+    fields:[['role','ตำแหน่ง','half'],['company','บริษัท / องค์กร','half'],['start','เริ่ม (เช่น ม.ค. 2565)','half'],['end','สิ้นสุด','half'],['current','ยังทำงานอยู่ที่นี่','check'],['location','สถานที่',''],['desc','หน้าที่และผลงาน','area']]},
+  education:{label:'การศึกษา', add:'เพิ่มการศึกษา', title:i=>[i.degree,i.school].filter(Boolean).join(' · '),
+    fields:[['degree','วุฒิ / สาขา',''],['school','สถาบัน',''],['start','เริ่ม','half'],['end','จบ','half'],['gpa','เกรดเฉลี่ย','half'],['desc','รายละเอียดเพิ่มเติม','area']]},
+  projects:{label:'โครงการ / ผลงาน', add:'เพิ่มผลงาน', title:i=>i.name,
+    fields:[['name','ชื่อโครงการ','half'],['date','ช่วงเวลา','half'],['link','ลิงก์ (ถ้ามี)',''],['desc','รายละเอียด','area']]},
+  skills:{label:'ทักษะ', add:'เพิ่มทักษะ', title:i=>i.name,
+    fields:[['name','ทักษะ','half'],['level','ระดับ','level']]},
+  languages:{label:'ภาษา', add:'เพิ่มภาษา', title:i=>i.name,
+    fields:[['name','ภาษา','half'],['level','ระดับ (เช่น ดีมาก, TOEIC 850)','half']]},
+  certifications:{label:'ใบรับรองและรางวัล', add:'เพิ่มใบรับรอง / รางวัล', title:i=>i.name,
+    fields:[['name','ชื่อ',''],['issuer','ผู้ออก / หน่วยงาน','half'],['date','ปี','half']]},
+  references:{label:'บุคคลอ้างอิง', add:'เพิ่มบุคคลอ้างอิง', title:i=>i.name,
+    fields:[['name','ชื่อ','half'],['position','ตำแหน่ง / ความสัมพันธ์','half'],['contact','ข้อมูลติดต่อ','']]}
+};
+const LEVELS = [['0','ไม่แสดงระดับ'],['1','1 · เริ่มต้น'],['2','2 · พอใช้'],['3','3 · ดี'],['4','4 · ดีมาก'],['5','5 · เชี่ยวชาญ']];
+
+function blank(){
+  return {
+    personal:{name:'',title:'',email:'',phone:'',location:'',website:'',linkedin:'',extra:'',photo:''},
+    summary:'',
+    experience:[],education:[],projects:[],skills:[],languages:[],certifications:[],references:[],
+    settings:{template:'modern',accent:ACCENTS[0],font:FONTS[0][0],fontSize:10.5,lang:'th',showPhoto:true,order:SECTION_IDS.slice(),hidden:{}}
+  };
+}
+
+function sample(){
+  const d = blank();
+  d.personal = {name:'กมลวรรณ ศรีสุข',title:'Senior Software Engineer',email:'kamonwan.s@example.com',phone:'081-234-5678',location:'กรุงเทพมหานคร',website:'kamonwan.dev',linkedin:'linkedin.com/in/kamonwan',extra:'อายุ 31 ปี · สัญชาติไทย',photo:''};
+  d.summary = 'วิศวกรซอฟต์แวร์ประสบการณ์ 8 ปี เชี่ยวชาญการพัฒนาเว็บแอปพลิเคชันและระบบหลังบ้านที่รองรับผู้ใช้จำนวนมาก ชอบทำงานร่วมกับทีมธุรกิจเพื่อเปลี่ยนโจทย์ให้เป็นผลิตภัณฑ์ที่ใช้งานได้จริง';
+  d.experience = [
+    {role:'Senior Software Engineer',company:'บริษัท ตัวอย่าง เทคโนโลยี จำกัด',location:'กรุงเทพฯ',start:'มี.ค. 2566',end:'',current:true,desc:'- นำทีม 5 คนพัฒนาระบบจัดการคำสั่งซื้อ รองรับ 20,000 รายการต่อวัน\n- ลดเวลาโหลดหน้าเว็บลง 45% ด้วยการปรับโครงสร้าง API และ caching\n- วางมาตรฐาน code review และ CI/CD ให้ทั้งแผนก'},
+    {role:'Software Engineer',company:'บริษัท ดิจิทัล โซลูชัน จำกัด',location:'กรุงเทพฯ',start:'มิ.ย. 2561',end:'ก.พ. 2566',current:false,desc:'- พัฒนาแอปพลิเคชันบริการลูกค้าด้วย React และ Node.js\n- เชื่อมต่อระบบชำระเงินกับธนาคาร 4 แห่ง'}
+  ];
+  d.education = [{degree:'วิศวกรรมศาสตรบัณฑิต สาขาวิศวกรรมคอมพิวเตอร์',school:'มหาวิทยาลัยตัวอย่าง',start:'2557',end:'2561',gpa:'3.45',desc:''}];
+  d.projects = [{name:'ระบบนัดหมายออนไลน์สำหรับคลินิก',date:'2565',link:'github.com/kamonwan/clinic',desc:'ระบบจองคิวและแจ้งเตือนผ่าน LINE ใช้งานจริงใน 12 สาขา'}];
+  d.skills = [['JavaScript / TypeScript','5'],['React, Vue','5'],['Node.js','4'],['PostgreSQL','4'],['Docker, CI/CD','3'],['Team Leadership','4']].map(([name,level])=>({name,level}));
+  d.languages = [{name:'ไทย',level:'ภาษาแม่'},{name:'อังกฤษ',level:'ดีมาก (TOEIC 850)'}];
+  d.certifications = [{name:'AWS Certified Developer – Associate',issuer:'Amazon Web Services',date:'2567'}];
+  return d;
+}
+
+// ---------- state ----------
+let state = load();
+const openItems = new WeakSet();               // which list items are expanded in the form
+const openPanels = new Set(['style','personal']);
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return normalize(JSON.parse(raw));
+  }catch(e){}
+  return sample();
+}
+function normalize(d){
+  const b = blank();
+  const out = Object.assign(b, d || {});
+  out.personal = Object.assign(blank().personal, d && d.personal);
+  out.settings = Object.assign(blank().settings, d && d.settings);
+  for(const k of Object.keys(LISTS)) if(!Array.isArray(out[k])) out[k] = [];
+  const order = (out.settings.order || []).filter(id => SECTION_IDS.includes(id));
+  for(const id of SECTION_IDS) if(!order.includes(id)) order.push(id);
+  out.settings.order = order;
+  out.settings.hidden = out.settings.hidden || {};
+  return out;
+}
+let saveTimer;
+function save(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    $('#saveState').textContent = 'บันทึกในเครื่องแล้ว';
+  }catch(e){
+    $('#saveState').textContent = 'บันทึกไม่ได้ (พื้นที่เต็ม?)';
+  }
+}
+function changed(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 300);
+  schedulePreview();
+}
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function getPath(obj, path){ return path.split('.').reduce((o,k) => o == null ? o : o[k], obj); }
+function setPath(obj, path, val){
+  const keys = path.split('.'); const last = keys.pop();
+  const target = keys.reduce((o,k) => o[k], obj);
+  target[last] = val;
+}
+function toast(msg, ms=2600){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), ms);
+}
+function download(name, text, type){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type}));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function fileSafe(s){ return (s || 'resume').trim().replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_') || 'resume'; }
+
+// ---------- form ----------
+const ICON = {
+  chev:'<svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>',
+  up:'<svg class="i" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>',
+  down:'<svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
+  del:'<svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+  plus:'<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  user:'<svg class="i" viewBox="0 0 24 24" style="width:26px;height:26px"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'
+};
+
+function field(path, label, kind, cls){
+  const v = getPath(state, path);
+  if(kind === 'check')
+    return `<label class="check ${cls||''}"><input type="checkbox" data-k="${path}" ${v?'checked':''}> ${esc(label)}</label>`;
+  if(kind === 'level')
+    return `<label class="field ${cls||''}"><span>${esc(label)}</span><select class="input" data-k="${path}">${LEVELS.map(([val,t])=>`<option value="${val}" ${String(v||'0')===val?'selected':''}>${t}</option>`).join('')}</select></label>`;
+  if(kind === 'area')
+    return `<label class="field full"><span>${esc(label)}</span><textarea class="input" data-k="${path}" rows="4">${esc(v)}</textarea><span class="hint">ขึ้นต้นบรรทัดด้วย “-” เพื่อทำเป็นข้อ ๆ</span></label>`;
+  return `<label class="field ${cls||''}"><span>${esc(label)}</span><input class="input" data-k="${path}" value="${esc(v)}"></label>`;
+}
+
+function panel(id, title, body, count){
+  return `<details class="panel" data-panel="${id}" ${openPanels.has(id)?'open':''}><summary>${esc(title)}${count!=null?`<span class="count">${count}</span>`:''}${ICON.chev}</summary><div class="panel-body">${body}</div></details>`;
+}
+
+function listPanel(key){
+  const def = LISTS[key], arr = state[key];
+  const items = arr.map((it, i) => {
+    const t = def.title(it);
+    const fields = def.fields.map(([k,label,kind]) => {
+      const cls = kind === 'half' || kind === 'level' ? '' : 'full';
+      return field(`${key}.${i}.${k}`, label, kind, cls);
+    }).join('');
+    return `<details class="item" data-item="${key}.${i}" ${openItems.has(it)?'open':''}>
+      <summary><span class="t ${t?'':'empty'}">${esc(t || 'ยังไม่ได้กรอก')}</span>
+        <button class="btn ghost sm icon" data-act="up" data-list="${key}" data-i="${i}" title="เลื่อนขึ้น" ${i===0?'disabled':''}>${ICON.up}</button>
+        <button class="btn ghost sm icon" data-act="down" data-list="${key}" data-i="${i}" title="เลื่อนลง" ${i===arr.length-1?'disabled':''}>${ICON.down}</button>
+        <button class="btn ghost sm icon danger" data-act="del" data-list="${key}" data-i="${i}" title="ลบ">${ICON.del}</button>
+      </summary><div class="grid">${fields}</div></details>`;
+  }).join('');
+  return panel(key, def.label, items + `<button class="btn add" data-act="add" data-list="${key}">${ICON.plus}${esc(def.add)}</button>`, arr.length);
+}
+
+function stylePanel(){
+  const s = state.settings;
+  const seg = (k, opts) => `<div class="seg">${opts.map(([v,t])=>`<button data-act="set" data-k="settings.${k}" data-v="${v}" aria-pressed="${String(s[k])===v}">${t}</button>`).join('')}</div>`;
+  const order = s.order.map((id, i) => `<li class="${s.hidden[id]?'off':''}">
+      <label class="check n"><input type="checkbox" data-act="toggleSec" data-id="${id}" ${s.hidden[id]?'':'checked'}> ${HEAD.th[id]}</label>
+      <button class="btn ghost sm icon" data-act="secUp" data-i="${i}" ${i===0?'disabled':''} title="เลื่อนขึ้น">${ICON.up}</button>
+      <button class="btn ghost sm icon" data-act="secDown" data-i="${i}" ${i===s.order.length-1?'disabled':''} title="เลื่อนลง">${ICON.down}</button></li>`).join('');
+  const body = `<div class="grid">
+    <div class="field full"><span>รูปแบบ</span>${seg('template',[['modern','Modern'],['classic','Classic'],['minimal','Minimal']])}</div>
+    <div class="field full"><span>สีหลัก</span><div class="swatches">${ACCENTS.map(c=>`<button class="sw" style="background:${c}" data-act="set" data-k="settings.accent" data-v="${c}" aria-pressed="${s.accent===c}" title="${c}"></button>`).join('')}<input type="color" class="sw-custom" data-k="settings.accent" value="${esc(s.accent)}" title="เลือกสีเอง"></div></div>
+    <label class="field"><span>ฟอนต์</span><select class="input" data-k="settings.font">${FONTS.map(([v,t])=>`<option ${s.font===v?'selected':''} value="${v}">${t}</option>`).join('')}</select></label>
+    <label class="field"><span>ขนาดตัวอักษร</span><select class="input" data-k="settings.fontSize">${[9.5,10,10.5,11,11.5,12].map(n=>`<option ${Number(s.fontSize)===n?'selected':''} value="${n}">${n} pt</option>`).join('')}</select></label>
+    <div class="field"><span>หัวข้อใน Resume</span>${seg('lang',[['th','ภาษาไทย'],['en','English']])}</div>
+    <div class="field" style="justify-content:flex-end"><label class="check"><input type="checkbox" data-k="settings.showPhoto" ${s.showPhoto?'checked':''}> แสดงรูปถ่าย</label></div>
+    <div class="field full"><span>ลำดับและการแสดงหัวข้อ</span><ul class="order">${order}</ul></div>
+  </div>`;
+  return panel('style', 'รูปแบบและการจัดวาง', body);
+}
+
+function renderForm(){
+  const p = 'personal';
+  const personal = `<div class="photo-row" style="margin-bottom:12px">
+      <div class="photo-prev" style="${state.personal.photo?`background-image:url(${state.personal.photo})`:''}">${state.personal.photo?'':ICON.user}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="photo">${state.personal.photo?'เปลี่ยนรูป':'อัปโหลดรูปถ่าย'}</button>${state.personal.photo?`<button class="btn sm danger" data-act="photoDel">ลบรูป</button>`:''}</div>
+    </div>
+    <div class="grid">
+      ${field(p+'.name','ชื่อ-นามสกุล','','full')}
+      ${field(p+'.title','ตำแหน่งที่สมัคร / อาชีพ','','full')}
+      ${field(p+'.email','อีเมล')}
+      ${field(p+'.phone','เบอร์โทร')}
+      ${field(p+'.location','ที่อยู่ / จังหวัด')}
+      ${field(p+'.website','เว็บไซต์ / Portfolio')}
+      ${field(p+'.linkedin','LinkedIn','','full')}
+      ${field(p+'.extra','ข้อมูลส่วนตัวเพิ่มเติม (เช่น อายุ · สัญชาติ)','','full')}
+    </div>`;
+  const summary = `<label class="field"><span>แนะนำตัวสั้น ๆ 2–4 ประโยค</span><textarea class="input" data-k="summary" rows="5">${esc(state.summary)}</textarea></label>`;
+  $('#editor').innerHTML =
+    stylePanel() +
+    panel('personal','ข้อมูลส่วนตัว',personal) +
+    panel('summary','ข้อมูลโดยย่อ',summary) +
+    Object.keys(LISTS).map(listPanel).join('') +
+    `<div style="display:flex;gap:8px;justify-content:center;padding:4px 0 12px">
+       <button class="btn sm" data-act="sample">ใส่ข้อมูลตัวอย่าง</button>
+       <button class="btn sm danger" data-act="clear">ล้างข้อมูลทั้งหมด</button></div>`;
+}
+
+// ---------- preview ----------
+const CICON = {
+  email:'<path d="M4 4h16v16H4z" stroke="none"/><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+  location:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
+  website:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>',
+  linkedin:'<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/>',
+  extra:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
+};
+
+function textBlock(text){
+  // consecutive "-"/"•"/"*" lines become a list; everything else a paragraph
+  const lines = String(text || '').split('\n').map(l => l.trim()).filter(Boolean);
+  let html = '', ul = [];
+  const flush = () => { if(ul.length){ html += `<ul>${ul.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`; ul = []; } };
+  for(const l of lines){
+    const m = l.match(/^[-•*]\s*(.*)$/);
+    if(m) ul.push(m[1]); else { flush(); html += `<p>${esc(l)}</p>`; }
+  }
+  flush();
+  return html;
+}
+
+function range(a, b, current, L){
+  const end = current ? L.present : b;
+  return [a, end].filter(Boolean).map(esc).join(' – ');
+}
+
+function contactHtml(){
+  const p = state.personal;
+  return `<div class="contact">${['email','phone','location','website','linkedin','extra']
+    .filter(k => p[k] && p[k].trim())
+    .map(k => `<span><svg viewBox="0 0 24 24">${CICON[k]}</svg>${esc(p[k])}</span>`).join('')}</div>`;
+}
+
+function sectionBody(id, L){
+  const d = state;
+  const ents = (arr, fn) => arr.filter(x => Object.values(x).some(v => v && String(v).trim())).map(fn).join('');
+  switch(id){
+    case 'summary': return d.summary.trim() ? `<div class="sum">${textBlock(d.summary)}</div>` : '';
+    case 'experience': return ents(d.experience, e => `<div class="ent">
+        <div class="ent-h"><div><b>${esc(e.role)}</b>${e.company?`<div class="org">${esc(e.company)}${e.location?` · ${esc(e.location)}`:''}</div>`:''}</div><div class="date">${range(e.start,e.end,e.current,L)}</div></div>
+        ${textBlock(e.desc)}</div>`);
+    case 'education': return ents(d.education, e => `<div class="ent">
+        <div class="ent-h"><div><b>${esc(e.degree)}</b>${e.school?`<div class="org">${esc(e.school)}${e.gpa?` · ${L.gpa} ${esc(e.gpa)}`:''}</div>`:''}</div><div class="date">${range(e.start,e.end,false,L)}</div></div>
+        ${textBlock(e.desc)}</div>`);
+    case 'projects': return ents(d.projects, e => `<div class="ent">
+        <div class="ent-h"><div><b>${esc(e.name)}</b>${e.link?`<div class="org">${esc(e.link)}</div>`:''}</div><div class="date">${esc(e.date)}</div></div>
+        ${textBlock(e.desc)}</div>`);
+    case 'skills': {
+      const sk = d.skills.filter(s => s.name && s.name.trim());
+      if(!sk.length) return '';
+      const leveled = sk.some(s => Number(s.level) > 0);
+      if(state.settings.template === 'modern' && leveled)
+        return sk.map(s => `<div class="sk"><div class="sk-h"><span>${esc(s.name)}</span></div>${Number(s.level)>0?`<div class="bar"><i style="width:${Number(s.level)*20}%"></i></div>`:''}</div>`).join('');
+      return `<div class="chips">${sk.map(s=>`<span class="chip">${esc(s.name)}</span>`).join('')}</div>`;
+    }
+    case 'languages': return ents(d.languages, e => `<div class="kv"><span>${esc(e.name)}</span><span>${esc(e.level)}</span></div>`);
+    case 'certifications': return ents(d.certifications, e => `<div class="ent"><div class="ent-h"><div><b>${esc(e.name)}</b>${e.issuer?`<div class="org">${esc(e.issuer)}</div>`:''}</div><div class="date">${esc(e.date)}</div></div></div>`);
+    case 'references': return ents(d.references, e => `<div class="ent"><b>${esc(e.name)}</b>${e.position?`<div class="org">${esc(e.position)}</div>`:''}${e.contact?`<div class="org">${esc(e.contact)}</div>`:''}</div>`);
+  }
+  return '';
+}
+
+function sec(id, L, body){
+  return body ? `<section class="sec"><h2>${esc(L[id])}</h2><div>${body}</div></section>` : '';
+}
+
+function renderPreview(){
+  const s = state.settings, p = state.personal, L = HEAD[s.lang] || HEAD.th;
+  const sheet = $('#sheet');
+  sheet.className = `sheet t-${s.template} lang-${s.lang}`;
+  sheet.style.setProperty('--ac', s.accent);
+  sheet.style.setProperty('--fs', s.fontSize + 'pt');
+  sheet.style.setProperty('--rf', `"${s.font}"`);
+
+  const visible = s.order.filter(id => !s.hidden[id]);
+  const photo = s.showPhoto && p.photo ? `<img class="photo" src="${p.photo}" alt="">` : '';
+  const names = `<div><h1>${esc(p.name)}</h1>${p.title?`<div class="jt">${esc(p.title)}</div>`:''}`;
+  let html;
+
+  if(s.template === 'modern'){
+    const side = sec('contact', L, contactHtml().replace('<div class="contact"></div>','')) +
+                 visible.filter(id => SIDEBAR.has(id)).map(id => sec(id, L, sectionBody(id, L))).join('');
+    const main = visible.filter(id => !SIDEBAR.has(id)).map(id => sec(id, L, sectionBody(id, L))).join('');
+    html = `<header class="hd">${photo}${names}</div></header><div class="cols"><div class="side">${side}</div><div class="main">${main}</div></div>`;
+  }else{
+    const head = s.template === 'classic'
+      ? `<header class="hd">${photo}${names}${contactHtml()}</div></header>`
+      : `<header class="hd">${names}${contactHtml()}</div>${photo}</header>`;
+    html = head + visible.map(id => sec(id, L, sectionBody(id, L))).join('');
+  }
+  if(!p.name && !state.summary && !state.experience.length && !state.education.length)
+    html += `<div class="empty-note">เริ่มกรอกข้อมูลทางซ้ายมือ ตัวอย่างจะแสดงที่นี่ทันที</div>`;
+
+  sheet.innerHTML = html;
+  markPages();
+  fit();
+}
+
+let previewRaf;
+function schedulePreview(){ cancelAnimationFrame(previewRaf); previewRaf = requestAnimationFrame(renderPreview); }
+
+// Dashed guides where the printed page will roughly break (A4, 12mm top/bottom print margins)
+function markPages(){
+  const sheet = $('#sheet');
+  const mm = 96 / 25.4;
+  const h = Math.max(0, ...[...sheet.children].map(c => c.offsetTop + c.offsetHeight));
+  for(let k = 1, y = (12 + 273) * mm; y < h - 4; k++, y += 273 * mm){
+    const el = document.createElement('div');
+    el.className = 'pb'; el.style.top = y + 'px';
+    el.innerHTML = `<span>หน้า ${k+1}</span>`;
+    sheet.appendChild(el);
+  }
+}
+
+function fit(){
+  const stage = $('#stage'), sheet = $('#sheet'), holder = $('#holder');
+  const w = sheet.offsetWidth;
+  const avail = stage.clientWidth - 32;
+  if(avail <= 0) return;
+  const scale = Math.min(1, avail / w);
+  sheet.style.transform = `scale(${scale})`;
+  holder.style.width = w * scale + 'px';
+  holder.style.height = sheet.offsetHeight * scale + 'px';
+}
+
+// ---------- events ----------
+const editor = $('#editor');
+
+editor.addEventListener('input', e => {
+  const k = e.target.dataset.k;
+  if(!k) return;
+  let v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+  if(k === 'settings.fontSize') v = Number(v);
+  setPath(state, k, v);
+  // keep an item's header in sync with what's typed
+  const item = e.target.closest('.item');
+  if(item){
+    const [list, i] = item.dataset.item.split('.');
+    const t = LISTS[list].title(state[list][i]);
+    const el = item.querySelector('summary .t');
+    el.textContent = t || 'ยังไม่ได้กรอก'; el.classList.toggle('empty', !t);
+  }
+  if(k === 'settings.accent') editor.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
+  changed();
+});
+
+editor.addEventListener('toggle', e => {
+  const t = e.target;
+  if(t.dataset.panel){ t.open ? openPanels.add(t.dataset.panel) : openPanels.delete(t.dataset.panel); }
+  if(t.dataset.item){
+    const [list, i] = t.dataset.item.split('.');
+    const it = state[list][i];
+    if(it) t.open ? openItems.add(it) : openItems.delete(it);
+  }
+}, true);
+
+function move(arr, i, j){ if(j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; }
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if(!b) return;
+  const act = b.dataset.act, list = b.dataset.list, i = Number(b.dataset.i);
+  if(b.closest('summary') && act !== 'toggleSec') e.preventDefault();   // don't toggle the item when clicking its buttons
+  const s = state.settings;
+  switch(act){
+    case 'add': {
+      const it = {}; LISTS[list].fields.forEach(([k,,kind]) => it[k] = kind === 'check' ? false : kind === 'level' ? '0' : '');
+      state[list].push(it); openItems.add(it); openPanels.add(list);
+      renderForm(); changed();
+      const last = editor.querySelectorAll(`[data-panel="${list}"] .item`);
+      const inp = last[last.length-1]?.querySelector('input,textarea'); inp && inp.focus();
+      return;
+    }
+    case 'del': {
+      const it = state[list][i];
+      const t = LISTS[list].title(it);
+      if(t && !confirm(`ลบ “${t}” ?`)) return;
+      state[list].splice(i, 1); renderForm(); changed(); return;
+    }
+    case 'up': move(state[list], i, i-1); renderForm(); changed(); return;
+    case 'down': move(state[list], i, i+1); renderForm(); changed(); return;
+    case 'secUp': move(s.order, i, i-1); renderForm(); changed(); return;
+    case 'secDown': move(s.order, i, i+1); renderForm(); changed(); return;
+    case 'toggleSec': s.hidden[b.dataset.id] = !b.checked; b.closest('li').classList.toggle('off', !b.checked); changed(); return;
+    case 'set': setPath(state, b.dataset.k, b.dataset.v); renderForm(); changed(); return;
+    case 'photo': $('#photoFile').click(); return;
+    case 'photoDel': state.personal.photo = ''; renderForm(); changed(); return;
+    case 'sample':
+      if(!confirm('แทนที่ข้อมูลปัจจุบันด้วยข้อมูลตัวอย่าง?')) return;
+      state = sample(); renderForm(); changed(); return;
+    case 'clear':
+      if(!confirm('ล้างข้อมูลทั้งหมด? (แนะนำให้กด “สำรองข้อมูล” ก่อน)')) return;
+      { const keep = state.settings; state = blank(); state.settings = keep; }
+      renderForm(); changed(); return;
+    case 'import': $('#importFile').click(); return;
+    case 'exportJson':
+      download(`${fileSafe(state.personal.name)}_resume.json`, JSON.stringify(state, null, 2), 'application/json');
+      toast('ดาวน์โหลดไฟล์สำรองแล้ว — นำกลับมาใช้ได้ด้วยปุ่ม “นำเข้า”'); return;
+    case 'pdf': exportPdf(); return;
+  }
+});
+
+$('#photoFile').addEventListener('change', e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  const img = new Image();
+  img.onload = () => {
+    // square-crop and shrink so the photo stays small in localStorage
+    const size = 420, c = document.createElement('canvas'); c.width = c.height = size;
+    const m = Math.min(img.width, img.height);
+    c.getContext('2d').drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, size, size);
+    state.personal.photo = c.toDataURL('image/jpeg', .85);
+    URL.revokeObjectURL(img.src);
+    renderForm(); changed();
+  };
+  img.onerror = () => toast('อ่านไฟล์รูปไม่ได้');
+  img.src = URL.createObjectURL(f);
+});
+
+$('#importFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  try{
+    const d = JSON.parse(await f.text());
+    if(!d || typeof d !== 'object' || !d.personal) throw 0;
+    state = normalize(d); renderForm(); changed(); toast('นำเข้าข้อมูลเรียบร้อย');
+  }catch(_){ toast('ไฟล์ไม่ถูกต้อง — ใช้ไฟล์ .json ที่ได้จากปุ่ม “สำรองข้อมูล”'); }
+});
+
+function exportPdf(){
+  save();
+  const old = document.title;
+  document.title = `${fileSafe(state.personal.name)}_Resume`;   // becomes the default PDF file name
+  toast('เลือกปลายทาง “บันทึกเป็น PDF / Save as PDF” และปิดตัวเลือก Headers and footers', 6000);
+  setTimeout(() => { window.print(); document.title = old; }, 150);
+}
+document.addEventListener('keydown', e => {
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p'){ e.preventDefault(); exportPdf(); }
+});
+
+$('#viewTabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  document.body.classList.toggle('show-preview', b.dataset.view === 'preview');
+  $('#viewTabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  fit();
+});
+
+new ResizeObserver(fit).observe($('#stage'));
+document.fonts && document.fonts.ready.then(renderPreview);
+
+renderForm();
+renderPreview();
+</script>
+</body>
+</html>
