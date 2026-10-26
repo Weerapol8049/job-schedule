@@ -7,10 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<!-- SheetJS, Chart.js and highlight.js load on demand (see loadLib) to keep the first paint fast -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="config.js"></script>
 <style>
 :root{
@@ -136,7 +135,7 @@ kbd{font:500 11px "IBM Plex Mono",monospace;padding:1px 5px;border-radius:4px;bo
 .kpi-value{font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
 .kpi-label{color:var(--text-2);font-size:13px;font-weight:500}
 .kpi-sub{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-.kpi .bar{margin-top:6px;width:110px}
+.kpi .bar{display:block;margin-top:6px;width:110px}
 .bar{height:6px;border-radius:99px;background:var(--surface-3);overflow:hidden}
 .bar>i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),#a855f7);transition:width .4s}
 .side-card{padding:12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border)}
@@ -178,6 +177,8 @@ kbd{font:500 11px "IBM Plex Mono",monospace;padding:1px 5px;border-radius:4px;bo
 .table-card{overflow:hidden}
 .table-scroll{overflow:auto;max-height:calc(100vh - 250px)}
 table.jobs{border-collapse:separate;border-spacing:0;width:100%;font-size:13.5px}
+.table-more{display:flex;justify-content:center;padding:14px;border-top:1px solid var(--border);position:sticky;left:0}
+.table-more:empty{display:none}
 .jobs thead th{position:sticky;top:0;background:var(--surface-2);color:var(--text-2);font-weight:600;font-size:12.5px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;z-index:2}
 .jobs thead th:hover{color:var(--text)}
 .jobs thead th.sorted{color:var(--accent)}
@@ -218,6 +219,7 @@ table.jobs{border-collapse:separate;border-spacing:0;width:100%;font-size:13.5px
 .kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(285px,1fr);gap:14px;overflow-x:auto;padding-bottom:12px;align-items:start}
 .kcol{background:var(--surface-3);border-radius:var(--radius);padding:10px;min-height:320px;border:1.5px dashed transparent;border-top:3px solid var(--c);transition:background .12s,border-color .12s}
 .kcol-empty{border:1.5px dashed var(--border-strong);border-radius:10px;padding:22px 12px;text-align:center;color:var(--muted);font-size:12.5px}
+.kmore{width:100%;justify-content:center;margin-top:2px;background:transparent;border-style:dashed}
 .kcol.drop{border-color:var(--accent);background:var(--accent-soft)}
 .kcol-head{display:flex;align-items:center;gap:8px;padding:4px 4px 10px;font-weight:600}
 .kcol-head .dot{width:9px;height:9px;border-radius:50%}
@@ -500,7 +502,42 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
   .kb-doc{padding:18px 16px 32px}
   .kb-back{display:inline-flex}
 }
+.tabbar{display:none}
 @media (max-width:640px){
+  /* bottom tab bar replaces the five main items in the top bar */
+  .sidebar .nav-item[data-view]:not([data-view="settings"]){display:none}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:35;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:color-mix(in srgb, var(--surface) 94%, transparent);backdrop-filter:blur(12px);border-top:1px solid var(--border)}
+  .tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;border:0;border-radius:10px;background:none;color:var(--muted);font-size:11px;font-weight:500;line-height:1.2;cursor:pointer}
+  .tab.active{color:var(--accent);background:var(--accent-soft)}
+  .tab .count{position:absolute;top:1px;left:calc(50% + 6px);min-width:16px;padding:0 5px;border-radius:99px;background:var(--accent);color:var(--accent-text);font-size:10px;line-height:16px}
+  .tab .count:empty{display:none}
+  .content{padding-bottom:96px}
+  .toast{right:16px;left:16px;bottom:calc(78px + env(safe-area-inset-bottom));justify-content:center}
+  .bulkbar{bottom:calc(78px + env(safe-area-inset-bottom));width:calc(100vw - 24px)}
+
+  /* dashboard: two KPI tiles per row instead of one tall stack */
+  .kpis{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{flex-direction:column;align-items:flex-start;gap:8px;padding:12px}
+  .kpi-icon{width:34px;height:34px;border-radius:10px}
+  .kpi-value{font-size:22px}
+  .kpi:last-child:nth-child(odd){grid-column:1/-1}
+
+  /* table rows become cards: Job No + status, title, assigner + due date */
+  .table-scroll{max-height:none;overflow:visible}
+  table.jobs,table.jobs tbody{display:block}
+  table.jobs thead{display:none}
+  .jobs tbody tr{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border)}
+  .jobs tbody tr:last-child{border-bottom:0}
+  .jobs tbody tr:hover{background:var(--surface-2)}
+  .jobs tr.overdue{box-shadow:inset 3px 0 0 var(--danger)}
+  .jobs td{display:none;padding:0;border:0;background:none!important;position:static!important;box-shadow:none!important;min-width:0!important;max-width:none!important;width:auto!important}
+  .jobs td.c-sel{display:block;grid-row:1/span 3;align-self:start;padding-top:2px}
+  .jobs td.c-jobNo{display:block;grid-column:2}
+  .jobs td.c-status{display:block;grid-column:3;grid-row:1;justify-self:end}
+  .jobs td.c-work{display:block;grid-column:2/4}
+  .jobs td.c-assigner{display:block;grid-column:2}
+  .jobs td.c-dueDate{display:block;grid-column:3;justify-self:end;font-size:12.5px;color:var(--text-2)}
+
   .fgrid,.fgrid.c3{grid-template-columns:1fr}
   dialog.drawer{border-radius:0}
   .week-bg .day{padding:3px}
@@ -594,9 +631,18 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
         <button data-theme-set="auto" title="ตามระบบ"><svg class="i sm"><use href="#i-monitor"/></svg></button>
         <button data-theme-set="dark" title="มืด"><svg class="i sm"><use href="#i-moon"/></svg></button>
       </div>
-      <div class="hint"><kbd>N</kbd> เพิ่มงาน &nbsp;·&nbsp; <kbd>/</kbd> ค้นหา</div>
+      <div class="hint"><kbd>N</kbd> เพิ่มงาน &nbsp;·&nbsp; <kbd>/</kbd> ค้นหา &nbsp;·&nbsp; <kbd>1</kbd>–<kbd>5</kbd> สลับหน้า</div>
     </div>
   </aside>
+
+  <!-- phones: the main views move to a bottom tab bar (within thumb reach) -->
+  <nav class="tabbar" aria-label="เมนูหลัก">
+    <button class="tab" data-view="dashboard"><svg class="i"><use href="#i-dashboard"/></svg><span>ภาพรวม</span></button>
+    <button class="tab" data-view="table"><svg class="i"><use href="#i-table"/></svg><span>ตาราง</span></button>
+    <button class="tab" data-view="kanban"><svg class="i"><use href="#i-kanban"/></svg><span>Kanban</span><span class="count" data-count="kanban"></span></button>
+    <button class="tab" data-view="calendar"><svg class="i"><use href="#i-calendar"/></svg><span>ปฏิทิน</span></button>
+    <button class="tab" data-view="knowledge"><svg class="i"><use href="#i-book"/></svg><span>ความรู้</span></button>
+  </nav>
 
   <main class="content">
     <div id="sysAlert"></div>
@@ -925,6 +971,21 @@ function alpha(hex, a){
 }
 
 function toast(msg, ic='checkcircle'){ const t = $('#toast'); t.innerHTML = icon(ic) + esc(msg); t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600); }
+// Heavy libraries are fetched the first time a feature needs them
+const LIBS = {
+  xlsx:  ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'SheetJS'],
+  chart: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js', 'Chart.js'],
+  hljs:  ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js', 'highlight.js'],
+};
+const libLoads = {};
+function loadLib(name){
+  return libLoads[name] ||= new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = LIBS[name][0]; s.onload = res;
+    s.onerror = () => { delete libLoads[name]; s.remove(); rej(new Error(`โหลด ${LIBS[name][1]} ไม่ได้ (ออฟไลน์?)`)); };
+    document.head.append(s);
+  });
+}
 function getPrefs(){ try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {}; } catch(e){ return {}; } }
 function setPref(k, v){ try { const p = getPrefs(); p[k] = v; localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch(e){} }
 
@@ -1174,6 +1235,8 @@ function jobRange(j){
   const s = j.startDate || j.receivedDate || j.dueDate;
   let e = j.dueDate || s;
   if (e && s && e < s) e = s;
+  // a due date in a Buddhist year (2567…) or a typo (5023…) would paint a bar across every week of every month
+  if (e && s && e.slice(0, 4) - s.slice(0, 4) > 2) e = s;
   return [s, e];
 }
 const overlaps = (j, from, to) => { const [s, e] = jobRange(j); return s && s <= to && e >= from; };
@@ -1263,7 +1326,8 @@ function refreshOptions(){
   $('#dlServer').innerHTML = L.servers.map(v => `<option value="${esc(v)}">`).join('');
 }
 function syncFilterUI(){
-  for (const [id, k] of Object.entries(FILTER_INPUTS)){ const el = $('#' + id); if (el.value !== F[k]) el.value = F[k]; }
+  // leave the box being typed in alone (its debounced value may not be in F yet)
+  for (const [id, k] of Object.entries(FILTER_INPUTS)){ const el = $('#' + id); if (el.value !== F[k] && el !== document.activeElement) el.value = F[k]; }
   $$('[data-quick]').forEach(b => b.classList.toggle('active', F.quick === b.dataset.quick));
   const active = Object.keys(ADV_LABELS).filter(k => F[k]);
   $('#advCount').hidden = !active.length;
@@ -1311,12 +1375,13 @@ function renderPageHead(){
   });
 }
 function render(){
-  $$('.nav-item[data-view]').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  $$('[data-view]').forEach(t => t.classList.toggle('active', t.dataset.view === view));
   const overdue = db.jobs.filter(isOverdue).length;
   const cDash = $('[data-count="dashboard"]');
   cDash.textContent = overdue || ''; cDash.classList.toggle('bad', overdue > 0); cDash.title = overdue ? `เลยกำหนด ${overdue} งาน` : '';
   $('[data-count="table"]').textContent = db.jobs.length || '';
-  $('[data-count="kanban"]').textContent = db.jobs.filter(j => !isDone(j)).length || '';
+  const open = db.jobs.filter(j => !isDone(j)).length || '';
+  $$('[data-count="kanban"]').forEach(el => el.textContent = open);
   $('[data-count="knowledge"]').textContent = db.notes.length || '';
   $('#toolbar').hidden = view === 'settings' || view === 'knowledge';
   renderSideStats();
@@ -1405,7 +1470,11 @@ function renderDashboard(jobs){
   $$('.kpi').forEach(el => el.onclick = () => { const q = el.dataset.kq; F.quick = q === 'active' ? '' : q; if (q === 'active') go('kanban'); else go('table'); });
   $$('.list li[data-id]').forEach(el => el.onclick = () => openForm(db.jobs.find(j => j.id === el.dataset.id)));
 
-  if (typeof Chart === 'undefined'){ $$('.chart-box').forEach(b => b.innerHTML = '<p class="list-empty">โหลด Chart.js ไม่ได้ (ออฟไลน์?)</p>'); return; }
+  if (typeof Chart === 'undefined'){
+    loadLib('chart').then(() => { if (view === 'dashboard') render(); })
+      .catch(err => $$('.chart-box').forEach(b => b.innerHTML = `<p class="list-empty">${esc(err.message)}</p>`));
+    return;
+  }
   Chart.defaults.font.family = '"IBM Plex Sans Thai", system-ui, sans-serif';
   Chart.defaults.font.size = 12;
   Chart.defaults.color = cssVar('--muted');
@@ -1497,14 +1566,38 @@ function renderTable(jobs){
     : c.key === 'priority' ? inlineSelect(j, 'priority', L.priorities, p => PRIORITY_COLORS[p] || '#64748b')
     : cellHtml(j, c);
   const allOn = rows.length && rows.every(j => selected.has(j.id));
-  $('#view').innerHTML = `<div class="card table-card"><div class="table-scroll"><table class="jobs">
-    <thead><tr><th class="c-sel stick" style="left:0"><input type="checkbox" id="selAll" title="เลือกทั้งหมด" ${allOn ? 'checked' : ''}></th>${cols.map(c => `<th data-sort="${c.key}" ${cellAttrs(c).replace('class="', `class="${sort.key === c.key ? 'sorted ' : ''}`)}>${esc(c.label)}${sort.key === c.key ? `<span class="arr">${sort.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}<th></th></tr></thead>
-    <tbody>${rows.map(j => `<tr data-id="${j.id}" class="${isOverdue(j) ? 'overdue' : ''} ${selected.has(j.id) ? 'selected' : ''}">
+  const rowHtml = j => `<tr data-id="${j.id}" class="${isOverdue(j) ? 'overdue' : ''} ${selected.has(j.id) ? 'selected' : ''}">
       <td class="c-sel stick" style="left:0"><input type="checkbox" data-sel ${selected.has(j.id) ? 'checked' : ''}></td>
       ${cols.map(c => `<td ${cellAttrs(c)}>${cell(j, c)}</td>`).join('')}
       <td class="acts"><button class="icon-btn" data-act="dup" title="Duplicate">${icon('copy','sm')}</button><button class="icon-btn danger" data-act="del" title="ลบ">${icon('trash','sm')}</button></td>
-    </tr>`).join('')}</tbody>
-  </table></div></div>`;
+    </tr>`;
+  // Rows are drawn in pages: a full 900-row table is ~45k DOM nodes and took ~1.7 s per render.
+  // The page size resets whenever the filter or sort changes; status edits etc. keep it.
+  const sig = JSON.stringify([F, sort, [...hidden]]);
+  if (sig !== tableSig){ tableSig = sig; tableLimit = TABLE_PAGE; }
+  const moreHtml = () => rows.length > tableLimit
+    ? `<button class="btn" data-more>แสดงเพิ่ม <span class="muted">(${tableLimit} จาก ${rows.length})</span></button>` : '';
+  $('#view').innerHTML = `<div class="card table-card"><div class="table-scroll"><table class="jobs">
+    <thead><tr><th class="c-sel stick" style="left:0"><input type="checkbox" id="selAll" title="เลือกทั้งหมด" ${allOn ? 'checked' : ''}></th>${cols.map(c => `<th data-sort="${c.key}" ${cellAttrs(c).replace('class="', `class="${sort.key === c.key ? 'sorted ' : ''}`)}>${esc(c.label)}${sort.key === c.key ? `<span class="arr">${sort.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}<th></th></tr></thead>
+    <tbody>${rows.slice(0, tableLimit).map(rowHtml).join('')}</tbody>
+  </table><div class="table-more">${moreHtml()}</div></div></div>`;
+
+  const showMore = () => {
+    if (rows.length <= tableLimit) return;
+    const from = tableLimit;
+    tableLimit += TABLE_PAGE;
+    $('tbody').insertAdjacentHTML('beforeend', rows.slice(from, tableLimit).map(rowHtml).join(''));
+    $('.table-more').innerHTML = moreHtml();
+  };
+  $('.table-more').onclick = e => { if (e.target.closest('[data-more]')) showMore(); };
+  tableObserver?.disconnect();
+  if (rows.length > tableLimit && 'IntersectionObserver' in window){
+    // load the next page shortly before the user reaches the bottom of the scroll area
+    // (on phones the table isn't its own scroll box, so watch the page instead)
+    const sc = $('.table-scroll');
+    tableObserver = new IntersectionObserver(es => { if (es.some(x => x.isIntersecting)) showMore(); }, {root:sc.scrollHeight > sc.clientHeight ? sc : null, rootMargin:'400px'});
+    tableObserver.observe($('.table-more'));
+  }
 
   $$('th[data-sort]').forEach(th => th.onclick = () => {
     const k = th.dataset.sort;
@@ -1548,6 +1641,10 @@ function renderTable(jobs){
 }
 const SEL_W = 40;
 const selected = new Set();
+const TABLE_PAGE = 100;
+let tableLimit = TABLE_PAGE, tableSig = '', tableObserver = null;
+const KANBAN_PAGE = 30;
+let kanbanLimits = {}, kanbanSig = '';
 const inlineSelect = (j, key, values, colorFn) => `<select class="pill-select" data-inline="${key}" style="--c:${colorFn(j[key])}" title="คลิกเพื่อเปลี่ยน">
   ${uniq([...values, j[key]]).map(v => `<option ${v === j[key] ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
 
@@ -1668,10 +1765,14 @@ $('#rnMark').onclick = async () => {
 /* ---------- Kanban ---------- */
 function renderKanban(jobs){
   const names = uniq([...db.settings.statuses.map(s => s.name), ...jobs.map(j => j.status)]);
+  // long columns (e.g. 300+ "ใหม่") show the first KANBAN_PAGE cards; reset when the filter changes
+  const sig = JSON.stringify(F);
+  if (sig !== kanbanSig){ kanbanSig = sig; kanbanLimits = {}; }
   $('#view').innerHTML = `<div class="kanban">${names.map(n => {
-    const items = jobs.filter(j => (j.status || '') === n).sort((a,b) => (a.dueDate || '9').localeCompare(b.dueDate || '9'));
+    const all = jobs.filter(j => (j.status || '') === n).sort((a,b) => (a.dueDate || '9').localeCompare(b.dueDate || '9'));
+    const limit = kanbanLimits[n] || KANBAN_PAGE, items = all.slice(0, limit), rest = all.length - items.length;
     return `<div class="kcol" data-status="${esc(n)}" style="--c:${statusColor(n)}">
-      <div class="kcol-head"><span class="dot" style="background:${statusColor(n)}"></span>${esc(n)}<span class="cnt">${items.length}</span>
+      <div class="kcol-head"><span class="dot" style="background:${statusColor(n)}"></span>${esc(n)}<span class="cnt">${all.length}</span>
         <button class="icon-btn" data-new-status="${esc(n)}" title="เพิ่มงานในสถานะนี้">${icon('plus','sm')}</button></div>
       ${items.map(j => `<div class="kcard" draggable="true" data-id="${j.id}">
         <div class="top"><span class="mono">${esc(j.jobNo)}</span>${j.priority !== 'ปกติ' ? priorityBadge(j.priority) : ''}<span class="sys">${esc(j.system)}</span></div>
@@ -1681,8 +1782,16 @@ function renderKanban(jobs){
         <div class="foot">${person(j.assigner, false)}${dueChip(j)}
           <span class="deps"><span class="dep ${j.deploySTD66 ? 'on' : ''}">STD66</span><span class="dep ${j.deployLIVE ? 'on' : ''}">LIVE</span></span></div>
       </div>`).join('') || '<div class="kcol-empty">ยังไม่มีงาน<br>ลากการ์ดมาวางที่นี่</div>'}
+      ${rest > 0 ? `<button class="btn sm kmore" data-kmore="${esc(n)}">แสดงอีก ${Math.min(rest, KANBAN_PAGE)} งาน <span class="muted">(เหลือ ${rest})</span></button>` : ''}
     </div>`;
   }).join('')}</div>`;
+  $$('[data-kmore]').forEach(b => b.onclick = () => {
+    const n = b.dataset.kmore;
+    kanbanLimits[n] = (kanbanLimits[n] || KANBAN_PAGE) + KANBAN_PAGE;
+    const x = $('.kanban').scrollLeft, y = window.scrollY;
+    render();
+    $('.kanban').scrollLeft = x; window.scrollTo(0, y);
+  });
 
   $$('.kcard').forEach(c => {
     c.ondragstart = e => { e.dataTransfer.setData('text/plain', c.dataset.id); c.classList.add('dragging'); };
@@ -1914,8 +2023,11 @@ function cellOut(j, c){
   if (c.type === 'num') return v === '' || v == null ? '' : Number(v);
   return v ?? '';
 }
-function exportXlsx(){
-  if (typeof XLSX === 'undefined') return toast('โหลด SheetJS ไม่ได้ (ออฟไลน์?) — ใช้ Export CSV แทน', 'alert');
+async function exportXlsx(){
+  if (typeof XLSX === 'undefined'){
+    toast('กำลังเตรียม Export…', 'download');
+    try { await loadLib('xlsx'); } catch(err){ return toast(err.message + ' — ใช้ Export CSV แทน', 'alert'); }
+  }
   const jobs = filtered();
   const aoa = [EXPORT_COLS.map(c => c.label), ...jobs.map(j => EXPORT_COLS.map(c => cellOut(j, c)))];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -1991,7 +2103,8 @@ function parseSheet(name, rows){
   try { const jobs = rowsToJobs(rows); return {name, jobs, on:jobs.length > 0}; }
   catch(err){ return {name, jobs:[], on:false, error:err.message}; }
 }
-function importFile(file){
+async function importFile(file){
+  try { await loadLib('xlsx'); } catch(err){ return toast('Import ไม่สำเร็จ: ' + err.message, 'alert'); }
   const reader = new FileReader();
   reader.onload = e => {
     try {
@@ -2354,8 +2467,13 @@ const KB_LANGS = [
 ];
 const kbLangInfo = lang => { lang = String(lang || '').toLowerCase(); return KB_LANGS.find(l => l[0] === lang || l[3].includes(lang)) || null; };
 const KB_AUTO = ['sql','csharp','json','xml','css','javascript','python','bash','xpp'];
+// highlight.js arrives lazily; until then kbHL falls back to the built-in kbHighlight
+function kbEnsureHljs(){
+  if (window.hljs) return;
+  loadLib('hljs').then(() => { kbRegisterXpp(); if (view === 'knowledge') render(); }).catch(() => {});
+}
 // X++ (Dynamics AX 2012) for highlight.js — case-insensitive like the language itself
-if (window.hljs) hljs.registerLanguage('xpp', h => ({
+const kbRegisterXpp = () => hljs.registerLanguage('xpp', h => ({
   name:'X++', case_insensitive:true,
   keywords:{
     keyword:'abstract as asc avg break breakpoint by case catch changecompany class client container continue count crosscompany default delegate delete_from desc display div do edit else event exists extends final firstfast firstonly firstonly10 firstonly100 firstonly1000 flush for forceliterals forcenestedloop forceplaceholders forceselectorder forupdate from group if implements index insert_recordset interface is join like maxof minof mod new next nofetch notexists optimisticlock order outer pause pessimisticlock print private protected public repeatableread retry return reverse select server setting static sum super switch throw try ttsabort ttsbegin ttscommit update_recordset validtimestate where while window',
@@ -2490,6 +2608,7 @@ function kbRenderText(text){
   return html;
 }
 function kbRenderBody(src){
+  kbEnsureHljs();
   const parts = String(src || '').replace(/\r\n/g, '\n').split(KB_FENCE);
   let html = '';
   for (let i = 0; i < parts.length; i += 3){
@@ -3104,7 +3223,7 @@ $('#kbImpGo').onclick = async () => {
 };
 
 /* ================= Wiring ================= */
-$$('.nav-item[data-view]').forEach(b => b.onclick = () => go(b.dataset.view));
+$$('[data-view]').forEach(b => b.onclick = () => go(b.dataset.view));
 document.addEventListener('click', e => {
   const io = e.target.closest('[data-io]'); if (io) return handleIO(io.dataset.io);
   if (e.target.closest('[data-new]')) return openForm(null, true);
@@ -3120,7 +3239,14 @@ document.addEventListener('click', e => {
 });
 for (const [id, k] of Object.entries(FILTER_INPUTS)){
   const el = $('#' + id);
-  el.addEventListener(el.tagName === 'INPUT' && el.type !== 'date' ? 'input' : 'change', () => { F[k] = el.value; render(); });
+  const typed = el.tagName === 'INPUT' && el.type !== 'date';
+  let timer;
+  // text boxes wait for a pause in typing so a big table isn't rebuilt on every keystroke
+  el.addEventListener(typed ? 'input' : 'change', () => {
+    clearTimeout(timer);
+    if (typed) timer = setTimeout(() => { F[k] = el.value; render(); }, 200);
+    else { F[k] = el.value; render(); }
+  });
 }
 $$('[data-quick]').forEach(b => b.onclick = () => { F.quick = b.dataset.quick; render(); });
 $('#advBtn').onclick = () => { $('#adv').classList.toggle('open'); setPref('adv', $('#adv').classList.contains('open')); };
@@ -3130,7 +3256,9 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey || $('#app').hidden || $('dialog[open]') || e.target.closest('input,textarea,select')) return;
   if (e.code === 'KeyN'){ e.preventDefault(); view === 'knowledge' ? openKbEditor() : openForm(null, true); }
   else if (e.code === 'Slash' && view !== 'settings'){ e.preventDefault(); $(view === 'knowledge' ? '#kbq' : '#fq')?.focus(); }
+  else if (/^Digit[1-5]$/.test(e.code)){ e.preventDefault(); go(NAV_KEYS[+e.code.slice(5) - 1]); }
 });
+const NAV_KEYS = ['dashboard', 'table', 'kanban', 'calendar', 'knowledge'];
 
 // Theme: light / auto / dark
 function applyTheme(t){
@@ -3291,6 +3419,8 @@ async function boot(){
   else { $('#loginScreen').hidden = false; $('#loginEmail').focus(); }
 }
 boot();
+// fetch Chart.js once the browser is idle, so opening ภาพรวม later is instant
+(window.requestIdleCallback || (f => setTimeout(f, 2000)))(() => loadLib('chart').catch(() => {}));
 </script>
 </body>
 </html>
