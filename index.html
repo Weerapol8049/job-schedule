@@ -307,6 +307,22 @@ dialog.modal[open]{animation:pop .18s ease-out}
 .section{padding:16px 0;border-bottom:1px solid var(--border)}
 .section:last-of-type{border-bottom:0}
 .section h4{display:flex;align-items:center;gap:6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 12px;font-weight:600}
+/* knowledge notes linked to a job (job drawer) */
+.jkb{border:1px solid var(--border);border-radius:10px;background:var(--surface);margin-bottom:6px}
+.jkb>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:7px 6px 7px 12px;cursor:pointer;border-radius:10px}
+.jkb>summary::-webkit-details-marker{display:none}
+.jkb>summary:hover{background:var(--surface-2)}
+.jkb[open]>summary{border-bottom:1px solid var(--border);border-radius:10px 10px 0 0}
+.jkb .grow,#jobKbRes .grow{min-width:0}
+.jkb .grow b,#jobKbRes .grow b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jkb small,#jobKbRes small{display:block;color:var(--muted);font-size:12px}
+.jkb .dot,#jobKbRes .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.jkb-body{padding:12px 14px 2px;max-height:460px;overflow:auto;font-size:13.5px}
+.jkb-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.jkb-acts .btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.jkb-pick{margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2)}
+.jkb-pick .search-box{max-width:none;margin-bottom:4px}
+.jkb-none{color:var(--muted);font-size:13px;cursor:default!important}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fgrid.c3{grid-template-columns:repeat(3,1fr)}
 .fgrid .full{grid-column:1/-1}
@@ -1970,6 +1986,7 @@ function openForm(job, isNew = !job?.id){
   $('#formDelete').hidden = isNew;
   $('#formErr').textContent = '';
   const h = editing.history || [];
+  jobKbPick = false; jobKbQ = '';
   renderJobKb();
   $('#historyBox').innerHTML = !isNew && h.length ? `<div class="section"><h4>${icon('clock','sm')}ประวัติสถานะ</h4><ul class="timeline">${h.slice().reverse().map(x =>
     `<li>${x.from ? `${esc(x.from)} → <b>${esc(x.to)}</b>` : `สร้างงาน · <b>${esc(x.to)}</b>`}<small>${new Date(x.at).toLocaleString('th-TH-u-ca-gregory', {dateStyle:'medium', timeStyle:'short'})}${x.by ? ' · ' + esc(x.by) : ''}</small></li>`).join('')}</ul></div>` : '';
@@ -2705,14 +2722,82 @@ function kbOpenNote(id){
 }
 
 // Related notes inside the job drawer
+// Linked notes expand in place so they can be read without leaving (and losing) the job form;
+// "เชื่อมความรู้ที่มีอยู่" links an existing note by adding this Job No to its jobNos.
+let jobKbPick = false, jobKbQ = '';
+const kbMeta = n => esc([n.category, n.tags.join(', ')].filter(Boolean).join(' · '));
 function renderJobKb(){
   const box = $('#jobKbBox');
   const no = editing?.id ? editing.jobNo : '';
   if (!no){ box.innerHTML = ''; return; }
   const notes = db.notes.filter(n => n.jobNos.includes(no));
-  box.innerHTML = `<div class="section"><h4>${icon('book','sm')}คลังความรู้ของงานนี้</h4>
-    ${notes.length ? `<ul class="list">${notes.map(n => `<li data-kb-open="${esc(n.id)}"><div class="grow"><b>${esc(n.title || '(ไม่มีหัวข้อ)')}</b><small>${esc([n.category, n.tags.join(', ')].filter(Boolean).join(' · '))}</small></div>${icon('right','sm')}</li>`).join('')}</ul>` : ''}
-    <button type="button" class="btn sm" data-kb-from-job style="margin-top:8px">${icon('plus','sm')}บันทึกเป็นความรู้</button></div>`;
+  box.innerHTML = `<div class="section"><h4>${icon('book','sm')}คลังความรู้ของงานนี้${notes.length ? ` · ${notes.length}` : ''}</h4>
+    ${notes.map(n => `<details class="jkb" data-jkb="${esc(n.id)}"><summary>
+        <span class="dot" style="background:${kbColor(n.category)}"></span>
+        <span class="grow"><b>${esc(n.title || '(ไม่มีหัวข้อ)')}</b><small>${kbMeta(n)}</small></span>
+        <button type="button" class="icon-btn" data-kb-open="${esc(n.id)}" title="เปิดในคลังความรู้">${icon('right','sm')}</button>
+        <button type="button" class="icon-btn danger" data-kb-unlink="${esc(n.id)}" title="ยกเลิกการเชื่อมกับงานนี้">${icon('x','sm')}</button>
+      </summary><div class="jkb-body kb-body"></div></details>`).join('')}
+    <div class="jkb-acts">
+      <button type="button" class="btn sm ${jobKbPick ? 'active' : ''}" data-kb-pick>${icon('link','sm')}เชื่อมความรู้ที่มีอยู่</button>
+      <button type="button" class="btn sm" data-kb-from-job>${icon('plus','sm')}บันทึกเป็นความรู้ใหม่</button>
+    </div>
+    ${jobKbPick ? `<div class="jkb-pick">
+      <div class="search-box"><svg class="i"><use href="#i-search"/></svg><input id="jobKbQ" type="search" placeholder="ค้นหัวข้อ, โค้ด, tag…" autocomplete="off" value="${esc(jobKbQ)}"></div>
+      <ul class="list" id="jobKbRes"></ul></div>` : ''}
+  </div>`;
+  // note bodies are rendered when first expanded
+  box.querySelectorAll('.jkb').forEach(d => d.addEventListener('toggle', () => {
+    const body = d.querySelector('.jkb-body');
+    if (!d.open || body.dataset.done) return;
+    body.dataset.done = '1';
+    body.innerHTML = kbRenderBody(db.notes.find(n => n.id === d.dataset.jkb)?.body) || '<p class="muted">ไม่มีเนื้อหา</p>';
+    hydrateKbImages(body);
+  }));
+  if (!jobKbPick) return;
+  const q = $('#jobKbQ');
+  q.oninput = () => { jobKbQ = q.value; renderJobKbResults(); };
+  // Enter links the top result instead of submitting the job form
+  q.onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); const first = $('#jobKbRes [data-kb-link]'); if (first) jobKbLink(first.dataset.kbLink, true); } };
+  renderJobKbResults();
+}
+function renderJobKbResults(){
+  const no = editing.jobNo;
+  const pool = db.notes.filter(n => !n.jobNos.includes(no));
+  const words = jobKbQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  let list;
+  if (words.length){
+    list = pool.filter(n => {
+      const hay = [n.title, n.body.replace(KB_IMG_RE, '$1'), n.category, n.tags.join(' ')].join(' ').toLowerCase();
+      return words.every(w => hay.includes(w));
+    });
+  } else {
+    // no query: suggest notes that share this job's modules, system or title words
+    const mods = new Set((editing.modules || []).map(m => m.toLowerCase()));
+    const sys = (editing.system || '').toLowerCase();
+    const titleWords = displayTitle(editing).toLowerCase().split(/[^\p{L}\p{N}_]+/u).filter(w => w.length > 2);
+    const score = n => {
+      const t = n.title.toLowerCase();
+      return n.tags.filter(x => mods.has(x.toLowerCase())).length * 2
+        + (sys && n.category.toLowerCase().includes(sys) ? 1 : 0)
+        + titleWords.filter(w => t.includes(w)).length * 3;
+    };
+    list = pool.map(n => [n, score(n)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  }
+  $('#jobKbRes').innerHTML = list.slice(0, 8).map(n => `<li data-kb-link="${esc(n.id)}"><span class="dot" style="background:${kbColor(n.category)}"></span>
+      <div class="grow"><b>${esc(n.title || '(ไม่มีหัวข้อ)')}</b><small>${kbMeta(n)}</small></div>${icon('plus','sm')}</li>`).join('')
+    || `<li class="jkb-none">${words.length ? 'ไม่พบเรื่องที่ตรงกับคำค้น' : 'ไม่มีเรื่องที่น่าจะเกี่ยวข้อง — พิมพ์คำค้นด้านบน'}</li>`;
+}
+function jobKbLink(id, on){
+  const n = db.notes.find(x => x.id === id), no = editing?.jobNo;
+  if (!n || !no) return;
+  const jobNos = on ? uniq([...n.jobNos, no]) : n.jobNos.filter(x => x !== no);
+  safe(async () => {
+    if (!await kbSave({...n, jobNos})) return;
+    if (on){ jobKbPick = false; jobKbQ = ''; }
+    renderJobKb();
+    toast(on ? `เชื่อม “${n.title}” กับ ${no} แล้ว` : `ยกเลิกการเชื่อม “${n.title}” แล้ว`, on ? 'link' : 'x');
+  });
 }
 function kbDraftFromJob(j){
   const code = s => s ? '```\n' + s + '\n```' : '';
@@ -2902,6 +2987,14 @@ function kbClick(e){
   }
   if ((el = hit('[data-kb-open]'))){ kbOpenNote(el.dataset.kbOpen); return true; }
   if (hit('[data-kb-from-job]')){ openKbEditor(null, kbDraftFromJob(editing)); return true; }
+  if (hit('[data-kb-pick]')){ jobKbPick = !jobKbPick; jobKbQ = ''; renderJobKb(); $('#jobKbQ')?.focus(); return true; }
+  if ((el = hit('[data-kb-link]'))){ jobKbLink(el.dataset.kbLink, true); return true; }
+  if ((el = hit('[data-kb-unlink]'))){
+    e.preventDefault();   // the button sits in the <summary>; don't toggle the note open
+    const n = db.notes.find(x => x.id === el.dataset.kbUnlink);
+    if (n && confirm(`ยกเลิกการเชื่อม “${n.title}” กับงานนี้?\n(เรื่องในคลังความรู้ยังอยู่)`)) jobKbLink(n.id, false);
+    return true;
+  }
   return false;
 }
 $('#lightbox').onclick = () => $('#lightbox').close();
