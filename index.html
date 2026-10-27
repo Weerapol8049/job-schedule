@@ -429,6 +429,31 @@ dialog.modal[open]{animation:pop .18s ease-out}
 .kb-badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:600;background:var(--surface-3);color:var(--text-2);white-space:nowrap}
 .kb-reader{overflow:auto;min-width:0}
 .kb-doc{max-width:920px;padding:24px 32px 48px}
+/* table of contents (kbBuildToc): sticky column beside the note when the reader is wide, folded block above the content otherwise */
+.kb-wrap{display:grid;grid-template-columns:minmax(0,920px) 270px;align-items:start;gap:0 8px}
+.kb-wrap>.kb-toc{position:sticky;top:16px;margin:24px 20px 24px 0}
+.kb-toc{margin:0 0 18px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:0 10px}
+.kb-toc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:10px 2px;font-weight:600;font-size:13px}
+.kb-toc>summary::-webkit-details-marker{display:none}
+.kb-toc .search-box{max-width:none;margin:0 0 6px}
+.toc-tools{display:flex;gap:12px;font-size:12px;margin:2px 2px 6px}
+.toc-list{display:flex;flex-direction:column;gap:1px;max-height:calc(100vh - 380px);overflow:auto;padding-bottom:8px}
+.toc-list button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:7px;padding:5px 8px;cursor:pointer;color:var(--text-2);font-size:12.5px;line-height:1.35}
+.toc-list button:hover{background:var(--surface-3);color:var(--text)}
+.toc-c span{display:block;font:500 12px "IBM Plex Mono",monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toc-c small{display:block;color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toc-h{font-weight:600;color:var(--text)!important;margin-top:6px}
+.toc-none{color:var(--muted);font-size:12.5px;margin:0 8px 10px}
+.kb-code-head .kb-fold{border:0;background:none;color:var(--muted);cursor:pointer;width:22px;height:22px;display:grid;place-items:center;border-radius:6px;margin-left:-8px;transition:transform .15s}
+.kb-code-head .kb-fold:hover{background:var(--surface-3);color:var(--text)}
+.kb-code:not(.folded) .kb-fold{transform:rotate(90deg)}
+.kb-code.folded pre{display:none}
+.kb-code.folded .kb-code-head{border-bottom:0}
+.kb-code-name{font:600 12.5px "IBM Plex Mono",monospace;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.kb-code-lines{color:var(--muted);font-size:11px;white-space:nowrap}
+.kb-code.flash{animation:kbFlash 1.4s ease}
+@keyframes kbFlash{0%,40%{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent)}100%{box-shadow:0 0 0 0 transparent}}
+::highlight(kb-find){background:#fde047;color:#111}
 .kb-doc-head{display:flex;gap:8px;align-items:flex-start}
 .kb-doc-head h2{margin:8px 0 0;font-size:21px;line-height:1.35;text-wrap:balance}
 .kb-meta{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;margin:12px 0 18px;padding-bottom:14px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12.5px}
@@ -2631,10 +2656,41 @@ function kbRenderBody(src){
   for (let i = 0; i < parts.length; i += 3){
     html += kbRenderText(parts[i]);
     if (parts[i + 2] === undefined) continue;
-    const hl = kbHL(parts[i + 2].replace(/\n$/, ''), (parts[i + 1] || '').toLowerCase());
-    html += `<div class="kb-code"><div class="kb-code-head">${esc(hl.label)}<button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div><pre>${hl.html}</pre></div>`;
+    const code = parts[i + 2].replace(/\n$/, ''), lang = (parts[i + 1] || '').toLowerCase();
+    const hl = kbHL(code, lang), nm = kbCodeName(code, lang);
+    html += `<div class="kb-code" data-name="${esc(nm.title)}" data-methods="${esc(nm.methods.join(','))}"><div class="kb-code-head">
+      <button type="button" class="kb-fold" data-kb-fold title="ย่อ / ขยาย">${icon('right','sm')}</button>
+      <span class="kb-code-lang">${esc(hl.label)}</span>${nm.title ? `<b class="kb-code-name">${esc(nm.title)}</b>` : ''}
+      <span class="kb-code-lines">${code.split('\n').length} บรรทัด</span>
+      <button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div><pre>${hl.html}</pre></div>`;
   }
   return html;
+}
+// Name a code block after what it defines, so a note with many blocks can be scanned and indexed:
+// "class StmGenPrFromOdoo", "createVendor()", "PROCEDURE dbo.x", or '' when nothing is recognisable.
+const KB_NOT_METHOD = new Set('if while for foreach switch catch return new select using else throw case lock sizeof typeof nameof base this super await'.split(' '));
+function kbCodeName(code, lang){
+  lang = KB_LANG[lang] || lang;
+  let src = code.replace(/\/\*[\s\S]*?\*\//g, '');
+  src = lang === 'sql' ? src.replace(/--[^\n]*/g, '') : (lang === 'py' || lang === 'bash') ? src.replace(/#[^\n]*/g, '') : src.replace(/\/\/[^\n]*/g, '');
+  const sql = src.match(/\b(?:create|alter)\s+(?:or\s+(?:alter|replace)\s+)?(procedure|proc|function|view|trigger|table)\s+([\[\]\w.]+)/i);
+  if (sql) return {title:`${sql[1].toLowerCase() === 'proc' ? 'PROCEDURE' : sql[1].toUpperCase()} ${sql[2]}`, methods:[]};
+  const cls = src.match(/^\s*(?:(?:public|private|protected|internal|static|abstract|final|sealed|partial|export|default)\s+)*(?:class|interface|struct|enum)\s+([A-Za-z_]\w*)/im);
+  const methods = [];
+  for (const line of src.split('\n')){
+    let m;
+    if ((m = line.match(/^\s*(?:async\s+)?(?:function\s+([A-Za-z_$][\w$]*)|def\s+([A-Za-z_]\w*))\s*\(/))
+      || (m = line.match(/^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>)/))){
+      methods.push(m[1] || m[2]); continue;
+    }
+    // X++ / C# / Java declaration: modifiers + return type + name(…), not a statement
+    m = line.match(/^\s*((?:[A-Za-z_][\w<>\[\],.]*\s+)+)([A-Za-z_]\w*)\s*\([^;=]*$/);
+    if (m && !/[=;]/.test(line) && !KB_NOT_METHOD.has(m[2].toLowerCase()) && !m[1].trim().split(/\s+/).some(w => KB_NOT_METHOD.has(w.toLowerCase()))) methods.push(m[2]);
+  }
+  const uniqM = [...new Set(methods)];
+  if (cls) return {title:`class ${cls[1]}`, methods:uniqM};
+  if (uniqM.length) return {title:`${uniqM[0]}()${uniqM.length > 1 ? ` +${uniqM.length - 1}` : ''}`, methods:uniqM};
+  return {title:'', methods:[]};
 }
 const kbSnippet = body => String(body || '').replace(/\r\n/g, '\n').split(KB_FENCE).map((p, i) => i % 3 === 0 ? p : i % 3 === 2 ? ' [โค้ด] ' : '').join('')
   .replace(KB_IMG_RE, ' [รูป] ').replace(/^#+\s*/gm, '').replace(/^\s*[-*]\s+/gm, '').replace(/[`*]/g, '').replace(/\s+/g, ' ').trim().slice(0, 220);
@@ -2712,7 +2768,75 @@ function kbRenderReader(){
       `<button type="button" class="kb-link" data-kb-job="${esc(no)}"><span class="mono">${esc(no)}</span>${j ? esc(displayTitle(j)) : '<span class="muted">ไม่พบงานนี้</span>'}</button>`).join('')}</div></div>` : ''}
     ${n.sourceUrl ? `<div class="kb-panel"><h4>แหล่งที่มา</h4><a href="${esc(n.sourceUrl)}" target="_blank" rel="noopener" style="word-break:break-all">${esc(n.sourceUrl)}</a></div>` : ''}
   </article>`;
+  kbBuildToc(box);
   hydrateKbImages(box);
+}
+
+// Table of contents for notes with several code blocks or headings: one entry per class / method block,
+// a filter that also searches inside the code (matches are highlighted), and fold / unfold all.
+function kbBuildToc(box){
+  const body = box.querySelector('.kb-body');
+  const blocks = [...body.querySelectorAll('.kb-code')], heads = [...body.querySelectorAll(':scope > h3')];
+  if (blocks.length < 3 && blocks.length + heads.length < 4) return;
+  const items = [...body.querySelectorAll(':scope > h3, :scope > .kb-code')];
+  let codeNo = 0;
+  const entries = items.map((el, i) => {
+    el.dataset.toc = i;
+    if (el.tagName === 'H3') return `<button type="button" class="toc-h" data-toc-go="${i}">${esc(el.textContent)}</button>`;
+    codeNo++;
+    const name = el.dataset.name, methods = el.dataset.methods ? el.dataset.methods.split(',') : [];
+    const sub = name.startsWith('class ') && methods.length ? methods.map(m => m + '()').join(', ') : '';
+    return `<button type="button" class="toc-c" data-toc-go="${i}"><span>${esc(name || `โค้ดชุดที่ ${codeNo}`)}</span>${sub ? `<small>${esc(sub)}</small>` : ''}</button>`;
+  });
+  // wide reader: sticky column beside the note · narrow: folded block between the header and the content
+  const wide = box.clientWidth >= 1180, doc = box.querySelector('.kb-doc');
+  if (wide){ const wrap = document.createElement('div'); wrap.className = 'kb-wrap'; doc.replaceWith(wrap); wrap.append(doc); }
+  (wide ? doc : body).insertAdjacentHTML(wide ? 'afterend' : 'beforebegin', `<details class="kb-toc" ${wide ? 'open' : ''}>
+    <summary>${icon('table','sm')}สารบัญ <span class="muted">· ${blocks.length} โค้ด</span></summary>
+    <div class="search-box"><svg class="i"><use href="#i-search"/></svg><input type="search" data-toc-q placeholder="ค้นชื่อ class / method / ในโค้ด…" autocomplete="off"></div>
+    <div class="toc-tools"><button type="button" class="linklike" data-toc-fold="1">ย่อโค้ดทั้งหมด</button><button type="button" class="linklike" data-toc-fold="0">ขยายทั้งหมด</button></div>
+    <div class="toc-list">${entries.join('')}</div>
+    <p class="toc-none" hidden>ไม่พบ</p>
+  </details>`);
+  const toc = box.querySelector('.kb-toc'), q = toc.querySelector('[data-toc-q]');
+  const go = i => {
+    const el = body.querySelector(`[data-toc="${i}"]`);
+    el.classList.remove('folded');
+    el.scrollIntoView({behavior:'smooth', block:'start'});
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  };
+  toc.onclick = e => {
+    const b = e.target.closest('[data-toc-go]'); if (b) return go(b.dataset.tocGo);
+    const f = e.target.closest('[data-toc-fold]'); if (f) blocks.forEach(x => x.classList.toggle('folded', f.dataset.tocFold === '1'));
+  };
+  q.oninput = () => {
+    const w = q.value.trim().toLowerCase();
+    let shown = 0;
+    toc.querySelectorAll('[data-toc-go]').forEach(b => {
+      const el = body.querySelector(`[data-toc="${b.dataset.tocGo}"]`);
+      const hit = !w || b.textContent.toLowerCase().includes(w) || el.textContent.toLowerCase().includes(w);
+      b.hidden = !hit; shown += hit;
+      if (w && hit) el.classList.remove('folded');
+    });
+    toc.querySelector('.toc-none').hidden = shown > 0;
+    kbMarkMatches(body, w);
+  };
+  q.onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); const b = toc.querySelector('[data-toc-go]:not([hidden])'); if (b) go(b.dataset.tocGo); } };
+}
+// highlight every occurrence of the filter text inside the code (CSS Custom Highlight API; skipped if unsupported)
+function kbMarkMatches(root, w){
+  if (!window.CSS?.highlights) return;
+  CSS.highlights.delete('kb-find');
+  if (w.length < 2) return;
+  const ranges = [];
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node; (node = walk.nextNode());){
+    const t = node.data.toLowerCase();
+    for (let at = t.indexOf(w); at !== -1 && ranges.length < 500; at = t.indexOf(w, at + w.length)){
+      const r = new Range(); r.setStart(node, at); r.setEnd(node, at + w.length); ranges.push(r);
+    }
+  }
+  if (ranges.length) CSS.highlights.set('kb-find', new Highlight(...ranges));
 }
 function kbOpenNote(id){
   KB.sel = id; KB.reading = true;
@@ -2970,6 +3094,7 @@ function kbClick(e){
     if (n) safe(async () => { const s = await kbSave({...n, pinned:!n.pinned}); if (s){ render(); toast(s.pinned ? 'ปักหมุดแล้ว' : 'เลิกปักหมุดแล้ว'); } });
     return true;
   }
+  if ((el = hit('[data-kb-fold]'))){ el.closest('.kb-code').classList.toggle('folded'); return true; }
   if ((el = hit('[data-kb-copy]'))){
     const pre = el.closest('.kb-code').querySelector('pre');
     navigator.clipboard.writeText(pre.textContent).then(() => toast('คัดลอกโค้ดแล้ว', 'copy'), () => {
