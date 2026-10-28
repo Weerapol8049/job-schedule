@@ -451,6 +451,28 @@ dialog.modal[open]{animation:pop .18s ease-out}
 .kb-code.folded .kb-code-head{border-bottom:0}
 .kb-code-name{font:600 12.5px "IBM Plex Mono",monospace;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .kb-code-lines{color:var(--muted);font-size:11px;white-space:nowrap}
+/* Markdown blocks: rendered view (.kb-md) once kbHydrateMd has run, source (<pre>) on toggle or if rendering failed */
+.kb-code-head [data-kb-md]{margin-left:auto}
+.kb-code-head [data-kb-md]~[data-kb-copy]{margin-left:0}
+.kb-code:not(.md-ready) [data-kb-md],.kb-code:not(.md-ready)>.kb-md{display:none}
+.kb-code.md-ready:not(.src)>pre,.kb-code.md-ready.src>.kb-md,.kb-code.folded>.kb-md{display:none}
+.kb-md{padding:14px 20px 4px;background:var(--surface);font:14px/1.7 "IBM Plex Sans Thai",system-ui,sans-serif;color:var(--text);overflow-wrap:anywhere}
+.kb-md h1,.kb-md h2,.kb-md h3,.kb-md h4{margin:18px 0 8px;line-height:1.35}
+.kb-md h1{font-size:20px}.kb-md h2{font-size:17px;padding-bottom:4px;border-bottom:1px solid var(--border)}.kb-md h3{font-size:15px}.kb-md h4{font-size:14px}
+.kb-md>:first-child{margin-top:0}
+.kb-md p,.kb-md ul,.kb-md ol,.kb-md blockquote,.kb-md table,.kb-md pre{margin:0 0 12px}
+.kb-md ul,.kb-md ol{padding-left:22px}
+.kb-md li+li{margin-top:2px}
+.kb-md a{color:var(--accent)}
+.kb-md code{font:12.5px "IBM Plex Mono",monospace;background:var(--surface-3);padding:1px 5px;border-radius:5px}
+.kb-md pre{padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);overflow-x:auto}
+.kb-md pre code{background:none;padding:0;font-size:12.5px;line-height:1.6}
+.kb-md blockquote{padding:4px 14px;border-left:3px solid var(--accent);color:var(--text-2);background:var(--surface-2);border-radius:0 8px 8px 0}
+.kb-md hr{border:0;border-top:1px solid var(--border);margin:16px 0}
+.kb-md table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;font-size:13px}
+.kb-md th,.kb-md td{border:1px solid var(--border);padding:6px 10px;text-align:left;vertical-align:top}
+.kb-md th{background:var(--surface-2);font-weight:600}
+.kb-md img{max-width:100%;border-radius:8px}
 .kb-code.flash{animation:kbFlash 1.4s ease}
 @keyframes kbFlash{0%,40%{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent)}100%{box-shadow:0 0 0 0 transparent}}
 ::highlight(kb-find){background:#fde047;color:#111}
@@ -1017,6 +1039,8 @@ const LIBS = {
   xlsx:  ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'SheetJS'],
   chart: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js', 'Chart.js'],
   hljs:  ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js', 'highlight.js'],
+  md:    ['https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js', 'marked'],
+  purify:['https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js', 'DOMPurify'],
 };
 const libLoads = {};
 function loadLib(name){
@@ -2268,7 +2292,10 @@ $('#fileRestore').onchange = e => {
 const KB_BUCKET = 'knowledge';
 const KB_MAX_W = 1600, KB_QUALITY = 0.82, KB_MAX_BYTES = 5 * 1048576;
 const KB_IMG_RE = /!\[([^\]\n]*)\]\(kb:([\w\/.-]+)\)/g;
-const KB_FENCE = /^```[ \t]*([\w+#.-]*)[ \t]*\n([\s\S]*?)^```[ \t]*$/m;
+// groups: 1 = backticks, 2 = language, 3 = code. A longer fence (````) may wrap ``` blocks, e.g. a Markdown file.
+const KB_FENCE = /^(`{3,})[ \t]*([\w+#.-]*)[ \t]*\n([\s\S]*?)^\1[ \t]*$/m;
+// shortest fence that can wrap `code` without being closed by a fence inside it
+const kbTicks = code => '`'.repeat(Math.max(3, ...[...code.matchAll(/^`{3,}/gm)].map(m => m[0].length + 1)));
 const KB = {q:'', cat:'', sel:'', reading:false, loadError:''};
 const KB_MAP = {title:'title', category:'category', tags:'tags', body:'body', sourceUrl:'source_url', jobNos:'job_nos', pinned:'pinned'};
 const KB_ARR = new Set(['tags','jobNos']);
@@ -2506,6 +2533,7 @@ const KB_LANGS = [
   ['js',   'JavaScript',    'javascript', ['javascript','ts','typescript','node']],
   ['py',   'Python',        'python',     ['python']],
   ['bash', 'Shell / curl',  'bash',       ['sh','shell','powershell','ps','cmd','curl','console']],
+  ['md',   'Markdown',      'markdown',   ['markdown']],
 ];
 const kbLangInfo = lang => { lang = String(lang || '').toLowerCase(); return KB_LANGS.find(l => l[0] === lang || l[3].includes(lang)) || null; };
 const KB_AUTO = ['sql','csharp','json','xml','css','javascript','python','bash','xpp'];
@@ -2576,6 +2604,7 @@ function kbReindent(code, unit = '    '){
 }
 async function kbFormatCode(code, lang){
   const v = kbLangInfo(lang)?.[0] || '';
+  if (v === 'md') return code;   // Markdown: tabs and trailing double spaces carry meaning
   code = code.replace(/\t/g, '    ').replace(/[ \t]+$/gm, '');
   switch (v){
     case 'json': try { return JSON.stringify(JSON.parse(code), null, 2); } catch(e){ return kbReindent(code, '  '); }
@@ -2588,7 +2617,7 @@ async function kbFormatCode(code, lang){
     default: return code; // Python & unknown: indentation carries meaning — don't touch
   }
 }
-const KB_FENCE_G = /^```[ \t]*([\w+#.-]*)[ \t]*\n([\s\S]*?)^```[ \t]*$/gm;
+const KB_FENCE_G = new RegExp(KB_FENCE.source, 'gm');
 function kbFenceAt(text, pos){
   KB_FENCE_G.lastIndex = 0;
   let m;
@@ -2604,13 +2633,13 @@ async function kbCodeAction(){
   btn.disabled = true;
   try {
     if (fence){
-      const code = await kbFormatCode(fence[2].replace(/\n$/, ''), lang);
-      ta.setRangeText('```' + lang + '\n' + code + '\n```', fence.index, fence.index + fence[0].length, 'select');
+      const code = await kbFormatCode(fence[3].replace(/\n$/, ''), lang), t = kbTicks(code);
+      ta.setRangeText(t + lang + '\n' + code + '\n' + t, fence.index, fence.index + fence[0].length, 'select');
       toast(`จัดรูปแบบเป็น ${kbLangInfo(lang)?.[1] || 'โค้ด'} แล้ว`);
     } else if (e > s){
-      const code = await kbFormatCode(v.slice(s, e).replace(/^\s*\n/, '').replace(/\s+$/, ''), lang);
+      const code = await kbFormatCode(v.slice(s, e).replace(/^\s*\n/, '').replace(/\s+$/, ''), lang), t = kbTicks(code);
       const pre = s > 0 && v[s - 1] !== '\n' ? '\n' : '', post = e < v.length && v[e] !== '\n' ? '\n' : '';
-      ta.setRangeText(pre + '```' + lang + '\n' + code + '\n```' + post, s, e, 'end');
+      ta.setRangeText(pre + t + lang + '\n' + code + '\n' + t + post, s, e, 'end');
       toast(`ทำเป็นกล่องโค้ด ${kbLangInfo(lang)?.[1] || ''} แล้ว`);
     } else {
       const pre = s > 0 && v[s - 1] !== '\n' ? '\n' : '';
@@ -2625,7 +2654,7 @@ async function kbCodeAction(){
 // keep the language picker in step with the code block under the cursor
 function kbSyncLang(){
   const f = kbFenceAt(kf('body').value, kf('body').selectionStart);
-  const info = f && kbLangInfo(f[1]);
+  const info = f && kbLangInfo(f[2]);
   if (info) $('#kbLang').value = info[0];
 }
 
@@ -2653,23 +2682,45 @@ function kbRenderBody(src){
   kbEnsureHljs();
   const parts = String(src || '').replace(/\r\n/g, '\n').split(KB_FENCE);
   let html = '';
-  for (let i = 0; i < parts.length; i += 3){
+  for (let i = 0; i < parts.length; i += 4){
     html += kbRenderText(parts[i]);
-    if (parts[i + 2] === undefined) continue;
-    const code = parts[i + 2].replace(/\n$/, ''), lang = (parts[i + 1] || '').toLowerCase();
-    const hl = kbHL(code, lang), nm = kbCodeName(code, lang);
-    html += `<div class="kb-code" data-name="${esc(nm.title)}" data-methods="${esc(nm.methods.join(','))}"><div class="kb-code-head">
+    if (parts[i + 3] === undefined) continue;
+    const code = parts[i + 3].replace(/\n$/, ''), lang = (parts[i + 2] || '').toLowerCase();
+    const hl = kbHL(code, lang), nm = kbCodeName(code, lang), md = kbLangInfo(lang)?.[0] === 'md';
+    // Markdown blocks show rendered (kbHydrateMd fills .kb-md) with a toggle back to the source
+    html += `<div class="kb-code${md ? ' is-md' : ''}" data-name="${esc(nm.title)}" data-methods="${esc(nm.methods.join(','))}"><div class="kb-code-head">
       <button type="button" class="kb-fold" data-kb-fold title="ย่อ / ขยาย">${icon('right','sm')}</button>
       <span class="kb-code-lang">${esc(hl.label)}</span>${nm.title ? `<b class="kb-code-name">${esc(nm.title)}</b>` : ''}
       <span class="kb-code-lines">${code.split('\n').length} บรรทัด</span>
-      <button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div><pre>${hl.html}</pre></div>`;
+      ${md ? `<button type="button" class="btn sm" data-kb-md>${icon('file','sm')}<span>ดูต้นฉบับ</span></button>` : ''}
+      <button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div>${md ? '<div class="kb-md"></div>' : ''}<pre>${hl.html}</pre></div>`;
   }
   return html;
 }
+// Render Markdown blocks inside `root` (marked + DOMPurify, loaded on first use). On failure the source stays visible.
+async function kbHydrateMd(root){
+  const blocks = $$('.kb-code.is-md:not(.md-ready)', root);
+  if (!blocks.length) return;
+  try { await Promise.all([loadLib('md'), loadLib('purify')]); } catch(err){ console.error(err); return; }
+  for (const b of blocks){
+    const box = b.querySelector('.kb-md');
+    box.innerHTML = DOMPurify.sanitize(marked.parse(b.querySelector('pre').textContent));
+    box.querySelectorAll('a[href]').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+    // code inside the Markdown gets the same highlighting as the knowledge base's own code blocks
+    box.querySelectorAll('pre > code').forEach(c => {
+      const hl = kbHL(c.textContent.replace(/\n$/, ''), (c.className.match(/language-([\w+#.-]+)/) || [])[1] || '');
+      c.innerHTML = hl.html;
+    });
+    b.classList.add('md-ready');
+  }
+}
+// everything a rendered note body needs after it is in the DOM
+function kbHydrate(root){ hydrateKbImages(root); kbHydrateMd(root); }
 // Name a code block after what it defines, so a note with many blocks can be scanned and indexed:
 // "class StmGenPrFromOdoo", "createVendor()", "PROCEDURE dbo.x", or '' when nothing is recognisable.
 const KB_NOT_METHOD = new Set('if while for foreach switch catch return new select using else throw case lock sizeof typeof nameof base this super await'.split(' '));
 function kbCodeName(code, lang){
+  if (kbLangInfo(lang)?.[0] === 'md'){ const h = code.match(/^#{1,6}\s+(.+)$/m); return {title:h ? h[1].trim() : '', methods:[]}; }
   lang = KB_LANG[lang] || lang;
   let src = code.replace(/\/\*[\s\S]*?\*\//g, '');
   src = lang === 'sql' ? src.replace(/--[^\n]*/g, '') : (lang === 'py' || lang === 'bash') ? src.replace(/#[^\n]*/g, '') : src.replace(/\/\/[^\n]*/g, '');
@@ -2692,7 +2743,7 @@ function kbCodeName(code, lang){
   if (uniqM.length) return {title:`${uniqM[0]}()${uniqM.length > 1 ? ` +${uniqM.length - 1}` : ''}`, methods:uniqM};
   return {title:'', methods:[]};
 }
-const kbSnippet = body => String(body || '').replace(/\r\n/g, '\n').split(KB_FENCE).map((p, i) => i % 3 === 0 ? p : i % 3 === 2 ? ' [โค้ด] ' : '').join('')
+const kbSnippet = body => String(body || '').replace(/\r\n/g, '\n').split(KB_FENCE).map((p, i) => i % 4 === 0 ? p : i % 4 === 3 ? ' [โค้ด] ' : '').join('')
   .replace(KB_IMG_RE, ' [รูป] ').replace(/^#+\s*/gm, '').replace(/^\s*[-*]\s+/gm, '').replace(/[`*]/g, '').replace(/\s+/g, ' ').trim().slice(0, 220);
 function kbColor(c){ let h = 0; for (const ch of c || '') h = (h * 31 + ch.codePointAt(0)) % 360; return `hsl(${h} 60% 50%)`; }
 const kbBadge = c => c ? `<span class="kb-badge"><span class="cdot" style="--c:${kbColor(c)}"></span>${esc(c)}</span>` : '';
@@ -2769,7 +2820,7 @@ function kbRenderReader(){
     ${n.sourceUrl ? `<div class="kb-panel"><h4>แหล่งที่มา</h4><a href="${esc(n.sourceUrl)}" target="_blank" rel="noopener" style="word-break:break-all">${esc(n.sourceUrl)}</a></div>` : ''}
   </article>`;
   kbBuildToc(box);
-  hydrateKbImages(box);
+  kbHydrate(box);
 }
 
 // Table of contents for notes with several code blocks or headings: one entry per class / method block,
@@ -2876,7 +2927,7 @@ function renderJobKb(){
     if (!d.open || body.dataset.done) return;
     body.dataset.done = '1';
     body.innerHTML = kbRenderBody(db.notes.find(n => n.id === d.dataset.jkb)?.body) || '<p class="muted">ไม่มีเนื้อหา</p>';
-    hydrateKbImages(body);
+    kbHydrate(body);
   }));
   if (!jobKbPick) return;
   const q = $('#jobKbQ');
@@ -2961,7 +3012,7 @@ function kbSetMode(mode){
   const pv = $('#kbPreview');
   kf('body').hidden = mode === 'preview';
   pv.hidden = mode !== 'preview';
-  if (mode === 'preview'){ pv.innerHTML = kbRenderBody(kf('body').value) || '<p class="muted">ยังไม่มีเนื้อหา</p>'; hydrateKbImages(pv); }
+  if (mode === 'preview'){ pv.innerHTML = kbRenderBody(kf('body').value) || '<p class="muted">ยังไม่มีเนื้อหา</p>'; kbHydrate(pv); }
 }
 const kbDirty = () => kbUploads.length > 0 || kbFormState() !== kbSnapshot;
 function kbTryClose(){
@@ -3095,6 +3146,11 @@ function kbClick(e){
     return true;
   }
   if ((el = hit('[data-kb-fold]'))){ el.closest('.kb-code').classList.toggle('folded'); return true; }
+  if ((el = hit('[data-kb-md]'))){
+    const src = el.closest('.kb-code').classList.toggle('src');
+    el.querySelector('span').textContent = src ? 'ดูแบบจัดรูปแบบ' : 'ดูต้นฉบับ';
+    return true;
+  }
   if ((el = hit('[data-kb-copy]'))){
     const pre = el.closest('.kb-code').querySelector('pre');
     navigator.clipboard.writeText(pre.textContent).then(() => toast('คัดลอกโค้ดแล้ว', 'copy'), () => {
@@ -3244,7 +3300,8 @@ function kbConvertPage(pageEl, files, imgSeq){
       // code typed in a normal font loses its indentation in the export → rebuild it from the brackets
       if (['x++', 'cs', 'json', 'bash', ''].includes(lang) && /[{}[\]]/.test(c) && !code.some(l => /^\s/.test(l)))
         c = kbReindent(c, lang === 'json' || lang === 'bash' ? '  ' : '    ');
-      lines.push('```' + lang + '\n' + c + '\n```');
+      const t = kbTicks(c);
+      lines.push(t + lang + '\n' + c + '\n' + t);
     }
     code = [];
   };

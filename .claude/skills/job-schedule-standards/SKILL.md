@@ -16,7 +16,7 @@ The UI and every reply to the user are in **Thai**; code and comments are in Eng
 - `config.js` holds `SUPABASE_URL` + the **anon** key only (safe in the browser because RLS guards the data).
   An empty config means local mode (`localStorage`), which must keep working: it is how the app is tested.
 - External scripts come from cdnjs / jsdelivr with an **exact version**.
-  Heavy libraries are never in `<head>`: load them through `loadLib('xlsx' | 'chart' | 'hljs')` when the feature needs them.
+  Heavy libraries are never in `<head>`: load them through `loadLib('xlsx' | 'chart' | 'hljs' | 'md' | 'purify')` when the feature needs them.
   Only `supabase-js` loads up front.
 - Push to `main` deploys to Vercel straight away. `.vercelignore` keeps `SETUP.md`, `supabase/`, `.github/` and `.claude/` off the site.
 
@@ -40,6 +40,9 @@ The UI and every reply to the user are in **Thai**; code and comments are in Eng
 - **Adding a job field** requires: a column in `supabase/schema.sql`, plus a `DB_MAP` entry, a `COLS` entry, the form field in `#jobDialog`,
   `emptyJob()`, and `DEFAULT_HIDDEN` if it shouldn't show by default.
 - Knowledge notes: `title, category, tags[], body (markdown-ish: ``` fences, ###, -, ![cap](kb:path)), jobNos[], sourceUrl, pinned`.
+  Fences may be longer than 3 backticks so a ```md block can contain ``` blocks: always build fences with `kbTicks(code)`,
+  and parse with `KB_FENCE` (groups: 1 ticks, 2 lang, 3 code). Markdown blocks render via marked + DOMPurify (`kbHydrateMd`);
+  after inserting a rendered body call `kbHydrate(root)` (images + Markdown).
   A note links to jobs **through `jobNos`**; there is no join table.
 - Saving uses optimistic concurrency: `apiSaveJob/apiSaveNote(x, expectedUpdatedAt)` throws `err.conflict`, and the caller asks
   the user before overwriting. Keep this for any new write path.
