@@ -4038,19 +4038,23 @@ function apiFromNote(n){
   const request = curlData || jsons.find((c, i) => i !== respIdx) || '';
   const response = respText || (respIdx >= 0 && jsons[respIdx] !== request ? jsons[respIdx] : '');
   const desc = text.join('\n').replace(KB_IMG_RE, '').replace(/\n{3,}/g, '\n\n').trim();
-  return apiMaskSecrets({...emptyApi(), name:n.title, method:method || (request ? 'POST' : 'GET'), path,
+  // Odoo JSON-RPC (/jsonrpc, /web/session/…, /web/dataset/…) is always POST, whatever verb the note's title uses ("GET user_id")
+  const rpc = /\/jsonrpc\b|\/web\/(?:session|dataset)\//.test(path) || /"jsonrpc"\s*:/.test(request);
+  return apiMaskSecrets({...emptyApi(), name:n.title, method:rpc ? 'POST' : method || (request ? 'POST' : 'GET'), path,
     urlStd66:isDev ? base : '', urlLive:isDev ? '' : base, source:'', target:n.category === 'Odoo' ? 'Odoo' : '',
     headers, request:request.trim(), response:response.trim(), description:(desc.slice(0, 2000) + '\n\n(นำเข้าจากคลังความรู้ — ตรวจทานก่อนเปลี่ยนสถานะ)').trim(),
     tags:n.tags, jobNos:n.jobNos, noteIds:[n.id]});
 }
 const apiImportCandidates = () => db.notes.filter(n => (API_TITLE_RE.test(n.title) || API_BODY_RE.test(n.title + '\n' + n.body)) && !db.apis.some(a => a.noteIds.includes(n.id)));
+// overview notes without any URL, path or sample start unticked
+const apiImpUseful = a => !!(a.path || a.urlStd66 || a.urlLive || a.request);
 function openApiImport(){
   const list = apiImportCandidates().map(n => ({n, a:apiFromNote(n)}));
   const dlgI = $('#apiImportDialog');
   dlgI._list = list;
   $('#apiImpBody').innerHTML = list.length ? `<p class="muted" style="margin:0 0 10px">พบ ${list.length} เรื่องในคลังความรู้ที่น่าจะเป็น API และยังไม่อยู่ในทะเบียน — จะสร้างเป็นสถานะ “ร่าง” พร้อมเชื่อมกับเรื่องเดิม (เรื่องในคลังความรู้ยังอยู่)</p>
-    <div class="table-scroll" style="max-height:55vh"><table class="jobs"><thead><tr><th class="c-sel"><input type="checkbox" id="apiImpAll" checked></th><th>เรื่อง</th><th>Method</th><th>URL / Path</th><th>Request</th><th>Response</th></tr></thead>
-    <tbody>${list.map(({n, a}, i) => `<tr><td class="c-sel"><input type="checkbox" data-impi="${i}" checked></td><td><b>${esc(n.title)}</b><br><small class="muted">${esc(n.category)}</small></td>
+    <div class="table-scroll" style="max-height:55vh"><table class="jobs"><thead><tr><th class="c-sel"><input type="checkbox" id="apiImpAll" ${list.every(x => apiImpUseful(x.a)) ? 'checked' : ''}></th><th>เรื่อง</th><th>Method</th><th>URL / Path</th><th>Request</th><th>Response</th></tr></thead>
+    <tbody>${list.map(({n, a}, i) => `<tr><td class="c-sel"><input type="checkbox" data-impi="${i}" ${apiImpUseful(a) ? 'checked' : ''}></td><td><b>${esc(n.title)}</b><br><small class="muted">${esc(n.category)}</small></td>
       <td>${methodBadge(a.method)}</td><td class="api-path">${esc(a.path || apiFullUrl(a, 'LIVE') || apiFullUrl(a, 'STD66') || '—')}</td>
       <td>${a.request ? '✓' : '<span class="muted">—</span>'}</td><td>${a.response ? '✓' : '<span class="muted">—</span>'}</td></tr>`).join('')}</tbody></table></div>`
     : '<p class="muted">ไม่มีเรื่องในคลังความรู้ที่ยังไม่ได้นำเข้า</p>';
