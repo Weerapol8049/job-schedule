@@ -31,7 +31,7 @@ The UI and every reply to the user are in **Thai**; code and comments are in Eng
 - Icons are `<symbol id="i-…">` in the sprite at the top of `<body>`. Add new icons there; don't inline SVG paths in templates.
 - Match the surrounding style: short comments that explain *why*, compact template literals, no new global abstractions
   for a one-off.
-- Keyboard shortcuts already exist: `N` new, `/` search, `1`–`5` views. Don't take those keys for anything else.
+- Keyboard shortcuts already exist: `N` new, `/` search, `1`–`6` views (dashboard, table, kanban, calendar, knowledge, api). Don't take those keys for anything else.
 
 ## 3. Data model
 
@@ -44,7 +44,11 @@ The UI and every reply to the user are in **Thai**; code and comments are in Eng
   and parse with `KB_FENCE` (groups: 1 ticks, 2 lang, 3 code). Markdown blocks render via marked + DOMPurify (`kbHydrateMd`);
   after inserting a rendered body call `kbHydrate(root)` (images + Markdown).
   A note links to jobs **through `jobNos`**; there is no join table.
-- Saving uses optimistic concurrency: `apiSaveJob/apiSaveNote(x, expectedUpdatedAt)` throws `err.conflict`, and the caller asks
+- API registry (`apis`, view `api`): field ↔ column via `API_MAP`; links through `jobNos` and `noteIds`. **`history`, `version` and the
+  stamps on `tests` belong to the database trigger** (`apis_before_write`): the browser never sends `history`/`version`
+  (see `apiToRow`), only appends to `tests`. Local mode imitates the trigger in `apiLocalAudit`; keep the two in step
+  (field list = `API_FIELDS`, contract fields bump the version). Secrets in API fields go through `apiSecretCount` / `apiMaskSecrets`.
+- Saving uses optimistic concurrency: `apiSaveJob/apiSaveNote/apiSaveApi(x, expectedUpdatedAt)` throws `err.conflict`, and the caller asks
   the user before overwriting. Keep this for any new write path.
 - Dates are ISO `YYYY-MM-DD` in the Gregorian calendar. Thai sources often contain Buddhist years: convert on import with `ceYear()`, and never trust
   a year > 2400 (see `jobRange`, which ignores spans over 2 years). Existing bad rows are fixed with `supabase/fix-buddhist-years.sql`.

@@ -60,9 +60,14 @@ jobs:
             echo "::warning::อ่านตาราง resumes ไม่ได้ — รัน supabase/schema.sql (v5) ใน SQL Editor ก่อน"
             echo '[]' > resumes.json
           fi
+          # ทะเบียน API (schema v7)
+          if ! fetch apis created_at.asc; then
+            echo "::warning::อ่านตาราง apis ไม่ได้ — รัน supabase/schema.sql (v7) ใน SQL Editor ก่อน"
+            echo '[]' > apis.json
+          fi
           STAMP=$(TZ=Asia/Bangkok date +%F)
-          jq -n --slurpfile jobs jobs.json --slurpfile s app_settings.json --slurpfile notes knowledge.json --slurpfile resumes resumes.json --arg at "$(date -u +%FT%TZ)" \
-            '{source:"github-actions", exported_at:$at, jobs:$jobs[0], settings:($s[0][0].data // {}), notes:$notes[0], resumes:$resumes[0]}' > "job-schedule-backup-$STAMP.json"
+          jq -n --slurpfile jobs jobs.json --slurpfile s app_settings.json --slurpfile notes knowledge.json --slurpfile resumes resumes.json --slurpfile apis apis.json --arg at "$(date -u +%FT%TZ)" \
+            '{source:"github-actions", exported_at:$at, jobs:$jobs[0], settings:($s[0][0].data // {}), notes:$notes[0], resumes:$resumes[0], apis:$apis[0]}' > "job-schedule-backup-$STAMP.json"
           echo "jobs: $(jq length jobs.json) · notes: $(jq length knowledge.json)"
           # รูปที่เนื้อหาอ้างถึง ![…](kb:<path>) → images/<path>
           mkdir -p images
@@ -87,7 +92,7 @@ jobs:
             gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
               --symmetric --cipher-algo AES256 -o "job-schedule-images-$STAMP.tar.gpg" images.tar
           fi
-          rm -rf pages images images.tar images.txt jobs.json app_settings.json knowledge.json resumes.json "job-schedule-backup-$STAMP.json"
+          rm -rf pages images images.tar images.txt jobs.json app_settings.json knowledge.json resumes.json apis.json "job-schedule-backup-$STAMP.json"
 
       - uses: actions/upload-artifact@v4
         with:

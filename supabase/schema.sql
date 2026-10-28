@@ -245,6 +245,115 @@ $$;
 revoke all on function public.portfolio_stats() from public;
 grant execute on function public.portfolio_stats() to anon, authenticated;
 
+-- ---------- v7: ทะเบียน API (index.html → ทะเบียน API) ----------
+-- history / version / tests are maintained here, not by the browser, so the audit trail can't be rewritten from the app:
+--   history: one entry per edit (who, when, which fields, old values of the contract fields)
+--   version: +1 whenever the contract changes (method, path, URLs, auth, headers, request, response)
+--   tests:   append-only log of test results per environment
+create table if not exists public.apis (
+  id               uuid primary key default gen_random_uuid(),
+  name             text not null default '',
+  method           text not null default 'GET',
+  path             text not null default '',
+  url_std66        text not null default '',
+  url_live         text not null default '',
+  source_system    text not null default '',
+  target_system    text not null default '',
+  auth             text not null default '',      -- how to authenticate — never the secret itself (<password>)
+  headers          text not null default '',
+  request_sample   text not null default '',
+  response_sample  text not null default '',
+  errors           text not null default '',
+  description      text not null default '',
+  status           text not null default 'ร่าง',  -- ร่าง / ทดสอบ / ใช้งานจริง / เลิกใช้
+  owner            text not null default '',
+  tags             text[] not null default '{}',
+  job_nos          text[] not null default '{}',
+  note_ids         text[] not null default '{}',  -- knowledge.id of related notes
+  tests            jsonb not null default '[]',
+  history          jsonb not null default '[]',
+  version          int not null default 1,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  created_by       uuid default auth.uid() references auth.users(id) on delete set null,
+  updated_by       uuid default auth.uid() references auth.users(id) on delete set null,
+  updated_by_email text not null default ''
+);
+
+create or replace function public.apis_before_write() returns trigger
+language plpgsql as $$
+declare
+  who text := coalesce(auth.jwt() ->> 'email', '');
+  changed text[];
+  prev jsonb;
+begin
+  new.updated_by_email := who;
+  if tg_op = 'INSERT' then
+    new.version := 1;
+    new.tests := coalesce(new.tests, '[]'::jsonb);
+    new.history := jsonb_build_array(jsonb_build_object('at', now(), 'by', who, 'what', 'สร้าง', 'version', 1));
+    return new;
+  end if;
+  new.created_at := old.created_at;
+  new.created_by := old.created_by;
+  new.updated_at := now();
+  new.updated_by := auth.uid();
+  -- tests: keep every old entry, accept only entries appended after them, stamped with the real user and time
+  new.tests := old.tests || coalesce((select jsonb_agg(e || jsonb_build_object('by', who, 'at', now()) order by i)
+                                      from jsonb_array_elements(coalesce(new.tests, '[]'::jsonb)) with ordinality t(e, i)
+                                      where i > jsonb_array_length(old.tests)), '[]'::jsonb);
+  prev := jsonb_strip_nulls(jsonb_build_object(
+    'method',          case when new.method          is distinct from old.method          then old.method end,
+    'path',            case when new.path            is distinct from old.path            then old.path end,
+    'url_std66',       case when new.url_std66       is distinct from old.url_std66       then old.url_std66 end,
+    'url_live',        case when new.url_live        is distinct from old.url_live        then old.url_live end,
+    'auth',            case when new.auth            is distinct from old.auth            then old.auth end,
+    'headers',         case when new.headers         is distinct from old.headers         then old.headers end,
+    'request_sample',  case when new.request_sample  is distinct from old.request_sample  then old.request_sample end,
+    'response_sample', case when new.response_sample is distinct from old.response_sample then old.response_sample end));
+  new.version := old.version + case when prev <> '{}'::jsonb then 1 else 0 end;
+  changed := array_remove(array[
+    case when new.name          is distinct from old.name          then 'ชื่อ' end,
+    case when new.method        is distinct from old.method        then 'Method' end,
+    case when new.path          is distinct from old.path          then 'Path' end,
+    case when new.url_std66     is distinct from old.url_std66     then 'URL STD66' end,
+    case when new.url_live      is distinct from old.url_live      then 'URL LIVE' end,
+    case when new.source_system is distinct from old.source_system
+           or new.target_system is distinct from old.target_system then 'ระบบ' end,
+    case when new.auth          is distinct from old.auth          then 'Auth' end,
+    case when new.headers       is distinct from old.headers       then 'Headers' end,
+    case when new.request_sample  is distinct from old.request_sample  then 'Request' end,
+    case when new.response_sample is distinct from old.response_sample then 'Response' end,
+    case when new.errors        is distinct from old.errors        then 'Errors' end,
+    case when new.description   is distinct from old.description   then 'รายละเอียด' end,
+    case when new.status        is distinct from old.status        then 'สถานะ → ' || new.status end,
+    case when new.owner         is distinct from old.owner         then 'ผู้ดูแล' end,
+    case when new.tags          is distinct from old.tags          then 'Tags' end,
+    case when new.job_nos       is distinct from old.job_nos       then 'Job' end,
+    case when new.note_ids      is distinct from old.note_ids      then 'ความรู้' end], null);
+  new.history := old.history || case when cardinality(changed) > 0
+    then jsonb_build_array(jsonb_build_object('at', now(), 'by', who, 'what', array_to_string(changed, ', '), 'version', new.version, 'prev', prev))
+    else '[]'::jsonb end;
+  return new;
+end $$;
+
+drop trigger if exists apis_before_write on public.apis;
+create trigger apis_before_write before insert or update on public.apis
+  for each row execute function public.apis_before_write();
+
+grant select, insert, update, delete on public.apis to authenticated;
+revoke all on public.apis from anon;
+alter table public.apis enable row level security;
+
+drop policy if exists "team can read apis"   on public.apis;
+drop policy if exists "team can insert apis" on public.apis;
+drop policy if exists "team can update apis" on public.apis;
+drop policy if exists "team can delete apis" on public.apis;
+create policy "team can read apis"   on public.apis for select to authenticated using (true);
+create policy "team can insert apis" on public.apis for insert to authenticated with check (true);
+create policy "team can update apis" on public.apis for update to authenticated using (true) with check (true);
+create policy "team can delete apis" on public.apis for delete to authenticated using (true);
+
 -- ---------- realtime: เห็นการแก้ไขของเพื่อนร่วมทีมทันที ----------
 do $$
 begin
@@ -256,5 +365,8 @@ begin
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'knowledge') then
     alter publication supabase_realtime add table public.knowledge;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'apis') then
+    alter publication supabase_realtime add table public.apis;
   end if;
 end $$;

@@ -58,6 +58,14 @@
 ตั้งค่าใน `config.js`: `GITHUB_REPO` (repo ที่รัน backup), `DB_LIMIT_MB` และ `STORAGE_LIMIT_MB` (เปลี่ยนเมื่ออัปเกรดแผน — แก้ใน `backup.yml` ด้วย)
 ให้แน่ใจว่าได้รับอีเมล: GitHub → Settings → Notifications → Actions = "Only notify for failed workflows" และ Watch repo นี้ (ค่าเริ่มต้นของเจ้าของ repo)
 
+### อัปเดต schema (v7 — 28 ต.ค. 2026): ทะเบียน API
+รัน `supabase/schema.sql` ซ้ำใน SQL Editor 1 ครั้ง (ไม่ทำข้อมูลหาย) — สร้างตาราง `apis` + RLS (ทีมที่ login อ่าน/เขียนได้, anon ไม่ได้) + realtime + trigger `apis_before_write`
+- trigger เป็นผู้บันทึก **history** (ใคร/เมื่อไหร่/แก้ช่องไหน + ค่าเดิมของช่องที่เป็นสัญญา API), เพิ่ม **version** เมื่อ Method / Path / URL / Auth / Headers / Request / Response เปลี่ยน และทำให้ **tests** (ผลทดสอบ) เพิ่มได้อย่างเดียว พร้อมประทับชื่อผู้ทดสอบและเวลาจริง — แก้จากแอปไม่ได้ จึงใช้ตรวจสอบย้อนหลังได้
+- backup รายวันรวมตาราง `apis` แล้ว (ฟิลด์ `apis` ในไฟล์ JSON)
+- ก่อนรัน SQL หน้า "ทะเบียน API" จะขึ้นแถบเตือน ส่วนอื่นของแอปใช้งานได้ปกติ
+
+ตรวจหลังรัน: Table Editor → ต้องเห็นตาราง `apis` · เปิดแอป → ทะเบียน API → เพิ่ม API ทดสอบ → แก้ Request แล้วบันทึก → ต้องขึ้น v2 และมีรายการในประวัติ → กด ✓ ผ่าน ที่แถว STD66 → ประวัติต้องมีผลทดสอบพร้อมอีเมลผู้ทดสอบ
+
 ### อัปเดต schema (v6 — 23 ต.ค. 2026): สถิติสาธารณะให้ Portfolio
 รัน `supabase/schema.sql` ซ้ำใน SQL Editor 1 ครั้ง — สร้างฟังก์ชัน `portfolio_stats()` ที่ `portfolio.html` เรียกด้วย anon key
 - คืนค่าเฉพาะตัวเลขรวม: จำนวนงาน, งานรายงาน/ฟอร์ม, จำนวนงานต่อปี (แยก Odoo), โมดูลที่ทำบ่อย 8 อันดับ, จำนวนบทความตามหมวด 8 อันดับ — **ไม่มี** ชื่องาน รายละเอียด หรือเนื้อหาบทความ
