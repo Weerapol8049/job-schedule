@@ -1132,6 +1132,7 @@ const LIBS = {
   xlsx:  ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'SheetJS'],
   chart: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js', 'Chart.js'],
   hljs:  ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js', 'highlight.js'],
+  hljsPs:['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js', 'highlight.js PowerShell'],
   md:    ['https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js', 'marked'],
   purify:['https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js', 'DOMPurify'],
 };
@@ -2618,7 +2619,7 @@ const KB_KW = {
   js:'const|let|var|function|return|if|else|for|while|of|in|async|await|new|class|extends|import|export|from|default|try|catch|throw|true|false|null|undefined|this',
   py:'def|class|import|from|as|return|if|elif|else|for|while|in|not|and|or|is|try|except|finally|with|lambda|yield|pass|break|continue|True|False|None|self',
 };
-const KB_LANG = {xpp:'x++', ax:'x++', tsql:'sql', mssql:'sql', sh:'bash', shell:'bash', powershell:'bash', ps:'bash', cmd:'bash', javascript:'js', ts:'js', typescript:'js', json:'js', python:'py'};
+const KB_LANG = {xpp:'x++', ax:'x++', tsql:'sql', mssql:'sql', sh:'bash', shell:'bash', ps1:'bash', powershell:'bash', ps:'bash', pwsh:'bash', cmd:'bash', javascript:'js', ts:'js', typescript:'js', json:'js', python:'py'};
 function kbHighlight(code, lang){
   lang = KB_LANG[lang] || lang;
   const kw = KB_KW[lang];
@@ -2644,15 +2645,18 @@ const KB_LANGS = [
   ['css',  'CSS',           'css',        ['scss','less']],
   ['js',   'JavaScript',    'javascript', ['javascript','ts','typescript','node']],
   ['py',   'Python',        'python',     ['python']],
-  ['bash', 'Shell / curl',  'bash',       ['sh','shell','powershell','ps','cmd','curl','console']],
+  ['bash', 'Shell / curl',  'bash',       ['sh','shell','cmd','curl','console']],
+  ['ps1',  'PowerShell',    'powershell', ['powershell','ps','pwsh','posh']],
   ['md',   'Markdown',      'markdown',   ['markdown']],
 ];
 const kbLangInfo = lang => { lang = String(lang || '').toLowerCase(); return KB_LANGS.find(l => l[0] === lang || l[3].includes(lang)) || null; };
-const KB_AUTO = ['sql','csharp','json','xml','css','javascript','python','bash','xpp'];
+const KB_AUTO = ['sql','csharp','json','xml','css','javascript','python','bash','powershell','xpp'];
 // highlight.js arrives lazily; until then kbHL falls back to the built-in kbHighlight
 function kbEnsureHljs(){
   if (window.hljs) return;
-  loadLib('hljs').then(() => { kbRegisterXpp(); if (view === 'knowledge') render(); }).catch(() => {});
+  // the core build has no PowerShell grammar; its language file registers itself once hljs is there
+  loadLib('hljs').then(() => { kbRegisterXpp(); return loadLib('hljsPs').catch(() => {}); })
+    .then(() => { if (view === 'knowledge' || view === 'api') render(); }).catch(() => {});
 }
 // X++ (Dynamics AX 2012) for highlight.js — case-insensitive like the language itself
 const kbRegisterXpp = () => hljs.registerLanguage('xpp', h => ({
@@ -2833,6 +2837,14 @@ function kbHydrate(root){ hydrateKbImages(root); kbHydrateMd(root); }
 const KB_NOT_METHOD = new Set('if while for foreach switch catch return new select using else throw case lock sizeof typeof nameof base this super await'.split(' '));
 function kbCodeName(code, lang){
   if (kbLangInfo(lang)?.[0] === 'md'){ const h = code.match(/^#{1,6}\s+(.+)$/m); return {title:h ? h[1].trim() : '', methods:[]}; }
+  // PowerShell: named after its functions (Verb-Noun), else the first cmdlet it runs
+  if (kbLangInfo(lang)?.[0] === 'ps1'){
+    const src = code.replace(/<#[\s\S]*?#>/g, '').replace(/#[^\n]*/g, '');
+    const fns = [...src.matchAll(/^\s*function\s+([\w-]+)/gim)].map(m => m[1]);
+    if (fns.length) return {title:`${fns[0]}()${fns.length > 1 ? ` +${fns.length - 1}` : ''}`, methods:fns};
+    const cmd = src.match(/\b([A-Z][a-z]+-[A-Z][A-Za-z]+)\b/);
+    return {title:cmd ? cmd[1] : '', methods:[]};
+  }
   lang = KB_LANG[lang] || lang;
   let src = code.replace(/\/\*[\s\S]*?\*\//g, '');
   src = lang === 'sql' ? src.replace(/--[^\n]*/g, '') : (lang === 'py' || lang === 'bash') ? src.replace(/#[^\n]*/g, '') : src.replace(/\/\/[^\n]*/g, '');
