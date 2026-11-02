@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ห้องนิรภัยบัญชี · Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* same tokens as the Job Schedule app */
+:root{
+  --bg:#f4f5f8; --surface:#ffffff; --surface-2:#f8f9fb; --surface-3:#eef0f4;
+  --text:#141923; --text-2:#475066; --muted:#8a92a3; --border:#e6e9ef; --border-strong:#d4d9e2;
+  --accent:#4f46e5; --accent-hover:#4338ca; --accent-text:#ffffff; --accent-soft:#eef0ff;
+  --danger:#e11d48; --danger-soft:#fff0f3; --ok:#059669; --ok-soft:#e7f7f0; --warn:#d97706; --warn-soft:#fff5e5;
+  --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+  --shadow-lg:0 16px 40px -12px rgba(16,24,40,.22);
+  --ring:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  --radius:14px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0e13; --surface:#131821; --surface-2:#171d27; --surface-3:#1e2531;
+    --text:#e9ecf2; --text-2:#b3bbca; --muted:#7b8496; --border:#232b37; --border-strong:#313b4a;
+    --accent:#7c83ff; --accent-hover:#959bff; --accent-text:#0b0d1a; --accent-soft:#1d2042;
+    --danger:#fb7185; --danger-soft:#2b141a; --ok:#34d399; --ok-soft:#0f261d; --warn:#fbbf24; --warn-soft:#2a210c;
+    --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 16px 40px -12px rgba(0,0,0,.7); color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.6 "IBM Plex Sans Thai",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+.top{position:sticky;top:0;z-index:10;background:color-mix(in srgb, var(--surface) 90%, transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.top .wrap{display:flex;align-items:center;gap:12px;height:58px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;margin-right:auto}
+.brand .logo{width:32px;height:32px;border-radius:9px;background:var(--accent);color:var(--accent-text);display:grid;place-items:center}
+.brand small{font-weight:500;font-size:11px;color:var(--warn);background:var(--warn-soft);padding:2px 8px;border-radius:99px}
+.seg{display:inline-flex;background:var(--surface-3);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:none;height:30px;padding:0 12px;border-radius:8px;cursor:pointer;font-weight:500;color:var(--text-2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--border-strong);background:var(--surface);cursor:pointer;font-weight:500;font-size:13px;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.btn.sm{height:28px;padding:0 9px;font-size:12px;border-radius:7px}
+.btn.danger:hover{color:var(--danger);border-color:var(--danger)}
+.input,select.input{width:100%;height:36px;padding:0 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);outline:none}
+.input:focus{border-color:var(--accent);box-shadow:var(--ring)}
+textarea.input{height:auto;min-height:70px;padding:8px 10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field>span{font-size:12px;color:var(--text-2);font-weight:500}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap;background:color-mix(in srgb, var(--c) 14%, transparent);color:color-mix(in srgb, var(--c) 80%, var(--text))}
+main{padding:20px 0 60px}
+
+/* lock screen */
+.lock{min-height:calc(100vh - 58px);display:grid;place-items:center;padding:20px}
+.lock .card{width:100%;max-width:420px;padding:26px}
+.lock h2{margin:0 0 4px;font-size:19px}
+.lock p{margin:0 0 16px;color:var(--text-2);font-size:13px}
+.lock form{display:flex;flex-direction:column;gap:12px}
+.err{color:var(--danger);font-size:12.5px;min-height:1em;margin:0}
+.meter{height:5px;border-radius:3px;background:var(--surface-3);overflow:hidden}
+.meter i{display:block;height:100%;transition:width .2s}
+
+/* vault */
+.vault{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:16px;align-items:start}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.tools .input{max-width:320px}
+.list{overflow:hidden}
+.acc{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);background:none;padding:11px 14px;cursor:pointer}
+.acc:hover{background:var(--surface-2)}
+.acc.active{background:var(--accent-soft)}
+.acc .row{display:flex;gap:8px;align-items:center}
+.acc b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc small{color:var(--muted);font-size:12px}
+.doc{padding:20px 22px}
+.doc h2{margin:6px 0 2px;font-size:20px}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:8px 14px;margin:16px 0;font-size:13.5px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.secret{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2)}
+.secret .val{font:13px "IBM Plex Mono",monospace;flex:1;min-width:180px;letter-spacing:.04em}
+.secret .count{font-size:11.5px;color:var(--muted)}
+.ref{display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--ok-soft);font-size:13px}
+.panel{margin-top:18px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
+.panel h4{margin:0 0 8px;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.log{list-style:none;margin:0;padding:0;font-size:12.5px}
+.log li{display:flex;gap:10px;padding:4px 0;border-bottom:1px dashed var(--border)}
+.log li:last-child{border-bottom:0}
+.log time{color:var(--muted);white-space:nowrap}
+pre.raw{margin:0;max-height:340px;overflow:auto;font:11.5px/1.5 "IBM Plex Mono",monospace;white-space:pre-wrap;word-break:break-all}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:10px;background:var(--warn-soft);color:var(--text-2);font-size:13px;margin-bottom:14px}
+.banner svg{color:var(--warn);margin-top:3px}
+dialog{border:0;border-radius:16px;padding:0;width:min(640px,calc(100vw - 24px));background:var(--surface);color:var(--text);box-shadow:var(--shadow-lg)}
+dialog::backdrop{background:rgba(10,13,20,.45)}
+dialog form{display:flex;flex-direction:column}
+dialog header,dialog footer{display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid var(--border)}
+dialog footer{border-top:1px solid var(--border);border-bottom:0;justify-content:flex-end}
+dialog header h3{margin:0;font-size:16px;margin-right:auto}
+dialog .body{padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-height:70vh;overflow:auto}
+dialog .full{grid-column:1/-1}
+.radio{display:flex;gap:14px;flex-wrap:wrap;font-size:13px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,10px);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:500;font-size:13px;opacity:0;transition:.2s;pointer-events:none;z-index:50}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* plan */
+.plan{max-width:900px}
+.plan h2{font-size:22px;margin:28px 0 8px}
+.plan h2:first-child{margin-top:0}
+.plan h3{font-size:16px;margin:20px 0 6px}
+.plan p,.plan li{color:var(--text-2)}
+.plan table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 14px}
+.plan th,.plan td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+.plan th{background:var(--surface-2)}
+.plan code{font:12.5px "IBM Plex Mono",monospace;background:var(--surface-3);padding:1px 5px;border-radius:5px}
+.plan pre{font:12px/1.55 "IBM Plex Mono",monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;overflow:auto}
+.plan .rec{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 10px 10px 0;color:var(--text)}
+@media (max-width:860px){ .vault{grid-template-columns:1fr} .kv{grid-template-columns:1fr} dialog .body{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+</svg>
+
+<header class="top"><div class="wrap">
+  <div class="brand"><span class="logo"><svg class="i"><use href="#i-lock"/></svg></span>ห้องนิรภัยบัญชี <small>PROTOTYPE · ข้อมูลสมมติ</small></div>
+  <div class="seg" id="tabs"><button data-tab="app" aria-pressed="true">ลองใช้</button><button data-tab="plan" aria-pressed="false">แผน</button></div>
+  <button class="btn" id="lockBtn" hidden><svg class="i"><use href="#i-lock"/></svg>ล็อก</button>
+</div></header>
+
+<main>
+  <section id="tab-app">
+    <div class="lock" id="lockView">
+      <div class="card">
+        <h2 id="lockTitle"></h2>
+        <p id="lockSub"></p>
+        <form id="lockForm">
+          <label class="field"><span>รหัสผ่านห้องนิรภัย (Vault passphrase)</span><input class="input" id="pass" type="password" autocomplete="off" required></label>
+          <div class="meter" id="meterBox" hidden><i id="meter"></i></div>
+          <label class="field" id="pass2Box" hidden><span>ยืนยันอีกครั้ง</span><input class="input" id="pass2" type="password" autocomplete="off"></label>
+          <p class="err" id="lockErr"></p>
+          <button class="btn primary" type="submit" id="unlockBtn" style="justify-content:center;height:40px"></button>
+          <button class="btn" type="button" id="resetBtn" style="justify-content:center">ล้าง prototype เริ่มใหม่</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="wrap" id="vaultView" hidden>
+      <div class="banner"><svg class="i"><use href="#i-alert"/></svg><div><b>นี่คือ prototype</b> — ข้อมูลทั้งหมดเป็นของสมมติและเก็บในเบราว์เซอร์นี้เท่านั้น ห้ามใส่รหัสจริง · การเข้ารหัสเป็นของจริง (AES-256-GCM + PBKDF2) ลองกด <b>“ข้อมูลที่เซิร์ฟเวอร์เห็น”</b> เพื่อดูว่าฐานข้อมูลจะเก็บอะไร · ล็อกอัตโนมัติเมื่อไม่ใช้งาน 5 นาที</div></div>
+      <div class="tools">
+        <input class="input" id="q" type="search" placeholder="ค้นระบบ, username, URL…">
+        <select class="input" id="fEnv" style="width:auto"><option value="">ทุก environment</option><option>LIVE</option><option>STD66</option><option>อื่น ๆ</option></select>
+        <select class="input" id="fDue" style="width:auto"><option value="">ทุกสถานะรหัส</option><option value="over">เกินกำหนดเปลี่ยน</option><option value="soon">ใกล้ครบกำหนด</option></select>
+        <span style="flex:1"></span>
+        <button class="btn" id="rawBtn">ข้อมูลที่เซิร์ฟเวอร์เห็น</button>
+        <button class="btn primary" id="newBtn"><svg class="i"><use href="#i-plus"/></svg>เพิ่มบัญชี</button>
+      </div>
+      <div class="vault">
+        <div class="card list" id="list"></div>
+        <div class="card doc" id="doc"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-plan" hidden><div class="wrap"><article class="plan card" style="padding:24px 28px">
+    <h2>แผน: ระบบจัดการบัญชีและรหัสผ่าน</h2>
+    <p><b>ปัญหาตอนนี้</b> — รหัสผ่านกระจายอยู่ในคลังความรู้ 14 เรื่อง (ส่วนใหญ่ Odoo) และในงานอีก 3 งาน ทุกคนในทีมอ่านได้ ไม่รู้ว่าใครเห็นเมื่อไหร่ ไม่มีกำหนดเปลี่ยนรหัส และรหัสเดิมยังอยู่ใน backup ทุกชุด</p>
+
+    <h3>เป้าหมาย</h3>
+    <ul>
+      <li><b>ปลอดภัย:</b> ฐานข้อมูล, backup, ผู้ดูแล Supabase และใครที่ได้ service key ไปต้อง<b>อ่านรหัสไม่ได้</b></li>
+      <li><b>มีประสิทธิภาพ:</b> หา account ได้ใน 2 วินาที, คัดลอกรหัสโดยไม่ต้องให้รหัสโผล่บนจอ, รู้ว่ารหัสไหนถึงเวลาเปลี่ยน</li>
+      <li><b>ตรวจสอบได้:</b> ใครดู / คัดลอก / แก้ / เปลี่ยนรหัส เมื่อไหร่ — บันทึกแบบเพิ่มได้อย่างเดียว (แบบเดียวกับทะเบียน API)</li>
+      <li><b>เชื่อมกับงาน:</b> ทะเบียน API ช่อง Auth และคลังความรู้อ้างถึงบัญชีได้โดยไม่ต้องใส่รหัส</li>
+    </ul>
+
+    <h3>ทางเลือก</h3>
+    <table>
+      <tr><th></th><th>A. Password manager สำเร็จรูป<br>(Bitwarden / 1Password / Vaultwarden)</th><th>B. ห้องนิรภัยใน Job Schedule<br>(เข้ารหัสฝั่งเบราว์เซอร์)</th><th>C. เก็บใน Supabase ธรรมดา + RLS</th></tr>
+      <tr><td>ความปลอดภัย</td><td>สูงสุด — ผ่านการตรวจสอบ, 2FA, แยกสิทธิ์รายคน</td><td>ดี — server เห็นแต่ข้อมูลเข้ารหัส แต่เราดูแลโค้ดเข้ารหัสเอง</td><td><b>ไม่พอ</b> — ผู้ดูแล DB, service key, backup อ่านรหัสได้</td></tr>
+      <tr><td>ถอนสิทธิ์คนออก</td><td>ง่าย รายคน</td><td>ต้องเปลี่ยน passphrase (ระยะที่ 3 แก้ด้วย key รายคน)</td><td>ลบ user</td></tr>
+      <tr><td>ค่าใช้จ่าย</td><td>มีแผนฟรี/เสียเงินรายคน (ตรวจราคาล่าสุด)</td><td>ฟรี</td><td>ฟรี</td></tr>
+      <tr><td>เชื่อมกับงาน / API</td><td>ผ่านลิงก์ไปยังรายการ</td><td>ในตัว</td><td>ในตัว</td></tr>
+    </table>
+    <p class="rec"><b>คำแนะนำ: A + ทะเบียนบัญชีในแอป</b> — ใช้ password manager เก็บรหัสจริงของระบบ LIVE และบัญชีสำคัญ ส่วน Job Schedule มี “ทะเบียนบัญชี” เก็บ<b>ข้อมูลที่ไม่ใช่ความลับ</b> (ระบบ, environment, username, URL, ผู้ดูแล, วันเปลี่ยนรหัสล่าสุด) + ลิงก์ไปยังรายการใน password manager · ถ้ายังไม่มี password manager ใช้ <b>B</b> เป็นทางชั่วคราวได้ (คือสิ่งที่ prototype นี้สาธิต) · <b>ไม่ใช้ C</b></p>
+
+    <h3>การออกแบบ (ตามที่ prototype สาธิต)</h3>
+    <ul>
+      <li><b>แยกข้อมูลสองชั้น:</b> metadata อ่านได้ทั้งทีม (ค้น/กรองได้) · ตัวรหัสเป็น ciphertext เท่านั้น หรือเป็นลิงก์ไป password manager</li>
+      <li><b>เข้ารหัสในเบราว์เซอร์ (end-to-end):</b> PBKDF2-SHA256 600,000 รอบ → คีย์ AES-256-GCM · IV สุ่มใหม่ทุกครั้งที่บันทึก · ผูก ciphertext กับ id ของบัญชี (AAD) จึงสลับรหัสข้ามบัญชีไม่ได้ · ตรวจ passphrase ด้วย verifier ไม่เก็บ passphrase ที่ไหนเลย</li>
+      <li><b>ใช้งานปลอดภัยโดยไม่ต้องคิด:</b> รหัสซ่อนเป็นค่าเริ่มต้น, เปิดดูแล้วซ่อนเองใน 20 วินาที, คัดลอกแล้วล้าง clipboard ใน 30 วินาที, ล็อกเองเมื่อไม่ใช้งาน 5 นาที, ตัวสร้างรหัสแบบสุ่มจริง (crypto)</li>
+      <li><b>กำหนดเปลี่ยนรหัส:</b> LIVE ทุก 90 วัน, STD66 ทุก 180 วัน (ปรับได้รายบัญชี) — แสดงสถานะ “ใกล้ครบ / เกินกำหนด” และกรองได้</li>
+      <li><b>บันทึกการใช้งาน:</b> ดูรหัส / คัดลอก / แก้ / เปลี่ยนรหัส ต่อบัญชี · ในระบบจริงบันทึกผ่านฟังก์ชันในฐานข้อมูล แก้หรือลบไม่ได้</li>
+    </ul>
+
+    <h3>ข้อจำกัดที่ต้องรู้ (ตรงไปตรงมา)</h3>
+    <ul>
+      <li>การเข้ารหัสในเบราว์เซอร์ป้องกัน server / backup / ผู้ดูแล DB ได้ แต่<b>ไม่ป้องกัน</b>เครื่องผู้ใช้ที่ติดมัลแวร์ หรือคนในทีมที่รู้ passphrase แล้วตั้งใจนำรหัสออกไป</li>
+      <li>บันทึก “ดูรหัส” มาจากเบราว์เซอร์ — คนที่ถอดรหัสเองนอกแอปจะไม่ถูกบันทึก (password manager จริงก็มีข้อจำกัดคล้ายกันเมื่อแชร์รหัสไปแล้ว)</li>
+      <li>passphrase ร่วมของทีม: ใครออกจากทีม ต้องเปลี่ยน passphrase <b>และ</b>เปลี่ยนรหัสระบบที่เขาเคยเห็น</li>
+      <li>ลืม passphrase = กู้รหัสคืนไม่ได้ (ตั้งใจให้เป็นอย่างนั้น) → เก็บ passphrase ไว้ในซองปิดผนึก / password manager ของหัวหน้า</li>
+    </ul>
+
+    <h3>โครงสร้างข้อมูล (ระบบจริง — schema v8)</h3>
+<pre>accounts      id, system, env (LIVE/STD66/อื่น ๆ), name, username, url, owner,
+              secret_mode ('ref' | 'vault'), secret_ref (ลิงก์ password manager),
+              secret_ct jsonb {iv, ct} — ciphertext เท่านั้น,
+              rotate_days, rotated_at, job_nos[], api_ids[], note_ids[],
+              created/updated by + at (trigger)
+vault         1 แถว: kdf 'PBKDF2-SHA256', iterations, salt, verifier {iv, ct}
+account_events  append-only: account_id, action (view/copy/edit/rotate), by, at
+              — insert ผ่านฟังก์ชัน log_account_event() เท่านั้น, revoke update/delete
+RLS: authenticated อ่าน/เขียน accounts ได้ (เพราะ secret เป็น ciphertext), anon ไม่ได้
+backup: ได้แต่ ciphertext — กู้คืนแล้วต้องใช้ passphrase เดิม</pre>
+
+    <h3>แผนทำงาน</h3>
+    <table>
+      <tr><th>ระยะ</th><th>ทำอะไร</th><th>เวลา</th></tr>
+      <tr><td>0 · ทันที</td><td>ย้ายรหัสจริงออกจากคลังความรู้ (ปุ่ม “ตรวจรหัสผ่าน” มีอยู่แล้ว) → แทนด้วย &lt;password&gt; · <b>เปลี่ยนรหัสของระบบที่เคยถูกบันทึกไว้</b> (Odoo admin ฯลฯ) · ตัดสินใจเลือก password manager</td><td>ครึ่งวัน</td></tr>
+      <tr><td>1 · ทะเบียนบัญชี</td><td>เมนู “ทะเบียนบัญชี” ในแอป: metadata + ลิงก์ password manager + กำหนดเปลี่ยนรหัส + บันทึกการใช้งาน · เชื่อมกับงานและทะเบียน API (ช่อง Auth เลือกบัญชีแทนการพิมพ์)</td><td>1–2 วัน</td></tr>
+      <tr><td>2 · ห้องนิรภัย (ถ้าเลือก B)</td><td>เข้ารหัสในเบราว์เซอร์ตาม prototype · หน้าตั้ง passphrase ครั้งแรก · ระบบตรวจรหัสผ่านในคลังความรู้มีปุ่ม “ย้ายเข้าห้องนิรภัย”</td><td>2–3 วัน</td></tr>
+      <tr><td>3 · key รายคน</td><td>แต่ละคนมีคู่กุญแจ (ECDH) ใช้ห่อคีย์ห้องนิรภัย → ถอนสิทธิ์รายคนได้โดยไม่ต้องเปลี่ยน passphrase ทั้งทีม</td><td>3–5 วัน</td></tr>
+    </table>
+
+    <h3>ขั้นตอนปฏิบัติ (ใช้กับทุกทางเลือก)</h3>
+    <ul>
+      <li><b>คนเข้าใหม่:</b> เพิ่ม user → ให้สิทธิ์เฉพาะบัญชีที่ใช้งาน</li>
+      <li><b>คนออก:</b> ปิด user ทันที → เปลี่ยนรหัสทุกบัญชีที่เขาเคยดู/คัดลอก (ดูจากบันทึกการใช้งาน)</li>
+      <li><b>บัญชีระบบ:</b> แยก user สำหรับคน กับ user สำหรับ API/service · ห้ามใช้ admin/sa ให้โปรแกรมเชื่อมต่อ</li>
+      <li><b>ห้าม:</b> ส่งรหัสทาง LINE/อีเมล, ใส่รหัสในโค้ดหรือ git, แคปหน้าจอที่มีรหัส</li>
+    </ul>
+  </article></div></section>
+</main>
+
+<dialog id="dlg"><form id="accForm">
+  <header><h3 id="dlgTitle">เพิ่มบัญชี</h3><button type="button" class="btn sm" data-close>ปิด</button></header>
+  <div class="body">
+    <label class="field full"><span>ชื่อบัญชี</span><input class="input" name="name" required placeholder="เช่น Odoo admin (STD66)"></label>
+    <label class="field"><span>ระบบ</span><input class="input" name="system" list="dlSys" placeholder="Odoo, AX, SQL Server…"></label>
+    <label class="field"><span>Environment</span><select class="input" name="env"><option>LIVE</option><option>STD66</option><option>อื่น ๆ</option></select></label>
+    <label class="field"><span>Username</span><input class="input mono" name="username" autocomplete="off"></label>
+    <label class="field"><span>URL / Server</span><input class="input mono" name="url" autocomplete="off"></label>
+    <label class="field"><span>ผู้ดูแล</span><input class="input" name="owner"></label>
+    <label class="field"><span>เปลี่ยนรหัสทุก (วัน)</span><input class="input" name="rotateDays" type="number" min="0" placeholder="90"></label>
+    <div class="field full"><span>เก็บรหัสที่ไหน</span><div class="radio">
+      <label><input type="radio" name="mode" value="vault" checked> เข้ารหัสในห้องนิรภัยนี้</label>
+      <label><input type="radio" name="mode" value="ref"> อยู่ใน password manager (เก็บแค่ลิงก์)</label></div></div>
+    <label class="field full" data-mode="vault"><span>รหัสผ่าน / API key</span>
+      <div style="display:flex;gap:6px"><input class="input mono" name="secret" type="password" autocomplete="new-password" placeholder="เว้นว่าง = ใช้รหัสเดิม"><button type="button" class="btn" id="genBtn" title="สร้างรหัสแบบสุ่ม 20 ตัว"><svg class="i"><use href="#i-refresh"/></svg>สร้าง</button></div></label>
+    <label class="field full" data-mode="ref" hidden><span>ลิงก์รายการใน password manager</span><input class="input mono" name="ref" placeholder="https://vault.bitwarden.com/#/vault?itemId=…"></label>
+    <label class="field full"><span>หมายเหตุ (ห้ามใส่รหัส)</span><textarea class="input" name="note"></textarea></label>
+  </div>
+  <footer><span class="err" id="dlgErr" style="margin-right:auto"></span><button type="button" class="btn" data-close>ยกเลิก</button><button type="submit" class="btn primary">บันทึก</button></footer>
+</form></dialog>
+<datalist id="dlSys"><option>Odoo</option><option>AX 2012</option><option>SQL Server</option><option>Windows Server</option><option>e-Tax</option><option>LINE OA</option><option>GitHub</option><option>Supabase</option></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== Prototype: account vault with client-side encryption =====
+// What the server would store = STORE in localStorage: metadata in clear, secrets as AES-GCM ciphertext.
+const STORE_KEY = 'account-vault-prototype';
+const ITERATIONS = 600000;            // PBKDF2-SHA256, OWASP 2023 guidance
+const REVEAL_MS = 20000, CLIP_MS = 30000, IDLE_MS = 5 * 60000;
+const DEFAULT_ROTATE = {LIVE:90, STD66:180, 'อื่น ๆ':180};
+
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const enc = new TextEncoder(), dec = new TextDecoder();
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const today = () => new Date().toISOString().slice(0, 10);
+const daysBetween = (a, b) => Math.floor((new Date(b) - new Date(a)) / 86400000);
+const fmt = iso => new Date(iso).toLocaleString('th-TH-u-ca-gregory', {dateStyle:'medium', timeStyle:'short'});
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2400); }
+
+/* ---------- crypto ---------- */
+async function deriveKey(pass, salt, iterations){
+  const base = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt', 'decrypt']);
+}
+// aad binds the ciphertext to one account: swapping secret_ct between rows fails to decrypt
+async function seal(key, text, aad){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv, additionalData:enc.encode(aad)}, key, enc.encode(text));
+  return {iv:b64(iv), ct:b64(ct)};
+}
+async function unseal(key, box, aad){
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(box.iv), additionalData:enc.encode(aad)}, key, unb64(box.ct));
+  return dec.decode(pt);
+}
+function generatePassword(len = 20){
+  const sets = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnopqrstuvwxyz', '23456789', '!@#$%^&*-_=+?'];
+  const all = sets.join(''), rnd = n => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; };
+  const out = sets.map(s => s[rnd(s.length)]);              // at least one of each kind
+  while (out.length < len) out.push(all[rnd(all.length)]);
+  for (let i = out.length - 1; i > 0; i--){ const j = rnd(i + 1); [out[i], out[j]] = [out[j], out[i]]; }
+  return out.join('');
+}
+function strength(p){
+  let pool = 0;
+  if (/[a-z]/.test(p)) pool += 26; if (/[A-Z]/.test(p)) pool += 26; if (/\d/.test(p)) pool += 10; if (/[^A-Za-z0-9]/.test(p)) pool += 20;
+  return Math.round(p.length * Math.log2(pool || 1));        // bits, rough
+}
+
+/* ---------- state ---------- */
+let store = load(), key = null, sel = '', idleTimer = 0, revealed = null;
+function load(){ try { return JSON.parse(localStorage.getItem(STORE_KEY)) || null; } catch(e){ return null; } }
+function persist(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch(e){ toast('บันทึกไม่ได้'); } }
+const me = 'คุณ (demo)';
+function logEvent(acc, action){ acc.events = [...(acc.events || []), {at:new Date().toISOString(), by:me, action}]; persist(); }
+function rotationState(a){
+  const days = +a.rotateDays || DEFAULT_ROTATE[a.env] || 180;
+  if (!a.rotatedAt) return {key:'over', text:'ไม่ทราบวันเปลี่ยนรหัส', c:'var(--danger)'};
+  const left = days - daysBetween(a.rotatedAt, today());
+  if (left < 0) return {key:'over', text:`เกินกำหนด ${-left} วัน`, c:'var(--danger)'};
+  if (left <= 14) return {key:'soon', text:`ครบกำหนดใน ${left} วัน`, c:'var(--warn)'};
+  return {key:'ok', text:`เปลี่ยนอีก ${left} วัน`, c:'var(--ok)'};
+}
+
+/* ---------- lock / unlock ---------- */
+function showLock(){
+  key = null; revealed = null;
+  $('#vaultView').hidden = true; $('#lockView').hidden = false; $('#lockBtn').hidden = true;
+  const first = !store;
+  $('#lockTitle').textContent = first ? 'ตั้งรหัสผ่านห้องนิรภัย' : 'ปลดล็อกห้องนิรภัย';
+  $('#lockSub').textContent = first
+    ? 'ใช้เข้ารหัสทุกบัญชี — ไม่ถูกเก็บที่ไหน ลืมแล้วกู้คืนไม่ได้ · ควรยาว 14 ตัวขึ้นไป (prototype จะใส่บัญชีตัวอย่างให้ 5 รายการ)'
+    : 'ใส่รหัสผ่านห้องนิรภัยของทีม';
+  $('#pass2Box').hidden = !first; $('#meterBox').hidden = !first; $('#resetBtn').hidden = first;
+  $('#unlockBtn').textContent = first ? 'สร้างห้องนิรภัย' : 'ปลดล็อก';
+  $('#lockErr').textContent = ''; $('#pass').value = ''; $('#pass2').value = '';
+  $('#pass').focus();
+}
+$('#pass').oninput = () => {
+  const b = strength($('#pass').value), pct = Math.min(100, b / 90 * 100);
+  $('#meter').style.width = pct + '%';
+  $('#meter').style.background = b < 50 ? 'var(--danger)' : b < 75 ? 'var(--warn)' : 'var(--ok)';
+};
+$('#lockForm').onsubmit = async e => {
+  e.preventDefault();
+  const pass = $('#pass').value, btn = $('#unlockBtn');
+  $('#lockErr').textContent = '';
+  btn.disabled = true; btn.textContent = 'กำลังคำนวณคีย์…';   // 600k PBKDF2 rounds take ~0.3–1 s on purpose
+  try {
+    if (!store){
+      if (pass.length < 12) throw new Error('สั้นเกินไป — อย่างน้อย 12 ตัว');
+      if (pass !== $('#pass2').value) throw new Error('ยืนยันรหัสไม่ตรงกัน');
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      key = await deriveKey(pass, salt, ITERATIONS);
+      store = {vault:{kdf:'PBKDF2-SHA256', iterations:ITERATIONS, salt:b64(salt), verifier:await seal(key, 'vault-ok', 'verifier')}, accounts:[]};
+      await seedDemo();
+      persist();
+    } else {
+      const v = store.vault;
+      const k = await deriveKey(pass, unb64(v.salt), v.iterations);
+      try { await unseal(k, v.verifier, 'verifier'); } catch(_){ throw new Error('รหัสผ่านห้องนิรภัยไม่ถูกต้อง'); }
+      key = k;
+    }
+    showVault();
+  } catch(err){ $('#lockErr').textContent = err.message; }
+  btn.disabled = false; btn.textContent = store ? 'ปลดล็อก' : 'สร้างห้องนิรภัย';
+};
+$('#resetBtn').onclick = () => { if (confirm('ล้างข้อมูล prototype ทั้งหมดในเบราว์เซอร์นี้?')){ localStorage.removeItem(STORE_KEY); store = null; showLock(); } };
+$('#lockBtn').onclick = () => { showLock(); toast('ล็อกแล้ว'); };
+// auto-lock after inactivity
+['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => { clearTimeout(idleTimer); if (key) idleTimer = setTimeout(() => { showLock(); toast('ล็อกอัตโนมัติ (ไม่ได้ใช้งาน 5 นาที)'); }, IDLE_MS); }, true));
+
+async function seedDemo(){
+  const d = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+  const demo = [
+    {name:'Odoo admin (STD66)', system:'Odoo', env:'STD66', username:'admin@example.com', url:'https://dev.example.local:8069', owner:'ทีม ERP', rotatedAt:d(40), mode:'vault', secret:'Demo-Std66-Passw0rd!'},
+    {name:'Odoo admin (LIVE)', system:'Odoo', env:'LIVE', username:'admin@example.com', url:'https://erp.example.local', owner:'หัวหน้าทีม', rotatedAt:d(120), mode:'ref', ref:'https://vault.bitwarden.com/#/vault?itemId=demo-0001'},
+    {name:'SQL Server sa (AX STD66)', system:'SQL Server', env:'STD66', username:'sa', url:'DEMO-SQL01', owner:'DBA', rotatedAt:d(170), mode:'vault', secret:'Demo-Sql-' + generatePassword(10)},
+    {name:'AX AOS service account', system:'AX 2012', env:'LIVE', username:'DOMAIN\\svc-aos', url:'DEMO-AOS01', owner:'ทีม AX', rotatedAt:d(30), mode:'ref', ref:'https://vault.bitwarden.com/#/vault?itemId=demo-0002'},
+    {name:'Odoo inventory API key', system:'Odoo', env:'LIVE', username:'x-api-key', url:'https://erp.example.local/api/inventory', owner:'ทีม ERP', rotatedAt:'', mode:'vault', secret:generatePassword(32)},
+  ];
+  for (const a of demo){
+    const id = crypto.randomUUID();
+    const acc = {id, name:a.name, system:a.system, env:a.env, username:a.username, url:a.url, owner:a.owner, rotatedAt:a.rotatedAt, rotateDays:'', note:'', mode:a.mode,
+      secretRef:a.ref || '', secretCt:a.mode === 'vault' ? await seal(key, a.secret, id) : null, events:[{at:new Date().toISOString(), by:me, action:'สร้าง'}]};
+    store.accounts.push(acc);
+  }
+}
+
+/* ---------- vault view ---------- */
+function showVault(){
+  $('#lockView').hidden = true; $('#vaultView').hidden = false; $('#lockBtn').hidden = false;
+  idleTimer = setTimeout(() => showLock(), IDLE_MS);
+  renderList(); renderDoc();
+}
+function filtered(){
+  const w = $('#q').value.trim().toLowerCase(), env = $('#fEnv').value, due = $('#fDue').value;
+  return store.accounts.filter(a => (!w || [a.name, a.system, a.username, a.url, a.owner].join(' ').toLowerCase().includes(w))
+    && (!env || a.env === env) && (!due || rotationState(a).key === due)).sort((x, y) => x.system.localeCompare(y.system) || x.name.localeCompare(y.name));
+}
+function renderList(){
+  const rows = filtered();
+  if (!sel && rows.length) sel = rows[0].id;
+  $('#list').innerHTML = rows.map(a => { const r = rotationState(a); return `<button class="acc ${a.id === sel ? 'active' : ''}" data-sel="${a.id}">
+      <span class="row"><b>${esc(a.name)}</b><span class="pill" style="--c:${a.env === 'LIVE' ? 'var(--danger)' : 'var(--accent)'}">${esc(a.env)}</span></span>
+      <small class="mono">${esc(a.username)} · ${esc(a.system)}</small>
+      <span class="row"><span class="pill" style="--c:${r.c}">${esc(r.text)}</span><small>${a.mode === 'ref' ? 'password manager' : 'เข้ารหัสในห้องนิรภัย'}</small></span></button>`; }).join('')
+    || '<div class="empty">ไม่พบบัญชี</div>';
+}
+function renderDoc(){
+  const a = store.accounts.find(x => x.id === sel);
+  if (!a){ $('#doc').innerHTML = '<div class="empty">เลือกบัญชีจากรายการ</div>'; return; }
+  const r = rotationState(a), isRev = revealed && revealed.id === a.id;
+  $('#doc').innerHTML = `
+    <div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0">
+      <span class="pill" style="--c:${a.env === 'LIVE' ? 'var(--danger)' : 'var(--accent)'}">${esc(a.env)}</span> <span class="pill" style="--c:${r.c}">${esc(r.text)}</span>
+      <h2>${esc(a.name)}</h2><div class="mono" style="color:var(--text-2)">${esc(a.system)}</div></div>
+      <button class="btn sm" data-act="edit">แก้ไข</button></div>
+    <dl class="kv">
+      <dt>Username</dt><dd class="mono">${esc(a.username)} <button class="btn sm" data-act="copyUser" title="คัดลอก username"><svg class="i"><use href="#i-copy"/></svg></button></dd>
+      <dt>URL / Server</dt><dd class="mono">${esc(a.url || '—')}</dd>
+      <dt>ผู้ดูแล</dt><dd>${esc(a.owner || '—')}</dd>
+      <dt>เปลี่ยนรหัสล่าสุด</dt><dd>${a.rotatedAt ? esc(a.rotatedAt) : '<span style="color:var(--danger)">ไม่ทราบ</span>'} · ทุก ${+a.rotateDays || DEFAULT_ROTATE[a.env]} วัน</dd>
+      <dt>รหัสผ่าน</dt><dd>${a.mode === 'ref'
+        ? `<div class="ref"><svg class="i"><use href="#i-link"/></svg><span style="flex:1">เก็บใน password manager</span><a class="btn sm" href="${esc(a.secretRef)}" target="_blank" rel="noopener" data-act="openRef">เปิดรายการ</a></div>`
+        : `<div class="secret"><span class="val">${isRev ? esc(revealed.value) : '••••••••••••••••'}</span>${isRev ? '<span class="count" id="revCount"></span>' : ''}
+            <button class="btn sm" data-act="${isRev ? 'hide' : 'reveal'}"><svg class="i"><use href="#i-eye"/></svg>${isRev ? 'ซ่อน' : 'ดู'}</button>
+            <button class="btn sm" data-act="copy"><svg class="i"><use href="#i-copy"/></svg>คัดลอก</button>
+            <button class="btn sm" data-act="rotate" title="สร้างรหัสใหม่แบบสุ่ม (อย่าลืมเปลี่ยนที่ระบบจริงด้วย)"><svg class="i"><use href="#i-refresh"/></svg>เปลี่ยนรหัส</button></div>`}</dd>
+      ${a.note ? `<dt>หมายเหตุ</dt><dd>${esc(a.note)}</dd>` : ''}
+    </dl>
+    <div class="panel"><h4>บันทึกการใช้งาน (ในระบบจริง: แก้/ลบไม่ได้)</h4><ul class="log">${[...(a.events || [])].reverse().map(e => `<li><time>${fmt(e.at)}</time><span>${esc(e.by)}</span><b>${esc(e.action)}</b></li>`).join('')}</ul></div>
+    <div class="panel"><h4>แถวนี้ในฐานข้อมูล (สิ่งที่ server / backup เห็น)</h4><pre class="raw">${esc(JSON.stringify({...a, events:undefined}, null, 2))}</pre></div>`;
+  if (isRev) tickReveal();
+}
+function tickReveal(){
+  const el = $('#revCount'); if (!el || !revealed) return;
+  const left = Math.ceil((revealed.until - Date.now()) / 1000);
+  if (left <= 0){ revealed = null; renderDoc(); return; }
+  el.textContent = `ซ่อนใน ${left} วิ`;
+  setTimeout(tickReveal, 500);
+}
+async function secretOf(a){
+  try { return await unseal(key, a.secretCt, a.id); }
+  catch(_){ throw new Error('ถอดรหัสไม่ได้ — ข้อมูลถูกแก้ไขหรือคีย์ไม่ตรง'); }
+}
+let clipTimer = 0;
+async function copyText(text, label){
+  await navigator.clipboard.writeText(text);
+  clearTimeout(clipTimer);
+  clipTimer = setTimeout(() => navigator.clipboard.writeText('').catch(() => {}), CLIP_MS);
+  toast(`คัดลอก${label}แล้ว — ล้าง clipboard ใน 30 วินาที`);
+}
+
+document.addEventListener('click', async e => {
+  const s = e.target.closest('[data-sel]');
+  if (s){ sel = s.dataset.sel; revealed = null; renderList(); renderDoc(); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = store?.accounts.find(x => x.id === sel); if (!a) return;
+  try {
+    switch (b.dataset.act){
+      case 'reveal': revealed = {id:a.id, value:await secretOf(a), until:Date.now() + REVEAL_MS}; logEvent(a, 'ดูรหัส'); renderDoc(); break;
+      case 'hide': revealed = null; renderDoc(); break;
+      case 'copy': await copyText(await secretOf(a), 'รหัสผ่าน'); logEvent(a, 'คัดลอกรหัส'); renderDoc(); break;
+      case 'copyUser': await copyText(a.username, ' username'); break;
+      case 'openRef': logEvent(a, 'เปิดรายการใน password manager'); setTimeout(renderDoc, 0); break;
+      case 'rotate': {
+        if (!confirm('สร้างรหัสใหม่แบบสุ่ม 20 ตัว?\n\nหลังบันทึก ต้องไปเปลี่ยนรหัสที่ระบบจริงด้วย')) break;
+        const p = generatePassword(20);
+        a.secretCt = await seal(key, p, a.id); a.rotatedAt = today(); logEvent(a, 'เปลี่ยนรหัส');
+        await copyText(p, 'รหัสใหม่'); renderList(); renderDoc(); break;
+      }
+      case 'edit': openEditor(a); break;
+    }
+  } catch(err){ toast(err.message); }
+});
+['#q', '#fEnv', '#fDue'].forEach(id => $(id).addEventListener('input', () => { renderList(); }));
+$('#rawBtn').onclick = () => {
+  const w = window.open('', '_blank');
+  w.document.write(`<title>สิ่งที่เซิร์ฟเวอร์เห็น</title><pre style="font:12px monospace;white-space:pre-wrap">${esc(JSON.stringify(store, null, 2))}</pre>`);
+};
+
+/* ---------- editor ---------- */
+const dlg = $('#dlg'), form = $('#accForm'), f = n => form.elements.namedItem(n);
+let editing = null;
+function syncMode(){ const m = form.querySelector('[name=mode]:checked').value; $$('[data-mode]').forEach(el => el.hidden = el.dataset.mode !== m); }
+form.querySelectorAll('[name=mode]').forEach(r => r.onchange = syncMode);
+function openEditor(a){
+  editing = a || null;
+  $('#dlgTitle').textContent = a ? 'แก้ไขบัญชี' : 'เพิ่มบัญชี';
+  for (const k of ['name', 'system', 'env', 'username', 'url', 'owner', 'rotateDays', 'note']) f(k).value = a ? (a[k] ?? '') : (k === 'env' ? 'LIVE' : '');
+  f('ref').value = a?.secretRef || ''; f('secret').value = '';
+  form.querySelector(`[name=mode][value=${a?.mode || 'vault'}]`).checked = true;
+  f('secret').placeholder = a?.secretCt ? 'เว้นว่าง = ใช้รหัสเดิม' : 'ใส่รหัส หรือกด สร้าง';
+  $('#dlgErr').textContent = ''; syncMode(); dlg.showModal(); f('name').focus();
+}
+$('#newBtn').onclick = () => openEditor(null);
+$('#genBtn').onclick = () => { f('secret').value = generatePassword(20); f('secret').type = 'text'; toast('สร้างรหัสสุ่ม 20 ตัวแล้ว'); };
+form.addEventListener('click', e => { if (e.target.closest('[data-close]')) dlg.close(); });
+form.onsubmit = async e => {
+  e.preventDefault();
+  const mode = form.querySelector('[name=mode]:checked').value, id = editing?.id || crypto.randomUUID();
+  const a = editing || {id, events:[]};
+  for (const k of ['name', 'system', 'env', 'username', 'url', 'owner', 'rotateDays', 'note']) a[k] = f(k).value.trim();
+  if (/pass(word)?\s*[:=]|รหัส\s*[:=]/i.test(a.note)){ $('#dlgErr').textContent = 'หมายเหตุดูเหมือนมีรหัสผ่าน — ใส่ในช่องรหัสแทน'; return; }
+  a.mode = mode; a.secretRef = mode === 'ref' ? f('ref').value.trim() : '';
+  const secret = f('secret').value;
+  if (mode === 'vault' && secret){ a.secretCt = await seal(key, secret, id); a.rotatedAt = today(); }
+  if (mode === 'vault' && !a.secretCt){ $('#dlgErr').textContent = 'ใส่รหัสผ่าน หรือกด สร้าง'; return; }
+  if (mode === 'ref'){ a.secretCt = null; if (!/^https?:\/\//.test(a.secretRef)){ $('#dlgErr').textContent = 'ใส่ลิงก์รายการใน password manager'; return; } }
+  if (!editing){ a.rotatedAt = a.rotatedAt || today(); store.accounts.push(a); }
+  logEvent(a, editing ? 'แก้ไข' : 'สร้าง');
+  f('secret').type = 'password';
+  dlg.close(); sel = id; persist(); renderList(); renderDoc(); toast('บันทึกแล้ว');
+};
+
+/* ---------- tabs ---------- */
+$('#tabs').onclick = e => {
+  const b = e.target.closest('[data-tab]'); if (!b) return;
+  $$('#tabs button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  $('#tab-app').hidden = b.dataset.tab !== 'app'; $('#tab-plan').hidden = b.dataset.tab !== 'plan';
+};
+
+if (!window.crypto?.subtle){ document.body.innerHTML = '<p style="padding:40px">เบราว์เซอร์นี้ไม่รองรับ Web Crypto</p>'; }
+else showLock();
+</script>
+</body>
+</html>

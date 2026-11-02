@@ -3,3 +3,4 @@ supabase/
 .github/
 job-schedule-secrets/
 .claude/
+prototype/
