@@ -291,6 +291,8 @@ dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;width:min(620px,10
 dialog.drawer[open]{animation:slideIn .22s cubic-bezier(.2,.8,.2,1)}
 dialog.modal{width:min(980px,calc(100vw - 24px));max-height:calc(100vh - 32px);border-radius:18px}
 dialog.modal[open]{animation:pop .18s ease-out}
+dialog.modal.job{width:min(860px,calc(100vw - 24px));height:calc(100vh - 48px)}
+#jobDialog .body{overflow-x:hidden}
 @keyframes slideIn{from{transform:translateX(48px);opacity:0}}
 @keyframes pop{from{transform:scale(.97);opacity:0}}
 .dlg{display:flex;flex-direction:column;height:100%;max-height:inherit}
@@ -642,7 +644,8 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
   .jobs td.c-dueDate{display:block;grid-column:3;justify-self:end;font-size:12.5px;color:var(--text-2)}
 
   .fgrid,.fgrid.c3{grid-template-columns:1fr}
-  dialog.drawer{border-radius:0}
+  dialog.drawer,dialog.modal.job{border-radius:0}
+  dialog.modal.job{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0}
   .week-bg .day{padding:3px}
   .ev{font-size:10.5px;padding:0 4px;margin:0 1px}
   .legend{display:none}
@@ -794,8 +797,8 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
 <datalist id="dlDepartment"></datalist>
 <datalist id="dlServer"></datalist>
 
-<!-- Job form (drawer) -->
-<dialog id="jobDialog" class="drawer">
+<!-- Job form (centred modal) -->
+<dialog id="jobDialog" class="modal job">
   <form class="dlg" id="jobForm" novalidate>
     <header>
       <h2 id="jobFormTitle">เพิ่มงาน</h2>
@@ -2153,7 +2156,19 @@ function openForm(job, isNew = !job?.id){
   dlg.showModal();
   dlg.querySelector('.body').scrollTop = 0;
   if (isNew) form.elements.namedItem('title').focus(); else document.activeElement?.blur();
+  jobSnap = jobFormState();
 }
+// The centred form leaves a lot of backdrop to mis-click: closing with edits asks first.
+// (the knowledge picker inside the form isn't part of the job)
+let jobSnap = '';
+const jobFormState = () => JSON.stringify([...form.elements].filter(el => (el.name || el.closest('#modChips')) && !el.closest('#jobKbBox'))
+  .map(el => el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value));
+function jobTryClose(){
+  if (jobFormState() !== jobSnap && !confirm('ปิดโดยไม่บันทึก? สิ่งที่แก้ไว้จะหายไป')) return false;
+  dlg.close();
+  return true;
+}
+dlg.addEventListener('cancel', e => { e.preventDefault(); jobTryClose(); });
 function duplicate(job){
   const t = today();
   openForm({...clone(job), id:'', jobNo:'', status:db.settings.statuses[0].name, receivedDate:t, startDate:t, dueDate:'', finishDate:'',
@@ -3014,8 +3029,8 @@ function kbMarkMatches(root, w){
   if (ranges.length) CSS.highlights.set('kb-find', new Highlight(...ranges));
 }
 function kbOpenNote(id){
+  if (dlg.open && !jobTryClose()) return;
   KB.sel = id; KB.reading = true;
-  if (dlg.open) dlg.close();
   if (view === 'knowledge') render(); else go('knowledge');
   $('#kbReader') && ($('#kbReader').scrollTop = 0);
 }
@@ -3635,8 +3650,9 @@ document.addEventListener('click', e => {
   const unf = e.target.closest('[data-unf]'); if (unf){ F[unf.dataset.unf] = ''; return render(); }
   const bulk = e.target.closest('[data-bulk]'); if (bulk) return handleBulk(bulk.dataset.bulk);
   if (e.target.closest('[data-release]')) return openRelease([]);
-  const close = e.target.closest('[data-close]'); if (close) return close.closest('dialog').close();
+  const close = e.target.closest('[data-close]'); if (close){ const d = close.closest('dialog'); return d === dlg ? jobTryClose() : d.close(); }
   // backdrop click (not for the knowledge editor: a stray click would throw away a long note)
+  if (e.target === dlg) return jobTryClose();
   if (e.target.tagName === 'DIALOG' && e.target.id !== 'kbDialog') e.target.close();
   const cp = $('.colpicker[open]'); if (cp && !cp.contains(e.target)) cp.open = false;
 });
@@ -4097,7 +4113,7 @@ function apiClick(e){
   if ((el = hit('[data-api-status]'))){ API.status = el.dataset.apiStatus; renderApis(); return true; }
   if ((el = hit('[data-apisel]'))){ API.sel = el.dataset.apisel; API.reading = true; renderApis(); $('#apiDoc').scrollTop = 0; return true; }
   if (hit('[data-api-back]')){ API.reading = false; renderApis(); return true; }
-  if ((el = hit('[data-api-open]'))){ API.sel = el.dataset.apiOpen; API.reading = true; if (dlg.open) dlg.close(); go('api'); return true; }
+  if ((el = hit('[data-api-open]'))){ if (dlg.open && !jobTryClose()) return true; API.sel = el.dataset.apiOpen; API.reading = true; go('api'); return true; }
   const a = db.apis.find(x => x.id === API.sel);
   if (!a) return false;
   if (hit('[data-api-edit]')){ openApiEditor(a); return true; }
