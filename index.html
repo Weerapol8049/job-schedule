@@ -1136,6 +1136,7 @@ const LIBS = {
   chart: ['https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js', 'Chart.js'],
   hljs:  ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js', 'highlight.js'],
   hljsPs:['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js', 'highlight.js PowerShell'],
+  hljsDos:['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dos.min.js', 'highlight.js CMD'],
   md:    ['https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js', 'marked'],
   purify:['https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js', 'DOMPurify'],
 };
@@ -2633,14 +2634,17 @@ const KB_KW = {
   bash:'git|cd|ls|npm|npx|node|cp|mv|rm|mkdir|echo|curl|sudo|cat|grep|export|if|then|fi|for|do|done',
   js:'const|let|var|function|return|if|else|for|while|of|in|async|await|new|class|extends|import|export|from|default|try|catch|throw|true|false|null|undefined|this',
   py:'def|class|import|from|as|return|if|elif|else|for|while|in|not|and|or|is|try|except|finally|with|lambda|yield|pass|break|continue|True|False|None|self',
+  cmd:'echo|off|set|setlocal|endlocal|if|else|not|exist|defined|errorlevel|equ|neq|lss|leq|gtr|geq|for|in|do|goto|call|exit|shift|pause|start|cd|chdir|pushd|popd|dir|copy|xcopy|robocopy|move|del|erase|ren|rename|mkdir|md|rmdir|rd|type|cls|title|findstr|where|net|sc|iisreset|taskkill|tasklist',
 };
-const KB_LANG = {xpp:'x++', ax:'x++', tsql:'sql', mssql:'sql', sh:'bash', shell:'bash', ps1:'bash', powershell:'bash', ps:'bash', pwsh:'bash', cmd:'bash', javascript:'js', ts:'js', typescript:'js', json:'js', python:'py'};
+const KB_LANG = {xpp:'x++', ax:'x++', tsql:'sql', mssql:'sql', sh:'bash', shell:'bash', ps1:'bash', powershell:'bash', ps:'bash', pwsh:'bash', bat:'cmd', batch:'cmd', dos:'cmd', javascript:'js', ts:'js', typescript:'js', json:'js', python:'py'};
 function kbHighlight(code, lang){
   lang = KB_LANG[lang] || lang;
   const kw = KB_KW[lang];
   if (!kw) return esc(code);
-  const comment = lang === 'sql' ? '--[^\\n]*|/\\*[\\s\\S]*?\\*/' : (lang === 'bash' || lang === 'py') ? '#[^\\n]*' : '//[^\\n]*|/\\*[\\s\\S]*?\\*/';
-  const re = new RegExp(`(${comment})|("(?:[^"\\\\\\n]|\\\\.)*"|'(?:[^'\\\\\\n]|\\\\.)*')|\\b(${kw})\\b|\\b(\\d+(?:\\.\\d+)?)\\b|\\b([A-Za-z_]\\w*)(?=\\s*\\()`, lang === 'sql' ? 'gi' : 'g');
+  // CMD: REM / :: comments start a line; ' is an ordinary character (Don't), so only "…" strings
+  const comment = lang === 'sql' ? '--[^\\n]*|/\\*[\\s\\S]*?\\*/' : lang === 'cmd' ? '^[ \\t]*@?(?:rem\\b|::)[^\\n]*' : (lang === 'bash' || lang === 'py') ? '#[^\\n]*' : '//[^\\n]*|/\\*[\\s\\S]*?\\*/';
+  const str = lang === 'cmd' ? '"[^"\\n]*"' : `"(?:[^"\\\\\\n]|\\\\.)*"|'(?:[^'\\\\\\n]|\\\\.)*'`;
+  const re = new RegExp(`(${comment})|(${str})|\\b(${kw})\\b|\\b(\\d+(?:\\.\\d+)?)\\b|\\b([A-Za-z_]\\w*)(?=\\s*\\()`, lang === 'sql' ? 'gi' : lang === 'cmd' ? 'gim' : 'g');
   let out = '', last = 0, m;
   while ((m = re.exec(code))){
     out += esc(code.slice(last, m.index));
@@ -2660,17 +2664,18 @@ const KB_LANGS = [
   ['css',  'CSS',           'css',        ['scss','less']],
   ['js',   'JavaScript',    'javascript', ['javascript','ts','typescript','node']],
   ['py',   'Python',        'python',     ['python']],
-  ['bash', 'Shell / curl',  'bash',       ['sh','shell','cmd','curl','console']],
+  ['bash', 'Shell / curl',  'bash',       ['sh','shell','curl','console']],
   ['ps1',  'PowerShell',    'powershell', ['powershell','ps','pwsh','posh']],
+  ['cmd',  'CMD / Batch',   'dos',        ['bat','batch','dos']],
   ['md',   'Markdown',      'markdown',   ['markdown']],
 ];
 const kbLangInfo = lang => { lang = String(lang || '').toLowerCase(); return KB_LANGS.find(l => l[0] === lang || l[3].includes(lang)) || null; };
-const KB_AUTO = ['sql','csharp','json','xml','css','javascript','python','bash','powershell','xpp'];
+const KB_AUTO = ['sql','csharp','json','xml','css','javascript','python','bash','powershell','dos','xpp'];
 // highlight.js arrives lazily; until then kbHL falls back to the built-in kbHighlight
 function kbEnsureHljs(){
   if (window.hljs) return;
-  // the core build has no PowerShell grammar; its language file registers itself once hljs is there
-  loadLib('hljs').then(() => { kbRegisterXpp(); return loadLib('hljsPs').catch(() => {}); })
+  // the core build has no PowerShell or CMD grammar; their language files register themselves once hljs is there
+  loadLib('hljs').then(() => { kbRegisterXpp(); return Promise.all(['hljsPs', 'hljsDos'].map(k => loadLib(k).catch(() => {}))); })
     .then(() => { if (view === 'knowledge' || view === 'api') render(); }).catch(() => {});
 }
 // X++ (Dynamics AX 2012) for highlight.js — case-insensitive like the language itself
@@ -2859,6 +2864,14 @@ function kbCodeName(code, lang){
     if (fns.length) return {title:`${fns[0]}()${fns.length > 1 ? ` +${fns.length - 1}` : ''}`, methods:fns};
     const cmd = src.match(/\b([A-Z][a-z]+-[A-Z][A-Za-z]+)\b/);
     return {title:cmd ? cmd[1] : '', methods:[]};
+  }
+  // CMD: named after its :labels, else its first command
+  if (kbLangInfo(lang)?.[0] === 'cmd'){
+    const lines = code.split('\n').map(l => l.trim()).filter(l => l && !/^@?(rem\b|::)/i.test(l) && !/^@?echo\s+off$/i.test(l));
+    const labels = lines.map(l => l.match(/^:(\w+)/)?.[1]).filter(l => l && l.toLowerCase() !== 'eof');
+    if (labels.length) return {title:`:${labels[0]}${labels.length > 1 ? ` +${labels.length - 1}` : ''}`, methods:labels};
+    const first = (lines[0] || '').replace(/^@/, '');
+    return {title:first.length > 48 ? first.slice(0, 47) + '…' : first, methods:[]};
   }
   lang = KB_LANG[lang] || lang;
   let src = code.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -3381,6 +3394,7 @@ function kbFindFile(files, src){
 function kbGuessLang(code){
   if (/^\s*</.test(code) && />\s*$/.test(code)) return 'html';
   if (/^\s*[{[]/.test(code)){ try { JSON.parse(code); return 'json'; } catch(e){} }
+  if (/^\s*@?(echo off|rem\s|::)|%%?~[a-z]|^\s*(cd \/d|dir \/|for \/[rfdl]|xcopy|robocopy|iisreset|ren\s|del\s|copy\s|setlocal)/im.test(code)) return 'cmd';
   if (/^\s*(sudo|apt|pip3?|cd|git|systemctl|npm|npx|docker|chmod|chown|mkdir|cp|mv|ls|wget|curl|nano|service|psql|python3?)\b/m.test(code)) return 'bash';
   if (/\b(select|update|insert|delete)\b[\s\S]*\b(from|into|set|where)\b/i.test(code) && !/\bwhile\s*\(/.test(code)) return 'sql';
   if (/^\s*(def |class \w+(\(|:)|import |from \S+ import)|self\./m.test(code)) return 'py';
