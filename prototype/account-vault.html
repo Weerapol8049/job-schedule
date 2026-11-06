@@ -215,7 +215,7 @@ dialog .full{grid-column:1/-1}
       <li>ลืม passphrase = กู้รหัสคืนไม่ได้ (ตั้งใจให้เป็นอย่างนั้น) → เก็บ passphrase ไว้ในซองปิดผนึก / password manager ของหัวหน้า</li>
     </ul>
 
-    <h3>โครงสร้างข้อมูล (ระบบจริง — schema v8)</h3>
+    <h3>โครงสร้างข้อมูล (ระบบจริง — schema v9; v8 ใช้กับแผนผังระบบแล้ว)</h3>
 <pre>accounts      id, system, env (LIVE/STD66/อื่น ๆ), name, username, url, owner,
               secret_mode ('ref' | 'vault'), secret_ref (ลิงก์ password manager),
               secret_ct jsonb {iv, ct} — ciphertext เท่านั้น,

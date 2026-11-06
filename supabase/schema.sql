@@ -370,3 +370,59 @@ begin
     alter publication supabase_realtime add table public.apis;
   end if;
 end $$;
+
+-- ---------- v8: แผนผังระบบ / workflow (index.html → แผนผังระบบ) ----------
+-- one row per diagram; data = {"nodes":[…], "edges":[…]} as drawn in the app:
+--   nodes: id, type (start/step/decision/system/db/doc/actor/note/lane), x, y, w, h, text, color, link {kind: api/note/job/flow, id}
+--   edges: id, from, to, label, style (solid/dashed), arrow (end/both/none), apiIds (apis.id)
+create table if not exists public.flows (
+  id               uuid primary key default gen_random_uuid(),
+  title            text not null default '',
+  description      text not null default '',
+  tags             text[] not null default '{}',
+  job_nos          text[] not null default '{}',
+  data             jsonb not null default '{"nodes":[],"edges":[]}',
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  created_by       uuid default auth.uid() references auth.users(id) on delete set null,
+  updated_by       uuid default auth.uid() references auth.users(id) on delete set null,
+  updated_by_email text not null default ''
+);
+create index if not exists flows_job_nos_idx on public.flows using gin (job_nos);
+
+create or replace function public.flows_before_write() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  new.updated_by_email := coalesce(auth.jwt() ->> 'email', '');
+  if tg_op = 'UPDATE' then
+    new.updated_at := now();
+    new.updated_by := auth.uid();
+    new.created_at := old.created_at;
+    new.created_by := old.created_by;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists flows_before_write on public.flows;
+create trigger flows_before_write before insert or update on public.flows
+  for each row execute function public.flows_before_write();
+
+grant select, insert, update, delete on public.flows to authenticated;
+revoke all on public.flows from anon;
+alter table public.flows enable row level security;
+
+drop policy if exists "team can read flows"   on public.flows;
+drop policy if exists "team can insert flows" on public.flows;
+drop policy if exists "team can update flows" on public.flows;
+drop policy if exists "team can delete flows" on public.flows;
+create policy "team can read flows"   on public.flows for select to authenticated using (true);
+create policy "team can insert flows" on public.flows for insert to authenticated with check (true);
+create policy "team can update flows" on public.flows for update to authenticated using (true) with check (true);
+create policy "team can delete flows" on public.flows for delete to authenticated using (true);
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'flows') then
+    alter publication supabase_realtime add table public.flows;
+  end if;
+end $$;

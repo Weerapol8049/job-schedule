@@ -31,7 +31,7 @@ The UI and every reply to the user are in **Thai**; code and comments are in Eng
 - Icons are `<symbol id="i-…">` in the sprite at the top of `<body>`. Add new icons there; don't inline SVG paths in templates.
 - Match the surrounding style: short comments that explain *why*, compact template literals, no new global abstractions
   for a one-off.
-- Keyboard shortcuts already exist: `N` new, `/` search, `1`–`6` views (dashboard, table, kanban, calendar, knowledge, api). Don't take those keys for anything else.
+- Keyboard shortcuts already exist: `N` new, `/` search, `1`–`7` views (dashboard, table, kanban, calendar, knowledge, api, flow). Don't take those keys for anything else. The flow editor owns the keyboard while drawing (`FL.edit`).
 
 ## 3. Data model
 
@@ -48,6 +48,9 @@ The UI and every reply to the user are in **Thai**; code and comments are in Eng
   stamps on `tests` belong to the database trigger** (`apis_before_write`): the browser never sends `history`/`version`
   (see `apiToRow`), only appends to `tests`. Local mode imitates the trigger in `apiLocalAudit`; keep the two in step
   (field list = `API_FIELDS`, contract fields bump the version). Secrets in API fields go through `apiSecretCount` / `apiMaskSecrets`.
+- Flow diagrams (`flows`, view `flow`, schema v8): one row per diagram, the drawing is `data` jsonb `{nodes, edges}`. A node points at
+  something through `link {kind: api|note|job|flow, id}`; an edge carries `apiIds`. The editor works on a copy (`FL.edit`) with its own
+  undo stack and a localStorage draft; it saves through `flStore` (same conflict rule). Colours are theme tokens, and export writes them in.
 - Saving uses optimistic concurrency: `apiSaveJob/apiSaveNote/apiSaveApi(x, expectedUpdatedAt)` throws `err.conflict`, and the caller asks
   the user before overwriting. Keep this for any new write path.
 - Dates are ISO `YYYY-MM-DD` in the Gregorian calendar. Thai sources often contain Buddhist years: convert on import with `ceYear()`, and never trust

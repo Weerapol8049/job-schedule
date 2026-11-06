@@ -607,9 +607,99 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .btn:disabled{opacity:.6;cursor:progress}
 
+/* ---------- Flow diagrams (แผนผังระบบ) — reuses the .kb two-pane layout ---------- */
+.fl-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.fl.editing{grid-template-columns:minmax(0,1fr)}
+.fl.editing .kb-list{display:none}
+.fl-head{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:14px 16px 12px;border-bottom:1px solid var(--border)}
+.fl-head .kb-back{margin:0}
+.fl-title{flex:1;min-width:200px}
+.fl-title h2{margin:0;font-size:18px;line-height:1.35;text-wrap:balance}
+.fl-title p{margin:4px 0 0;max-width:90ch;color:var(--text-2);font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fl-title small{display:block;margin-top:4px;font-size:12px}
+.fl-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fl-palette{display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.fl-pal{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px 0 6px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-2);font-size:12.5px;cursor:grab;white-space:nowrap}
+.fl-pal:hover{border-color:var(--accent);color:var(--text)}
+.fl-pal svg{width:30px;height:22px;overflow:visible;flex:none}
+.fl-body{flex:1;display:flex;min-height:0}
+.fl-stage{position:relative;flex:1;min-width:0;overflow:hidden;background:var(--surface);touch-action:none}
+.fl-svg{display:block;width:100%;height:100%;cursor:grab;user-select:none;-webkit-user-select:none}
+.fl-svg:active{cursor:grabbing}
+.fl-props{width:290px;flex:none;display:flex;flex-direction:column;gap:12px;padding:14px 16px;border-left:1px solid var(--border);overflow:auto;background:var(--surface)}
+.fl-props h4{margin:0;font-size:13.5px}
+.fl-props textarea.input{height:auto;padding:8px 10px;resize:vertical}
+.fl-prop-sub{margin:-6px 0 0;font-size:12.5px;overflow-wrap:anywhere}
+.fl-prop-acts{display:flex;gap:6px;flex-wrap:wrap}
+.fl-align{display:flex;gap:6px;flex-wrap:wrap}
+.fl-tips{margin:0;padding-left:18px;font-size:12px;line-height:1.65;color:var(--muted)}
+.fl-swatches{display:flex;gap:7px;flex-wrap:wrap}
+.fl-sw{width:26px;height:26px;padding:0;border:2px solid var(--surface);border-radius:50%;background:var(--fc);box-shadow:0 0 0 1px var(--border-strong);color:var(--surface);font:700 11px "IBM Plex Sans Thai",sans-serif;cursor:pointer}
+.fl-sw.on{box-shadow:0 0 0 2px var(--text)}
+.fl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.fl-chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:2px 2px 2px 6px;border:1px solid var(--border);border-radius:8px;font-size:12.5px}
+.fl-chip .icon-btn{width:24px;height:24px}
+/* shapes: --fc is the box colour; every colour is a theme token so dark mode just works */
+.fl-c-accent{--fc:var(--accent)}.fl-c-ok{--fc:var(--ok)}.fl-c-warn{--fc:var(--warn)}.fl-c-danger{--fc:var(--danger)}.fl-c-muted{--fc:var(--muted)}
+.fl-n{cursor:pointer}
+.fl-edit .fl-n{cursor:move}
+.fl-s{fill:color-mix(in srgb, var(--fc) 11%, var(--surface));stroke:var(--fc);stroke-width:1.6}
+.fl-bar{fill:var(--fc)}
+.fl-fold{fill:none;stroke:var(--fc);stroke-width:1.4}
+.t-lane .fl-s{fill:color-mix(in srgb, var(--fc) 6%, transparent);stroke-dasharray:7 5;stroke-width:1.3}
+.t-note .fl-s{stroke-dasharray:4 3}
+.fl-t{fill:var(--text);font:500 13px "IBM Plex Sans Thai",sans-serif}
+.t-lane .fl-t{fill:var(--text-2);font-weight:600}
+.fl-n.sel .fl-s{stroke:var(--accent);stroke-width:3}
+.fl-n.hi .fl-s{stroke-width:2.6}
+.fl-n.dim,.fl-e.dim{opacity:.2}
+.fl-link circle{fill:var(--surface);stroke:var(--fc);stroke-width:1.3}
+.fl-link path{fill:none;stroke:var(--fc);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.fl-port{fill:var(--surface);stroke:var(--accent);stroke-width:1.6;opacity:0;cursor:crosshair;transition:opacity .12s}
+.fl-n:hover .fl-port,.fl-n.sel .fl-port{opacity:1}
+.fl-port:hover{fill:var(--accent)}
+.fl-rs{fill:var(--accent);cursor:nwse-resize}
+.fl-e{cursor:pointer}
+.fl-e-hit{fill:none;stroke:transparent;stroke-width:14}
+.fl-e-line{fill:none;stroke:var(--text-2);stroke-width:1.6}
+.fl-e.dashed .fl-e-line{stroke-dasharray:6 4}
+.fl-e.sel .fl-e-line,.fl-e.hi .fl-e-line{stroke:var(--accent);stroke-width:2.4}
+.fl-arrow{fill:var(--text-2)}
+.fl-arrow.hi{fill:var(--accent)}
+.fl-e-lbl rect{fill:var(--surface);stroke:var(--border-strong)}
+.fl-e-lbl text{fill:var(--text-2);font:500 12px "IBM Plex Sans Thai",sans-serif}
+.fl-e.sel .fl-e-lbl text,.fl-e.hi .fl-e-lbl text{fill:var(--accent-soft-text)}
+.fl-dot{fill:var(--border-strong)}
+.fl-temp{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-dasharray:5 4;pointer-events:none}
+.fl-marq{fill:color-mix(in srgb, var(--accent) 8%, transparent);stroke:var(--accent);stroke-dasharray:4 3;pointer-events:none}
+.fl-inline{position:absolute;z-index:3;min-width:80px;min-height:32px;padding:6px;border:2px solid var(--accent);border-radius:8px;background:var(--surface);color:var(--text);font-family:"IBM Plex Sans Thai",sans-serif;font-weight:500;line-height:1.4;text-align:center;resize:none;outline:none;box-shadow:var(--shadow)}
+.fl-zoom{position:absolute;right:12px;bottom:12px;display:flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--shadow-sm)}
+.fl-zoom span{min-width:46px;text-align:center;font:12px "IBM Plex Mono",monospace;color:var(--muted)}
+.fl-empty{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted);pointer-events:none}
+.fl-info{position:absolute;left:12px;bottom:12px;width:min(360px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-lg);font-size:13px}
+.fl-info-head{display:flex;gap:8px;align-items:flex-start}
+.fl-info-head > div{flex:1;min-width:0}
+.fl-info-head small{display:block;color:var(--muted);font-size:11.5px}
+.fl-info-head b{overflow-wrap:anywhere}
+.fl-info h5{margin:10px 0 4px;color:var(--muted);font-size:12px;font-weight:600}
+.fl-info ul{margin:0;padding-left:18px;line-height:1.6}
+.fl-info .btn{margin-top:8px;max-width:100%}
+.fl-info .fl-api{display:flex;gap:6px;align-items:center;width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:inherit;font:inherit;text-align:left;cursor:pointer}
+.fl-info .fl-api:hover{border-color:var(--accent)}
+@media (max-width:900px){
+  .fl-main{height:calc(100dvh - 230px);min-height:440px}
+  .fl.editing .fl-main{height:calc(100dvh - 120px);min-height:560px}
+  .fl-body{flex-direction:column}
+  .fl-stage{min-height:300px}
+  .fl-props{width:auto;max-height:38%;border-left:0;border-top:1px solid var(--border)}
+  /* one scrolling row of shapes instead of three wrapped rows */
+  .fl-palette{flex-wrap:nowrap;overflow-x:auto}
+  .fl-head{padding:12px}
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width:900px){
-  .app{grid-template-columns:minmax(0,1fr)}
+  .app{grid-template-columns:minmax(0,1fr);align-content:start}   /* short pages: the top bar must not stretch to fill the screen */
   .sidebar{position:sticky;top:0;z-index:30;height:auto;flex-direction:row;align-items:center;gap:4px;padding:8px 12px;border-right:0;border-bottom:1px solid var(--border);overflow-x:auto}
   .logo{padding:0 6px 0 0}
   .logo-text,.nav-section,.sidebar-foot .hint,.nav-item .count,.userbox .email,.mode,#sideStats{display:none}
@@ -628,7 +718,7 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
 .tabbar{display:none}
 @media (max-width:640px){
   /* bottom tab bar replaces the five main items in the top bar */
-  .sidebar .nav-item[data-view]:not([data-view="settings"]):not([data-view="api"]){display:none}
+  .sidebar .nav-item[data-view]:not([data-view="settings"]):not([data-view="api"]):not([data-view="flow"]){display:none}
   .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:35;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:color-mix(in srgb, var(--surface) 94%, transparent);backdrop-filter:blur(12px);border-top:1px solid var(--border)}
   .tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;border:0;border-radius:10px;background:none;color:var(--muted);font-size:11px;font-weight:500;line-height:1.2;cursor:pointer}
   .tab.active{color:var(--accent);background:var(--accent-soft)}
@@ -709,6 +799,11 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
   <symbol id="i-idcard" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="9" cy="11" r="2.5"/><path d="M5 17a4 4 0 0 1 8 0M15 9h4M15 13h3"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-flow" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="6" rx="1.5"/><rect x="14" y="15" width="7" height="6" rx="1.5"/><path d="M6.5 9v3.5a2.5 2.5 0 0 0 2.5 2.5h5M12 13l2 2-2 2"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
   <symbol id="i-api" viewBox="0 0 24 24"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 4 3H6l4-3z"/></symbol>
@@ -744,6 +839,7 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
     <button class="nav-item" data-view="calendar"><svg class="i"><use href="#i-calendar"/></svg><span>ปฏิทิน</span></button>
     <button class="nav-item" data-view="knowledge"><svg class="i"><use href="#i-book"/></svg><span>คลังความรู้</span><span class="count" data-count="knowledge"></span></button>
     <button class="nav-item" data-view="api"><svg class="i"><use href="#i-api"/></svg><span>ทะเบียน API</span><span class="count" data-count="api"></span></button>
+    <button class="nav-item" data-view="flow"><svg class="i"><use href="#i-flow"/></svg><span>แผนผังระบบ</span><span class="count" data-count="flow"></span></button>
     <div class="nav-section">ระบบ</div>
     <button class="nav-item" data-view="settings"><svg class="i"><use href="#i-sliders"/></svg><span>ข้อมูล &amp; ตั้งค่า</span></button>
     <a class="nav-item" href="resume.html" target="_blank" rel="noopener"><svg class="i"><use href="#i-idcard"/></svg><span>สร้าง Resume / CV</span></a>
@@ -757,7 +853,7 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
         <button data-theme-set="auto" title="ตามระบบ"><svg class="i sm"><use href="#i-monitor"/></svg></button>
         <button data-theme-set="dark" title="มืด"><svg class="i sm"><use href="#i-moon"/></svg></button>
       </div>
-      <div class="hint"><kbd>N</kbd> เพิ่มงาน &nbsp;·&nbsp; <kbd>/</kbd> ค้นหา &nbsp;·&nbsp; <kbd>1</kbd>–<kbd>6</kbd> สลับหน้า</div>
+      <div class="hint"><kbd>N</kbd> เพิ่มงาน &nbsp;·&nbsp; <kbd>/</kbd> ค้นหา &nbsp;·&nbsp; <kbd>1</kbd>–<kbd>7</kbd> สลับหน้า</div>
     </div>
   </aside>
 
@@ -1046,6 +1142,8 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
 <datalist id="dlJobNo"></datalist>
 <datalist id="dlSystems"></datalist>
 <datalist id="dlKbTitles"></datalist>
+<datalist id="dlFlLink"></datalist>
+<datalist id="dlFlApis"></datalist>
 
 <div class="bulkbar" id="bulkBar" hidden></div>
 
@@ -1197,15 +1295,15 @@ const CLOUD = CLOUD_CONFIGURED && !!window.supabase;
 const sb = CLOUD ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
 let currentUser = null;
 // notes = คลังความรู้ · kbImages = รูปในโหมดเก็บในเครื่อง (path -> data URL)
-let db = {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0, notes:[], apis:[]};
+let db = {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0, notes:[], apis:[], flows:[]};
 let hiddenCols = new Set(getPrefs().hiddenCols || DEFAULT_HIDDEN);
 
 function readLocal(){
   try {
     const d = JSON.parse(localStorage.getItem(LS_KEY));
-    if (d && Array.isArray(d.jobs)) return {jobs:d.jobs, settings:{...clone(DEFAULT_SETTINGS), ...d.settings}, seq:d.seq || d.jobs.length, notes:d.notes || [], apis:d.apis || [], kbImages:d.kbImages || {}};
+    if (d && Array.isArray(d.jobs)) return {jobs:d.jobs, settings:{...clone(DEFAULT_SETTINGS), ...d.settings}, seq:d.seq || d.jobs.length, notes:d.notes || [], apis:d.apis || [], flows:d.flows || [], kbImages:d.kbImages || {}};
   } catch(e){}
-  return {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0, notes:[], apis:[], kbImages:{}};
+  return {jobs:[], settings:clone(DEFAULT_SETTINGS), seq:0, notes:[], apis:[], flows:[], kbImages:{}};
 }
 function persistLocal(){
   if (CLOUD) return;
@@ -1263,9 +1361,11 @@ async function apiLoad(){
   const notesP = fetchAllNotes().then(n => { KB.loadError = ''; return n; }, err => { console.error(err); KB.loadError = err.message || String(err); return []; });
   // same for the API registry (schema v7)
   const apisP = fetchAllApis().then(a => { API.loadError = ''; return a; }, err => { console.error(err); API.loadError = err.message || String(err); return []; });
-  const [jobs, setRes, notes, apis] = await Promise.all([fetchAllJobs(), sb.from('app_settings').select('data').eq('id', 1).maybeSingle(), notesP, apisP]);
+  // and for the flow diagrams (schema v8)
+  const flowsP = fetchAllFlows().then(f => { FL.loadError = ''; return f; }, err => { console.error(err); FL.loadError = err.message || String(err); return []; });
+  const [jobs, setRes, notes, apis, flows] = await Promise.all([fetchAllJobs(), sb.from('app_settings').select('data').eq('id', 1).maybeSingle(), notesP, apisP, flowsP]);
   if (setRes.error) throw setRes.error;
-  return {jobs, settings:{...clone(DEFAULT_SETTINGS), ...(setRes.data?.data || {})}, seq:0, notes, apis};
+  return {jobs, settings:{...clone(DEFAULT_SETTINGS), ...(setRes.data?.data || {})}, seq:0, notes, apis, flows};
 }
 // expectedUpdatedAt: optimistic lock — the update only applies if nobody saved the row since we loaded it
 async function apiSaveJob(job, expectedUpdatedAt){
@@ -1353,6 +1453,18 @@ function subscribeRealtime(){
         const a = rowToApi(p.new), cur = db.apis.find(x => x.id === a.id);
         if (cur && cur.updatedAt === a.updatedAt) return;   // our own save echoing back
         mergeApi(a);
+      }
+      scheduleRender();
+    })
+    .subscribe();
+  if (FL.loadError) return;
+  sb.channel('job-schedule-flows')
+    .on('postgres_changes', {event:'*', schema:'public', table:'flows'}, p => {
+      if (p.eventType === 'DELETE'){ if (!db.flows.some(f => f.id === p.old.id)) return; db.flows = db.flows.filter(f => f.id !== p.old.id); }
+      else {
+        const f = rowToFlow(p.new), cur = db.flows.find(x => x.id === f.id);
+        if (cur && cur.updatedAt === f.updatedAt) return;   // our own save echoing back
+        mergeFlow(f);
       }
       scheduleRender();
     })
@@ -1549,7 +1661,9 @@ function syncFilterUI(){
 
 /* ================= Views ================= */
 let view = getPrefs().view || 'dashboard';
-const views = {dashboard:renderDashboard, table:renderTable, kanban:renderKanban, calendar:renderCalendar, knowledge:renderKnowledge, api:renderApis, settings:renderSettings};
+const views = {dashboard:renderDashboard, table:renderTable, kanban:renderKanban, calendar:renderCalendar, knowledge:renderKnowledge, api:renderApis, flow:renderFlows, settings:renderSettings};
+// views that are not about jobs: no job toolbar, no "no jobs yet" welcome
+const NON_JOB_VIEWS = new Set(['settings', 'knowledge', 'api', 'flow']);
 const PAGE = {
   dashboard: ['ภาพรวม', () => {
     const open = db.jobs.filter(j => !isDone(j));
@@ -1567,6 +1681,7 @@ const PAGE = {
     const live = db.apis.filter(a => a.status === 'ใช้งานจริง').length, untested = db.apis.filter(a => a.status !== 'เลิกใช้' && !apiLastTest(a, 'LIVE') && !apiLastTest(a, 'STD66')).length;
     return [`${db.apis.length} API`, `ใช้งานจริง ${live}`, untested ? `ยังไม่เคยทดสอบ ${untested}` : ''].filter(Boolean).join(' · ');
   }],
+  flow: ['แผนผังระบบ', () => db.flows.length ? `${db.flows.length} แผนผัง · ขั้นตอนงานและการเชื่อมต่อระหว่างระบบ` : 'วาดขั้นตอนงานและการเชื่อมต่อระหว่างระบบให้ทีมเข้าใจตรงกัน'],
   settings: ['ข้อมูล & ตั้งค่า', () => 'นำเข้า / ส่งออกข้อมูล และจัดการตัวเลือกในฟอร์ม'],
 };
 function renderPageHead(){
@@ -1582,6 +1697,7 @@ function renderPageHead(){
   $('#pageHead').innerHTML = `<div><h1>${esc(title)}</h1><p>${esc(sub())}</p></div>
     <div class="page-actions">${tableTools}${view === 'knowledge' ? `<button class="btn" data-kb-secrets title="หาข้อความที่น่าจะเป็นรหัสผ่านในทุกเรื่อง">${icon('alert','sm')}ตรวจรหัสผ่าน${(() => { const c = kbSecretNotes().length; return c ? `<span class="dotcount" style="background:var(--danger)">${c}</span>` : ''; })()}</button><button class="btn" data-kb-import title="OneNote → File → Export → Section → Single File Web Page (*.mht)">${icon('upload','sm')}Import OneNote</button><button class="btn primary" data-kb-new>${icon('plus','sm')}เพิ่มความรู้</button>`
       : view === 'api' ? `${(() => { const c = apiImportCandidates().length; return c ? `<button class="btn" data-api-import title="สร้างร่างจากเรื่อง API ในคลังความรู้">${icon('upload','sm')}นำเข้าจากคลังความรู้<span class="dotcount">${c}</span></button>` : ''; })()}<button class="btn primary" data-api-new>${icon('plus','sm')}เพิ่ม API</button>`
+      : view === 'flow' ? `${db.apis.some(a => a.source && a.target) ? `<button class="btn" data-fl-gen title="วาดแผนผังจาก ระบบต้นทาง → ปลายทาง ของทุก API (ไม่รวมที่เลิกใช้)">${icon('api','sm')}สร้างจากทะเบียน API</button>` : ''}<button class="btn primary" data-fl-new>${icon('plus','sm')}เพิ่มแผนผัง</button>`
       : view !== 'settings' ? `<button class="btn primary" data-new>${icon('plus','sm')}เพิ่มงาน</button>` : ''}</div>`;
   $$('[data-col]').forEach(cb => cb.onchange = () => {
     cb.checked ? hiddenCols.delete(cb.dataset.col) : hiddenCols.add(cb.dataset.col);
@@ -1599,7 +1715,8 @@ function render(){
   $$('[data-count="kanban"]').forEach(el => el.textContent = open);
   $('[data-count="knowledge"]').textContent = db.notes.length || '';
   $('[data-count="api"]').textContent = db.apis.length || '';
-  $('#toolbar').hidden = view === 'settings' || view === 'knowledge' || view === 'api';
+  $('[data-count="flow"]').textContent = db.flows.length || '';
+  $('#toolbar').hidden = NON_JOB_VIEWS.has(view);
   renderSideStats();
   renderBulkBar();
   renderHealthBanner();
@@ -1609,10 +1726,11 @@ function render(){
   const jobs = filtered();
   $('#resultCount').textContent = `${jobs.length} จาก ${db.jobs.length} งาน`;
   destroyCharts();
-  if (view !== 'settings' && view !== 'knowledge' && view !== 'api' && !db.jobs.length) return renderWelcome();
+  if (!NON_JOB_VIEWS.has(view) && !db.jobs.length) return renderWelcome();
   views[view](jobs);
 }
 function go(v){
+  if (v !== view && !flCanLeave()) return;   // unsaved drawing
   view = v; setPref('view', v); render(); window.scrollTo(0, 0);
   const el = $('#view'); el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
 }
@@ -3210,6 +3328,9 @@ function renderJobKb(){
       <ul class="list" id="jobKbRes"></ul></div>` : ''}
   </div>`;
   const apis = db.apis.filter(a => a.jobNos.includes(no));
+  const flows = db.flows.filter(f => f.jobNos.includes(no) || f.data.nodes.some(n => n.link?.kind === 'job' && n.link.id === no));
+  if (flows.length) box.insertAdjacentHTML('beforeend', `<div class="section"><h4>${icon('flow','sm')}แผนผังของงานนี้ · ${flows.length}</h4><ul class="list">${flows.map(f =>
+    `<li data-fl-goto="${esc(f.id)}"><div class="grow"><b>${esc(f.title)}</b><small>${f.data.nodes.filter(n => n.type !== 'lane').length} กล่อง · ${f.data.edges.length} เส้น</small></div>${icon('right','sm')}</li>`).join('')}</ul></div>`);
   if (apis.length) box.insertAdjacentHTML('beforeend', `<div class="section"><h4>${icon('api','sm')}API ของงานนี้ · ${apis.length}</h4><ul class="list">${apis.map(a =>
     `<li data-api-open="${esc(a.id)}">${methodBadge(a.method)}<div class="grow"><b>${esc(a.name)}</b><small>${esc(a.path || apiFullUrl(a, 'LIVE') || '')}</small></div>${apiStatusPill(a.status)}</li>`).join('')}</ul></div>`);
   // note bodies are rendered when first expanded
@@ -3903,6 +4024,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-new]')) return openForm(null, true);
   if (kbClick(e)) return;
   if (apiClick(e)) return;
+  if (flClick(e)) return;
   if (e.target.closest('[data-clear]')){ Object.assign(F, F_DEFAULT); return render(); }
   const unf = e.target.closest('[data-unf]'); if (unf){ F[unf.dataset.unf] = ''; return render(); }
   const bulk = e.target.closest('[data-bulk]'); if (bulk) return handleBulk(bulk.dataset.bulk);
@@ -3929,12 +4051,13 @@ $('#advBtn').onclick = () => { $('#adv').classList.toggle('open'); setPref('adv'
 if (getPrefs().adv) $('#adv').classList.add('open');
 
 document.addEventListener('keydown', e => {
-  if (e.ctrlKey || e.metaKey || e.altKey || $('#app').hidden || $('dialog[open]') || e.target.closest('input,textarea,select')) return;
-  if (e.code === 'KeyN'){ e.preventDefault(); view === 'knowledge' ? openKbEditor() : view === 'api' ? openApiEditor() : openForm(null, true); }
-  else if (e.code === 'Slash' && view !== 'settings'){ e.preventDefault(); $(view === 'knowledge' ? '#kbq' : view === 'api' ? '#apiq' : '#fq')?.focus(); }
-  else if (/^Digit[1-6]$/.test(e.code)){ e.preventDefault(); go(NAV_KEYS[+e.code.slice(5) - 1]); }
+  // while drawing, the flow editor owns the keyboard (Delete, arrows, Ctrl+Z …)
+  if (e.ctrlKey || e.metaKey || e.altKey || $('#app').hidden || $('dialog[open]') || e.target.closest('input,textarea,select') || (view === 'flow' && FL.edit)) return;
+  if (e.code === 'KeyN'){ e.preventDefault(); view === 'knowledge' ? openKbEditor() : view === 'api' ? openApiEditor() : view === 'flow' ? flStartEdit(null) : openForm(null, true); }
+  else if (e.code === 'Slash' && view !== 'settings'){ e.preventDefault(); $(view === 'knowledge' ? '#kbq' : view === 'api' ? '#apiq' : view === 'flow' ? '#flq' : '#fq')?.focus(); }
+  else if (/^Digit[1-7]$/.test(e.code)){ e.preventDefault(); go(NAV_KEYS[+e.code.slice(5) - 1]); }
 });
-const NAV_KEYS = ['dashboard', 'table', 'kanban', 'calendar', 'knowledge', 'api'];
+const NAV_KEYS = ['dashboard', 'table', 'kanban', 'calendar', 'knowledge', 'api', 'flow'];
 
 // Theme: light / auto / dark
 function applyTheme(t){
@@ -4502,6 +4625,939 @@ function renderUserBox(){
     : `<span class="mode" title="ข้อมูลเก็บใน browser นี้เท่านั้น — กรอก config.js เพื่อใช้ Supabase"><i style="background:var(--warn)"></i>โหมดเก็บในเครื่อง</span>`;
   if (CLOUD) $('#logoutBtn').onclick = () => sb.auth.signOut();
 }
+/* ================= Flow diagrams — แผนผังระบบ (schema v8) ================= */
+// Boxes and arrows drawn by the team, one JSON document per diagram: {nodes:[{id,type,x,y,w,h,text,color,link}], edges:[{id,from,to,label,style,arrow,apiIds}]}.
+// A box can point at an API, a knowledge note, a job or another diagram; an arrow can carry the APIs that run between two systems.
+const FL = {q:'', sel:'', reading:false, loadError:'', edit:null, dirty:false, saving:false, exporting:false,
+  view:{x:40, y:40, k:1}, fitFor:'', selIds:new Set(), hi:null, undo:[], redo:[], drag:null, ptrs:new Map(), addN:0};
+const FLOW_MAP = {title:'title', description:'description', tags:'tags', jobNos:'job_nos', data:'data'};
+// type: [label, default width, default height]
+const FL_SHAPES = {start:['เริ่ม / จบ', 140, 48], step:['ขั้นตอน', 160, 64], decision:['ตัดสินใจ', 150, 92], system:['ระบบ', 170, 70],
+  db:['ฐานข้อมูล', 140, 84], doc:['เอกสาร / ไฟล์', 150, 74], actor:['ผู้ใช้ / แผนก', 150, 60], note:['หมายเหตุ', 190, 72], lane:['กลุ่ม / Lane', 560, 220]};
+const FL_AUTO_COLOR = {start:'ok', step:'accent', decision:'warn', system:'accent', db:'muted', doc:'muted', actor:'ok', note:'warn', lane:'muted'};
+const FL_COLORS = [['auto', 'ตามรูปทรง'], ['accent', 'ม่วง'], ['ok', 'เขียว'], ['warn', 'เหลือง'], ['danger', 'แดง'], ['muted', 'เทา']];
+const FL_LINKS = [['', 'ไม่มี'], ['api', 'API'], ['note', 'ความรู้'], ['job', 'งาน'], ['flow', 'แผนผังอื่น']];
+const FL_LINK_ICON = {api:'api', note:'book', job:'briefcase', flow:'flow'};
+const FL_FONT = '500 13px "IBM Plex Sans Thai", sans-serif', FL_FONT_S = '500 12px "IBM Plex Sans Thai", sans-serif', FL_LH = 18, FL_GRID = 10;
+const flId = p => p + Math.random().toString(36).slice(2, 9);
+const flR = v => Math.round(v * 10) / 10;
+const flSnapV = v => Math.round(v / FL_GRID) * FL_GRID;
+
+function flowToRow(f){ return {title:f.title || '', description:f.description || '', tags:f.tags || [], job_nos:f.jobNos || [], data:f.data || {nodes:[], edges:[]}}; }
+function rowToFlow(r){
+  return {id:r.id, createdAt:r.created_at || '', updatedAt:r.updated_at || '', updatedByEmail:r.updated_by_email || '',
+    title:r.title || '', description:r.description || '', tags:r.tags || [], jobNos:r.job_nos || [], data:{nodes:r.data?.nodes || [], edges:r.data?.edges || []}};
+}
+async function fetchAllFlows(){
+  const out = [];
+  for (let from = 0; ; from += 1000){
+    const {data, error} = await sb.from('flows').select('*').order('created_at').range(from, from + 999);
+    if (error) throw error;
+    out.push(...data.map(rowToFlow));
+    if (data.length < 1000) return out;
+  }
+}
+async function apiSaveFlow(f, expectedUpdatedAt){
+  if (!CLOUD){ const now = new Date().toISOString(); return {...f, id:f.id || uid(), createdAt:f.createdAt || now, updatedAt:now, updatedByEmail:currentUser?.email || ''}; }
+  let q;
+  if (f.id){
+    q = sb.from('flows').update(flowToRow(f)).eq('id', f.id);
+    if (expectedUpdatedAt) q = q.eq('updated_at', expectedUpdatedAt);
+  } else q = sb.from('flows').insert(flowToRow(f));
+  const {data, error} = await q.select();
+  if (error) throw error;
+  if (!data.length){ const err = new Error('แผนผังนี้ถูกแก้ไขโดยผู้ใช้อื่น'); err.conflict = true; throw err; }
+  return rowToFlow(data[0]);
+}
+async function apiDeleteFlow(id){
+  if (!CLOUD) return;
+  const {error} = await sb.from('flows').delete().eq('id', id);
+  if (error) throw error;
+}
+function mergeFlow(f){ const i = db.flows.findIndex(x => x.id === f.id); if (i >= 0) db.flows[i] = f; else db.flows.push(f); }
+async function flStore(f, {force = false} = {}){
+  const old = db.flows.find(x => x.id === f.id);
+  try {
+    const saved = await apiSaveFlow(f, old && !force ? old.updatedAt : '');
+    mergeFlow(saved); persistLocal();
+    return saved;
+  } catch(err){
+    if (!err.conflict) throw err;
+    if (!confirm(`"${f.title}" ถูกแก้ไขโดยผู้ใช้อื่นหลังจากที่คุณเปิดแก้ไข\n\nOK = บันทึกทับด้วยแผนผังของคุณ\nCancel = ไม่บันทึก (กลับไปแก้ต่อ)`)) return undefined;
+    return flStore(f, {force:true});
+  }
+}
+
+const flSaved = () => db.flows.find(f => f.id === FL.sel);
+const flCur = () => FL.edit || flSaved();
+const flData = () => flCur()?.data || {nodes:[], edges:[]};
+const flNode = id => flData().nodes.find(n => n.id === id);
+const flEdge = id => flData().edges.find(e => e.id === id);
+function flNewNode(type, cx, cy){
+  const [label, w, h] = FL_SHAPES[type];
+  return {id:flId('n'), type, x:flSnapV(cx - w / 2), y:flSnapV(cy - h / 2), w, h, text:type === 'lane' ? 'กลุ่ม' : label, color:'auto'};
+}
+
+/* ---- text: Thai has no spaces, so lines break on dictionary words (Intl.Segmenter) and are measured on a canvas ---- */
+const flCtx = document.createElement('canvas').getContext('2d');
+const flSeg = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter('th', {granularity:'word'}) : null;
+const flWrapCache = new Map();
+function flTextW(s, font = FL_FONT){ flCtx.font = font; return flCtx.measureText(s).width; }
+function flWrap(text, max, font = FL_FONT){
+  const key = `${font}|${Math.round(max)}|${text}`;
+  if (flWrapCache.has(key)) return flWrapCache.get(key);
+  flCtx.font = font;
+  const fits = s => flCtx.measureText(s).width <= max, out = [];
+  for (const para of String(text || '').split('\n')){
+    let line = '';
+    for (const w of flSeg ? [...flSeg.segment(para)].map(s => s.segment) : para.split(/(\s+)/)){
+      if (fits(line + w)){ line += w; continue; }
+      if (line.trim()) out.push(line.trimEnd());
+      line = w.trimStart();
+      // one word wider than the box (a path, an id): cut it by characters
+      while (line && !fits(line)){ let i = line.length - 1; while (i > 1 && !fits(line.slice(0, i))) i--; out.push(line.slice(0, i)); line = line.slice(i); }
+    }
+    out.push(line.trimEnd());
+  }
+  if (flWrapCache.size > 3000) flWrapCache.clear();
+  flWrapCache.set(key, out);
+  return out;
+}
+document.fonts?.ready.then(() => { flWrapCache.clear(); if (view === 'flow') flDraw(); });
+
+/* ---- geometry ---- */
+function flShape(n){
+  const {w, h} = n;
+  switch (n.type){
+    case 'start': return `<rect class="fl-s" width="${w}" height="${h}" rx="${h / 2}"/>`;
+    case 'decision': return `<path class="fl-s" d="M${w / 2} 0L${w} ${h / 2}L${w / 2} ${h}L0 ${h / 2}Z"/>`;
+    case 'system': return `<rect class="fl-s" width="${w}" height="${h}" rx="6"/><rect class="fl-bar" width="${Math.min(6, w / 5)}" height="${h}" rx="${Math.min(3, w / 10)}"/>`;
+    case 'db': { const e = Math.min(14, h / 5); return `<path class="fl-s" d="M0 ${e}A${w / 2} ${e} 0 0 1 ${w} ${e}V${h - e}A${w / 2} ${e} 0 0 1 0 ${h - e}Z"/><path class="fl-fold" d="M0 ${e}A${w / 2} ${e} 0 0 0 ${w} ${e}"/>`; }
+    case 'doc': { const a = Math.min(10, h / 7); return `<path class="fl-s" d="M0 0H${w}V${h - a}Q${w * .75} ${h - a * 2.2} ${w / 2} ${h - a}T0 ${h - a}Z"/>`; }
+    case 'actor': { const a = Math.min(14, w / 8); return `<path class="fl-s" d="M${a} 0H${w - a}L${w} ${h / 2}L${w - a} ${h}H${a}L0 ${h / 2}Z"/>`; }
+    case 'note': { const a = Math.min(14, w / 5, h / 3); return `<path class="fl-s" d="M0 0H${w - a}L${w} ${a}V${h}H0Z"/><path class="fl-fold" d="M${w - a} 0V${a}H${w}"/>`; }
+    case 'lane': return `<rect class="fl-s" width="${w}" height="${h}" rx="12"/>`;
+    default: return `<rect class="fl-s" width="${w}" height="${h}" rx="10"/>`;
+  }
+}
+// elbow route between the facing sides of two boxes; `off` fans out arrows that share the same two boxes
+function flRoute(a, b, off = 0){
+  const ca = {x:a.x + a.w / 2, y:a.y + a.h / 2}, cb = {x:b.x + b.w / 2, y:b.y + b.h / 2}, dx = cb.x - ca.x, dy = cb.y - ca.y;
+  const cl = (v, n, side) => Math.max(-n[side] / 2 + 8, Math.min(n[side] / 2 - 8, v));
+  if (Math.abs(dx) - (a.w + b.w) / 2 > Math.abs(dy) - (a.h + b.h) / 2){
+    const sx = dx > 0 ? a.x + a.w : a.x, tx = dx > 0 ? b.x : b.x + b.w, sy = ca.y + cl(off, a, 'h'), ty = cb.y + cl(off, b, 'h'), mx = (sx + tx) / 2 + off;
+    return [{x:sx, y:sy}, {x:mx, y:sy}, {x:mx, y:ty}, {x:tx, y:ty}];
+  }
+  const sy = dy > 0 ? a.y + a.h : a.y, ty = dy > 0 ? b.y : b.y + b.h, sx = ca.x + cl(off, a, 'w'), tx = cb.x + cl(off, b, 'w'), my = (sy + ty) / 2 + off;
+  return [{x:sx, y:sy}, {x:sx, y:my}, {x:tx, y:my}, {x:tx, y:ty}];
+}
+function flPath(pts){
+  const p = pts.filter((q, i) => !i || Math.abs(q.x - pts[i - 1].x) + Math.abs(q.y - pts[i - 1].y) > .5);
+  let d = `M${flR(p[0].x)} ${flR(p[0].y)}`;
+  for (let i = 1; i < p.length - 1; i++){
+    const a = p[i - 1], b = p[i], c = p[i + 1], l1 = Math.hypot(b.x - a.x, b.y - a.y), l2 = Math.hypot(c.x - b.x, c.y - b.y), r = Math.min(8, l1 / 2, l2 / 2);
+    d += `L${flR(b.x - (b.x - a.x) / l1 * r)} ${flR(b.y - (b.y - a.y) / l1 * r)}Q${flR(b.x)} ${flR(b.y)} ${flR(b.x + (c.x - b.x) / l2 * r)} ${flR(b.y + (c.y - b.y) / l2 * r)}`;
+  }
+  const z = p[p.length - 1];
+  return d + `L${flR(z.x)} ${flR(z.y)}`;
+}
+const flRect = (p, q) => ({x:Math.min(p.x, q.x), y:Math.min(p.y, q.y), w:Math.abs(p.x - q.x), h:Math.abs(p.y - q.y)});
+const flInside = (n, r) => { const cx = n.x + n.w / 2, cy = n.y + n.h / 2; return cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h; };
+function flBounds(d){
+  if (!d.nodes.length) return null;
+  const x = Math.min(...d.nodes.map(n => n.x)), y = Math.min(...d.nodes.map(n => n.y));
+  return {x, y, w:Math.max(...d.nodes.map(n => n.x + n.w)) - x, h:Math.max(...d.nodes.map(n => n.y + n.h)) - y};
+}
+// everything upstream and downstream of a box (or just the two ends of an arrow), for "where does this go?"
+function flConnected(d, h){
+  const nodes = new Set(), edges = new Set();
+  if (h.kind === 'edge'){ const e = d.edges.find(x => x.id === h.id); if (e){ edges.add(e.id); nodes.add(e.from); nodes.add(e.to); } return {nodes, edges}; }
+  nodes.add(h.id);
+  for (const [dir, other] of [['from', 'to'], ['to', 'from']]){
+    const seen = new Set([h.id]), queue = [h.id];
+    while (queue.length){
+      const id = queue.shift();
+      for (const e of d.edges) if (e[dir] === id){ edges.add(e.id); nodes.add(e[other]); if (!seen.has(e[other])){ seen.add(e[other]); queue.push(e[other]); } }
+    }
+  }
+  return {nodes, edges};
+}
+const flEdgeApis = e => (e.apiIds || []).map(id => db.apis.find(a => a.id === id)).filter(Boolean);
+function flEdgeLabel(e){
+  if (e.label) return e.label;
+  const apis = flEdgeApis(e);
+  return !apis.length ? '' : apis.length === 1 ? `${apis[0].method} ${apis[0].name}` : `${apis[0].name} +${apis.length - 1} API`;
+}
+
+/* ---- drawing ---- */
+function flNodeSvg(n, ed, hi){
+  const color = n.color && n.color !== 'auto' ? n.color : FL_AUTO_COLOR[n.type] || 'accent', lane = n.type === 'lane', sel = ed && FL.selIds.has(n.id);
+  const cls = `fl-n t-${n.type} fl-c-${color}${sel ? ' sel' : ''}${hi && !lane ? (hi.nodes.has(n.id) ? ' hi' : ' dim') : ''}`;
+  const maxW = lane ? n.w - 40 : n.type === 'decision' ? n.w * .62 : n.type === 'actor' ? n.w - 36 : n.w - 22;
+  const maxL = lane ? 1 : Math.max(1, Math.floor((n.type === 'decision' ? n.h * .62 : n.h - 10) / FL_LH));
+  let lines = flWrap(n.text, Math.max(20, maxW));
+  if (lines.length > maxL){ lines = lines.slice(0, maxL); lines[maxL - 1] = lines[maxL - 1].replace(/.?$/, '…'); }
+  const tx = lane ? 14 : n.w / 2, ty = lane ? 20 : n.h / 2 - (lines.length - 1) * FL_LH / 2 + (n.type === 'db' ? Math.min(14, n.h / 5) / 2 : 0);
+  const text = `<text class="fl-t" x="${tx}" y="${flR(ty)}" dy="0.35em"${lane ? '' : ' text-anchor="middle"'}>${lines.map((l, i) => `<tspan x="${tx}"${i ? ` dy="${FL_LH}"` : ''}>${esc(l)}</tspan>`).join('')}</text>`;
+  const link = n.link?.id ? `<g class="fl-link" transform="translate(${n.w - (lane ? 16 : 9)} ${lane ? 16 : 9})"><circle r="7"/><path d="M-2.5 2.5L2.5-2.5M-1-2.5H2.5V1"/></g>` : '';
+  const ports = ed && !lane ? [[n.w / 2, 0], [n.w, n.h / 2], [n.w / 2, n.h], [0, n.h / 2]].map(([x, y]) => `<circle class="fl-port" data-fl-port="${esc(n.id)}" cx="${x}" cy="${y}" r="5"/>`).join('') : '';
+  const rs = sel && FL.selIds.size === 1 ? `<rect class="fl-rs" data-fl-resize="${esc(n.id)}" x="${n.w - 5}" y="${n.h - 5}" width="10" height="10" rx="2"/>` : '';
+  return `<g class="${cls}" data-fl-node="${esc(n.id)}" transform="translate(${n.x} ${n.y})">${flShape(n)}${text}${link}${ports}${rs}</g>`;
+}
+function flDraw(){
+  const vp = $('#flVp');
+  if (!vp) return;
+  const d = flData(), ed = !!FL.edit && !FL.exporting, hi = !FL.exporting && !FL.edit && FL.hi ? flConnected(d, FL.hi) : null;
+  const byId = new Map(d.nodes.map(n => [n.id, n])), pairs = {};
+  for (const e of d.edges) (pairs[[e.from, e.to].sort().join('|')] ||= []).push(e.id);
+  const edgeSvg = e => {
+    const a = byId.get(e.from), b = byId.get(e.to);
+    if (!a || !b) return '';
+    const grp = pairs[[e.from, e.to].sort().join('|')], pts = flRoute(a, b, (grp.indexOf(e.id) - (grp.length - 1) / 2) * 16), path = flPath(pts);
+    const on = hi?.edges.has(e.id), sel = ed && FL.selIds.has(e.id), mk = `url(#${on || sel ? 'flArrowHi' : 'flArrow'})`;
+    let label = flEdgeLabel(e);
+    if (label.length > 42) label = label.slice(0, 41) + '…';
+    const mid = {x:(pts[1].x + pts[2].x) / 2, y:(pts[1].y + pts[2].y) / 2}, lw = label ? flTextW(label, FL_FONT_S) + 16 : 0;
+    return `<g class="fl-e${e.style === 'dashed' ? ' dashed' : ''}${sel ? ' sel' : ''}${hi ? (on ? ' hi' : ' dim') : ''}" data-fl-edge="${esc(e.id)}">${FL.exporting ? '' : `<path class="fl-e-hit" d="${path}"/>`}`
+      + `<path class="fl-e-line" d="${path}"${e.arrow !== 'none' ? ` marker-end="${mk}"` : ''}${e.arrow === 'both' ? ` marker-start="${mk}"` : ''}/>`
+      + (label ? `<g class="fl-e-lbl" transform="translate(${flR(mid.x)} ${flR(mid.y)})"><rect x="${flR(-lw / 2)}" y="-11" width="${flR(lw)}" height="22" rx="7"/><text text-anchor="middle" dy="0.35em">${esc(label)}</text></g>` : '') + '</g>';
+  };
+  vp.innerHTML = (ed ? '<rect x="-20000" y="-20000" width="40000" height="40000" fill="url(#flGrid)"/>' : '')
+    + d.nodes.filter(n => n.type === 'lane').map(n => flNodeSvg(n, ed, hi)).join('')
+    + d.edges.map(edgeSvg).join('')
+    + d.nodes.filter(n => n.type !== 'lane').map(n => flNodeSvg(n, ed, hi)).join('')
+    + '<g id="flOverlay"></g>';
+  flApplyView();
+  $('.fl-empty')?.toggleAttribute('hidden', d.nodes.length > 0);
+}
+let flRaf = 0;
+const flSchedule = () => { if (!flRaf) flRaf = requestAnimationFrame(() => { flRaf = 0; flDraw(); }); };
+function flApplyView(){
+  $('#flVp')?.setAttribute('transform', `translate(${flR(FL.view.x)} ${flR(FL.view.y)}) scale(${FL.view.k})`);
+  const p = $('#flZoomPct'); if (p) p.textContent = Math.round(FL.view.k * 100) + '%';
+}
+function flZoomAt(k, cx, cy){
+  k = Math.min(2.5, Math.max(.2, k));
+  const v = FL.view;
+  v.x = cx - (cx - v.x) * k / v.k; v.y = cy - (cy - v.y) * k / v.k; v.k = k;
+  flApplyView();
+}
+function flFit(){
+  const st = $('#flStage'), b = flBounds(flData());
+  if (!st) return;
+  if (!b){ FL.view = {x:st.clientWidth / 2, y:st.clientHeight / 2, k:1}; return flApplyView(); }
+  const pad = 40, k = Math.min(1, Math.max(.2, Math.min((st.clientWidth - pad * 2) / b.w, (st.clientHeight - pad * 2) / b.h)));
+  FL.view = {k, x:(st.clientWidth - b.w * k) / 2 - b.x * k, y:(st.clientHeight - b.h * k) / 2 - b.y * k};
+  flApplyView();
+}
+function flPt(e){ const r = $('#flSvg').getBoundingClientRect(); return {x:(e.clientX - r.left - FL.view.x) / FL.view.k, y:(e.clientY - r.top - FL.view.y) / FL.view.k}; }
+
+/* ---- page ---- */
+function flFiltered(){
+  const words = FL.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return db.flows.filter(f => {
+    if (!words.length) return true;
+    const hay = [f.title, f.description, f.tags.join(' '), f.jobNos.join(' '), ...f.data.nodes.map(n => n.text), ...f.data.edges.map(e => e.label || '')].join(' ').toLowerCase();
+    return words.every(w => hay.includes(w));
+  }).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+}
+function renderFlows(){
+  const wide = matchMedia('(min-width: 901px)').matches, rows = flFiltered();
+  if (FL.sel && !FL.edit && !db.flows.some(f => f.id === FL.sel)){ FL.sel = ''; FL.reading = false; FL.hi = null; }
+  if (!FL.sel && !FL.edit && wide && rows.length) FL.sel = rows[0].id;
+  // a teammate's save arrives while drawing or typing: refresh the list only, never the canvas under the pointer or the field being typed in
+  if (FL.edit && $('#flMain') && (FL.drag || $('.fl-inline') || $('#flProps')?.contains(document.activeElement))){ flRenderList(); return; }
+  const focus = document.activeElement?.id === 'flq';
+  $('#view').innerHTML = `
+    ${FL.loadError ? `<div class="sys-alert warn" style="margin-bottom:12px">${icon('alert')}<div class="msg"><b>ยังเปิดแผนผังบน Supabase ไม่ได้</b>
+      <small>ผู้ดูแลระบบต้องรัน supabase/schema.sql (v8) ใน SQL Editor ก่อน — ระหว่างนี้วาดได้ แต่ยังบันทึกไม่ได้ (ร่างเก็บไว้ในเครื่อง) · ${esc(FL.loadError)}</small></div></div>` : ''}
+    <div class="kb-tools">
+      <div class="search-box"><svg class="i"><use href="#i-search"/></svg><input id="flq" type="search" placeholder="ค้นชื่อแผนผัง, ข้อความในกล่อง, Job No…" autocomplete="off" value="${esc(FL.q)}"><kbd>/</kbd></div>
+      <span class="result-count" id="flCount"></span>
+    </div>
+    <div class="card kb fl ${FL.reading || FL.edit ? 'reading' : ''} ${FL.edit ? 'editing' : ''}" id="flPanes"><div class="kb-list" id="flList"></div><div class="kb-reader fl-main" id="flMain"></div></div>`;
+  flRenderList();
+  flRenderMain();
+  const q = $('#flq');
+  q.oninput = () => { FL.q = q.value; flRenderList(); };
+  if (focus){ q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+}
+function flRenderList(){
+  const rows = flFiltered(), box = $('#flList');
+  if (!box) return;
+  $('#flCount').textContent = `${rows.length} จาก ${db.flows.length} แผนผัง`;
+  const gen = db.apis.some(a => a.source && a.target);
+  if (!db.flows.length){
+    box.innerHTML = `<div class="kb-empty">${icon('flow')}<p>ยังไม่มีแผนผัง<br>วาดขั้นตอนงาน หรือให้ระบบวาดแผนผังการเชื่อมต่อระหว่างระบบจากทะเบียน API</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button type="button" class="btn primary sm" data-fl-new>${icon('plus','sm')}เพิ่มแผนผัง</button>${gen ? `<button type="button" class="btn sm" data-fl-gen>${icon('api','sm')}สร้างจากทะเบียน API</button>` : ''}</div></div>`;
+    return;
+  }
+  if (!rows.length){ box.innerHTML = '<div class="kb-empty">ไม่พบแผนผังที่ตรงกับคำค้น</div>'; return; }
+  box.innerHTML = `<div class="kb-group">แก้ไขล่าสุด</div>` + rows.map(f => `<button type="button" class="kb-item ${f.id === FL.sel ? 'active' : ''}" data-flsel="${esc(f.id)}">
+      <span class="row"><b>${esc(f.title || '(ไม่มีชื่อ)')}</b></span>
+      ${f.description ? `<span class="snip">${esc(f.description.slice(0, 180))}</span>` : ''}
+      <span class="meta"><span>${f.data.nodes.filter(n => n.type !== 'lane').length} กล่อง · ${f.data.edges.length} เส้น</span>${f.tags.slice(0, 3).map(t => `<span class="tag">${esc(t)}</span>`).join('')}<span class="when">${f.updatedAt ? fmtDate(iso(new Date(f.updatedAt))) : ''}</span></span>
+    </button>`).join('');
+}
+function flRenderMain(){
+  const box = $('#flMain');
+  if (!box) return;
+  const f = flCur(), ed = !!FL.edit;
+  if (!f){ box.innerHTML = db.flows.length ? '<div class="kb-empty">เลือกแผนผังจากรายการด้านซ้าย</div>' : ''; return; }
+  box.innerHTML = `
+    <div class="fl-head">
+      ${ed ? '' : `<button type="button" class="btn sm kb-back" data-fl-back>${icon('left','sm')}กลับ</button>`}
+      <div class="fl-title"><h2>${esc(f.title || (ed ? 'แผนผังใหม่' : '(ไม่มีชื่อ)'))}</h2>
+        ${ed ? '' : `${f.description ? `<p>${esc(f.description)}</p>` : ''}<small class="muted">แก้ไขล่าสุด ${f.updatedAt ? fmtDateTime(f.updatedAt) : '-'}${f.updatedByEmail ? ' · ' + esc(f.updatedByEmail) : ''} · คลิกกล่องหรือเส้นเพื่อดูว่ารับจาก / ส่งต่อไปที่ไหน</small>`}</div>
+      <div class="fl-acts">${ed ? `
+        <button type="button" class="icon-btn" data-fl-undo title="ย้อนกลับ (Ctrl+Z)" ${FL.undo.length ? '' : 'disabled'}>${icon('undo')}</button>
+        <button type="button" class="icon-btn" data-fl-redo title="ทำซ้ำ (Ctrl+Y)" ${FL.redo.length ? '' : 'disabled'}>${icon('redo')}</button>
+        <button type="button" class="btn sm" data-fl-layout title="จัดเรียงกล่องจากซ้ายไปขวาตามทิศของลูกศร (กด Ctrl+Z เพื่อย้อนได้)">${icon('columns','sm')}จัดเรียงอัตโนมัติ</button>
+        <button type="button" class="btn sm" data-fl-cancel>ยกเลิก</button>
+        <button type="button" class="btn sm primary" data-fl-save>${icon('check','sm')}บันทึก</button>` : `
+        <button type="button" class="btn sm" data-fl-export="png" title="ดาวน์โหลดเป็นรูป (ใส่ในเอกสาร / แชท)">${icon('download','sm')}PNG</button>
+        <button type="button" class="btn sm" data-fl-export="svg" title="ดาวน์โหลดเป็นภาพเวกเตอร์ (ขยายได้ไม่แตก)">SVG</button>
+        <button type="button" class="btn sm primary" data-fl-edit>${icon('edit','sm')}แก้ไข</button>`}
+      </div>
+    </div>
+    ${ed ? `<div class="fl-palette">${Object.entries(FL_SHAPES).map(([t, [label]]) =>
+      `<button type="button" class="fl-pal" draggable="true" data-fl-add="${t}" title="คลิก = เพิ่มกลางจอ · ลากไปวางตรงที่ต้องการ"><svg viewBox="-2 -2 32 24"><g class="fl-n t-${t} fl-c-${FL_AUTO_COLOR[t]}">${flShape({type:t, w:28, h:20})}</g></svg>${esc(label)}</button>`).join('')}</div>` : ''}
+    <div class="fl-body">
+      <div class="fl-stage${ed ? ' fl-edit' : ''}" id="flStage">
+        <svg id="flSvg" class="fl-svg"><defs>
+          <pattern id="flGrid" width="20" height="20" patternUnits="userSpaceOnUse"><circle class="fl-dot" cx="1" cy="1" r="1"/></pattern>
+          <marker id="flArrow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path class="fl-arrow" d="M0 0L10 5L0 10z"/></marker>
+          <marker id="flArrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path class="fl-arrow hi" d="M0 0L10 5L0 10z"/></marker>
+        </defs><g id="flVp"></g></svg>
+        <div class="fl-empty">${ed ? 'ลากรูปทรงจากแถบด้านบนมาวาง หรือดับเบิลคลิกที่ว่างเพื่อเพิ่มขั้นตอน' : 'แผนผังนี้ยังว่าง — กด แก้ไข เพื่อเริ่มวาด'}</div>
+        <div class="fl-zoom" title="Ctrl + ล้อเมาส์ = ซูม · ลากที่ว่าง = เลื่อน">
+          <button type="button" class="icon-btn" data-fl-zoom="-1" title="ย่อ">${icon('minus','sm')}</button><span id="flZoomPct">100%</span>
+          <button type="button" class="icon-btn" data-fl-zoom="1" title="ขยาย">${icon('plus','sm')}</button>
+          <button type="button" class="icon-btn" data-fl-zoom="0" title="พอดีจอ">${icon('fit','sm')}</button></div>
+        <div class="fl-info" id="flInfo" hidden></div>
+      </div>
+      ${ed ? '<aside class="fl-props" id="flProps"></aside>' : ''}
+    </div>`;
+  const key = f.id || 'new';
+  if (FL.fitFor !== key){ FL.fitFor = key; flFit(); }
+  flDraw();
+  flRenderProps();
+  flRenderInfo();
+  flBindStage();
+}
+
+/* ---- view mode: what a box connects to ---- */
+function flLinkName(l){
+  if (!l?.id) return '';
+  if (l.kind === 'api'){ const a = db.apis.find(x => x.id === l.id); return a ? `${a.method} ${a.name}` : ''; }
+  if (l.kind === 'note') return db.notes.find(x => x.id === l.id)?.title || '';
+  if (l.kind === 'job') return l.id;
+  if (l.kind === 'flow') return db.flows.find(x => x.id === l.id)?.title || '';
+  return '';
+}
+const flLinkBtn = l => `<button type="button" class="btn sm" data-fl-open="${esc(l.kind + ':' + l.id)}">${icon(FL_LINK_ICON[l.kind] || 'link', 'sm')}${esc(FL_LINKS.find(x => x[0] === l.kind)?.[1] || '')}: ${esc(flLinkName(l) || 'ไม่พบแล้ว')}</button>`;
+function flOpenLink(l){
+  if (!l?.id) return;
+  if (l.kind === 'api'){
+    if (!db.apis.some(a => a.id === l.id)) return toast('ไม่พบ API นี้แล้ว', 'alert');
+    API.sel = l.id; API.reading = true; go('api');
+  } else if (l.kind === 'note'){
+    if (!db.notes.some(n => n.id === l.id)) return toast('ไม่พบเรื่องนี้ในคลังความรู้แล้ว', 'alert');
+    kbOpenNote(l.id);
+  } else if (l.kind === 'job'){
+    const j = db.jobs.find(x => x.jobNo === l.id);
+    j ? openForm(j) : toast(`ไม่พบงาน ${l.id}`, 'alert');
+  } else if (l.kind === 'flow'){
+    if (!db.flows.some(f => f.id === l.id)) return toast('ไม่พบแผนผังนี้แล้ว', 'alert');
+    flShow(l.id);
+  }
+}
+function flRenderInfo(){
+  const box = $('#flInfo');
+  if (!box) return;
+  const d = flData(), h = FL.edit ? null : FL.hi;
+  const name = id => esc(d.nodes.find(x => x.id === id)?.text || '?');
+  const close = `<button type="button" class="icon-btn" data-fl-unhi title="ปิด (Esc)">${icon('x','sm')}</button>`;
+  let html = '';
+  if (h?.kind === 'node'){
+    const n = d.nodes.find(x => x.id === h.id);
+    if (n){
+      const ins = d.edges.filter(e => e.to === n.id), outs = d.edges.filter(e => e.from === n.id);
+      const li = (e, id) => `<li>${name(id)}${flEdgeLabel(e) ? ` <span class="muted">· ${esc(flEdgeLabel(e))}</span>` : ''}</li>`;
+      html = `<div class="fl-info-head"><div><small>${esc(FL_SHAPES[n.type]?.[0] || '')}</small><b>${esc(n.text)}</b></div>${close}</div>
+        ${n.link?.id ? flLinkBtn(n.link) : ''}
+        ${ins.length ? `<h5>รับจาก</h5><ul>${ins.map(e => li(e, e.from)).join('')}</ul>` : ''}
+        ${outs.length ? `<h5>ส่งต่อไปที่</h5><ul>${outs.map(e => li(e, e.to)).join('')}</ul>` : ''}
+        ${!ins.length && !outs.length ? '<p class="muted" style="margin:8px 0 0">ยังไม่มีเส้นเชื่อมกับกล่องนี้</p>' : ''}`;
+    }
+  } else if (h?.kind === 'edge'){
+    const e = d.edges.find(x => x.id === h.id);
+    if (e){
+      const apis = flEdgeApis(e);
+      html = `<div class="fl-info-head"><div><small>เส้นเชื่อม${e.style === 'dashed' ? ' (เส้นประ)' : ''}</small><b>${name(e.from)} ${e.arrow === 'both' ? '↔' : '→'} ${name(e.to)}</b></div>${close}</div>
+        ${e.label ? `<p style="margin:8px 0 0">${esc(e.label)}</p>` : ''}
+        ${apis.length ? `<h5>API บนเส้นนี้ · ${apis.length}</h5>${apis.map(a => `<button type="button" class="fl-api" data-fl-open="api:${esc(a.id)}">${methodBadge(a.method)}<span style="flex:1;min-width:0">${esc(a.name)}</span>${apiStatusPill(a.status)}</button>`).join('')}` : ''}`;
+    }
+  }
+  box.hidden = !html;
+  box.innerHTML = html;
+}
+function flShow(id){
+  if (FL.edit && !flCanLeaveEdit()) return;
+  FL.sel = id; FL.reading = true; FL.hi = null; FL.fitFor = '';
+  if (view === 'flow') render();
+}
+
+/* ---- pointer: pan, zoom, select, move, resize, connect ---- */
+function flBindStage(){
+  const svg = $('#flSvg'), st = $('#flStage');
+  if (!svg) return;
+  svg.onpointerdown = flDown;
+  svg.onpointermove = flMove;
+  svg.onpointerup = svg.onpointercancel = flUp;
+  svg.ondblclick = flDbl;
+  svg.onwheel = e => {
+    e.preventDefault();
+    const r = svg.getBoundingClientRect();
+    if (e.ctrlKey || e.metaKey) flZoomAt(FL.view.k * Math.exp(-e.deltaY * .0015), e.clientX - r.left, e.clientY - r.top);
+    else { FL.view.x -= e.deltaX; FL.view.y -= e.deltaY; flApplyView(); }
+  };
+  st.ondragover = e => { if (FL.edit && [...e.dataTransfer.types].includes('text/fl-shape')) e.preventDefault(); };
+  st.ondrop = e => { const t = e.dataTransfer.getData('text/fl-shape'); if (!t || !FL.edit) return; e.preventDefault(); const p = flPt(e); flAddNode(t, p.x, p.y); };
+}
+document.addEventListener('dragstart', e => { const b = e.target.closest?.('[data-fl-add]'); if (b) e.dataTransfer.setData('text/fl-shape', b.dataset.flAdd); });
+function flDown(e){
+  if (e.button > 1) return;
+  if (document.activeElement?.closest?.('#flProps, .fl-inline')) document.activeElement.blur();
+  const svg = e.currentTarget, ed = !!FL.edit, t = e.target;
+  FL.ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  try { svg.setPointerCapture(e.pointerId); } catch(err){}
+  if (FL.ptrs.size === 2){ const [p, q] = [...FL.ptrs.values()]; FL.drag = {kind:'pinch', d0:Math.hypot(p.x - q.x, p.y - q.y) || 1, k0:FL.view.k}; return; }
+  const start = {cx:e.clientX, cy:e.clientY, p:flPt(e), moved:false};
+  const port = t.closest('[data-fl-port]'), rs = t.closest('[data-fl-resize]'), nodeEl = t.closest('[data-fl-node]'), edgeEl = t.closest('[data-fl-edge]');
+  const pan = click => ({...start, kind:'pan', vx:FL.view.x, vy:FL.view.y, click});
+  if (ed && port){ FL.drag = {...start, kind:'connect', from:port.dataset.flPort}; return; }
+  if (ed && rs){ const n = flNode(rs.dataset.flResize); FL.drag = {...start, kind:'resize', n, w0:n.w, h0:n.h, snap:JSON.stringify(flData())}; return; }
+  if (nodeEl){
+    const id = nodeEl.dataset.flNode;
+    if (!ed){ FL.drag = pan({kind:'node', id}); return; }
+    if (e.shiftKey){ FL.selIds.has(id) ? FL.selIds.delete(id) : FL.selIds.add(id); }
+    else if (!FL.selIds.has(id)) FL.selIds = new Set([id]);
+    // moving a lane carries the boxes sitting in it
+    const ids = new Set([...FL.selIds].filter(x => flNode(x)));
+    for (const x of [...ids]){ const lane = flNode(x); if (lane.type === 'lane') for (const m of flData().nodes) if (m.type !== 'lane' && flInside(m, lane)) ids.add(m.id); }
+    FL.drag = {...start, kind:'move', items:[...ids].map(x => { const n = flNode(x); return {n, x:n.x, y:n.y}; }), snap:JSON.stringify(flData())};
+    flDraw(); flRenderProps();
+    return;
+  }
+  if (edgeEl){
+    const id = edgeEl.dataset.flEdge;
+    if (!ed){ FL.drag = pan({kind:'edge', id}); return; }
+    FL.selIds = e.shiftKey ? new Set([...FL.selIds, id]) : new Set([id]);
+    flDraw(); flRenderProps();
+    return;
+  }
+  FL.drag = ed && e.shiftKey ? {...start, kind:'marquee'} : pan({kind:'blank'});
+}
+function flMove(e){
+  if (FL.ptrs.has(e.pointerId)) FL.ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  const g = FL.drag;
+  if (!g) return;
+  if (g.kind === 'pinch'){
+    const [p, q] = [...FL.ptrs.values()];
+    if (!q) return;
+    const r = $('#flSvg').getBoundingClientRect();
+    return flZoomAt(g.k0 * Math.hypot(p.x - q.x, p.y - q.y) / g.d0, (p.x + q.x) / 2 - r.left, (p.y + q.y) / 2 - r.top);
+  }
+  const sx = e.clientX - g.cx, sy = e.clientY - g.cy;
+  if (!g.moved && Math.hypot(sx, sy) < 4) return;
+  g.moved = true;
+  const dx = sx / FL.view.k, dy = sy / FL.view.k;
+  if (g.kind === 'pan'){ FL.view.x = g.vx + sx; FL.view.y = g.vy + sy; flApplyView(); }
+  else if (g.kind === 'move'){ for (const it of g.items){ it.n.x = flSnapV(it.x + dx); it.n.y = flSnapV(it.y + dy); } flSchedule(); }
+  else if (g.kind === 'resize'){ g.n.w = Math.max(40, flSnapV(g.w0 + dx)); g.n.h = Math.max(30, flSnapV(g.h0 + dy)); flSchedule(); }
+  else {
+    g.cur = flPt(e);
+    const o = $('#flOverlay');
+    if (o) o.innerHTML = g.kind === 'connect' ? `<path class="fl-temp" d="M${flR(g.p.x)} ${flR(g.p.y)}L${flR(g.cur.x)} ${flR(g.cur.y)}"/>`
+      : (r => `<rect class="fl-marq" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"/>`)(flRect(g.p, g.cur));
+  }
+}
+function flUp(e){
+  FL.ptrs.delete(e.pointerId);
+  const g = FL.drag;
+  FL.drag = null;
+  if (!g || g.kind === 'pinch') return;
+  if (g.kind === 'pan'){
+    if (g.moved) return;
+    const c = g.click;   // a click, not a drag
+    if (FL.edit){ if (FL.selIds.size){ FL.selIds = new Set(); flDraw(); flRenderProps(); } return; }
+    FL.hi = c.kind === 'blank' || (FL.hi?.kind === c.kind && FL.hi.id === c.id) ? null : c;
+    flDraw(); flRenderInfo();
+    return;
+  }
+  if (g.kind === 'move' || g.kind === 'resize'){ if (g.moved){ flPushUndo(g.snap); flTouched(); } flDraw(); flRenderProps(); return; }
+  if (g.kind === 'marquee'){
+    if (g.cur){ const r = flRect(g.p, g.cur); for (const n of flData().nodes) if (n.type !== 'lane' && flInside(n, r)) FL.selIds.add(n.id); }
+    flDraw(); flRenderProps();
+    return;
+  }
+  // connect: dropped on a box = an arrow to it · dropped on empty canvas = a new step there, already connected
+  if (!g.moved || !g.cur){ flDraw(); return; }
+  const to = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-fl-node]')?.dataset.flNode;
+  if (to === g.from){ flDraw(); return; }
+  flSnap();
+  let target = to && flNode(to)?.type !== 'lane' ? to : '', fresh = null;
+  if (!target){ fresh = flNewNode('step', g.cur.x, g.cur.y); flData().nodes.push(fresh); target = fresh.id; }
+  flData().edges.push({id:flId('e'), from:g.from, to:target, label:'', style:'solid', arrow:'end', apiIds:[]});
+  FL.selIds = new Set([fresh ? fresh.id : flData().edges.at(-1).id]);
+  flTouched(); flDraw(); flRenderProps();
+  if (fresh) flInlineEdit(fresh.id);
+}
+function flDbl(e){
+  const nodeEl = e.target.closest('[data-fl-node]'), edgeEl = e.target.closest('[data-fl-edge]');
+  if (!FL.edit){ if (nodeEl) flOpenLink(flNode(nodeEl.dataset.flNode)?.link); return; }   // view: double-click follows the box's link
+  if (nodeEl) return flInlineEdit(nodeEl.dataset.flNode);
+  if (edgeEl){ FL.selIds = new Set([edgeEl.dataset.flEdge]); flDraw(); flRenderProps(); $('#flProps [data-fe="label"]')?.focus(); return; }
+  const p = flPt(e);
+  flAddNode('step', p.x, p.y);
+}
+// type straight into the box
+function flInlineEdit(id){
+  const n = flNode(id), el = $(`[data-fl-node="${CSS.escape(id)}"]`), st = $('#flStage');
+  if (!n || !el || !st) return;
+  $('.fl-inline')?.remove();
+  const r = el.getBoundingClientRect(), s = st.getBoundingClientRect(), ta = document.createElement('textarea');
+  ta.className = 'fl-inline'; ta.value = n.text;
+  Object.assign(ta.style, {left:`${r.left - s.left}px`, top:`${r.top - s.top}px`, width:`${Math.max(r.width, 120)}px`,
+    height:`${n.type === 'lane' ? 36 : Math.max(r.height, 40)}px`, fontSize:`${Math.max(12, 13 * FL.view.k)}px`});
+  st.append(ta);
+  ta.focus(); ta.select();
+  const before = JSON.stringify(flData());
+  let done = false;
+  const finish = keep => {
+    if (done) return;
+    done = true;
+    const v = ta.value.trim();
+    ta.remove();
+    if (keep && v !== n.text){ flPushUndo(before); n.text = v; flTouched(); }
+    flDraw(); flRenderProps();
+  };
+  ta.onkeydown = e => {
+    if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape'){ e.preventDefault(); finish(false); }
+  };
+  ta.onblur = () => finish(true);
+}
+
+/* ---- editing ---- */
+const flDraftKey = () => `${LS_KEY}.flowDraft.${FL.edit?.id || 'new'}`;
+let flDraftTimer = 0;
+function flSaveDraft(){ if (!FL.edit || !FL.dirty) return; try { localStorage.setItem(flDraftKey(), JSON.stringify({at:new Date().toISOString(), flow:FL.edit})); } catch(e){} }
+const flDropDraft = () => { clearTimeout(flDraftTimer); try { localStorage.removeItem(flDraftKey()); } catch(e){} };
+function flPushUndo(s){ FL.undo.push(s); if (FL.undo.length > 100) FL.undo.shift(); FL.redo = []; }
+const flSnap = () => flPushUndo(JSON.stringify(FL.edit.data));
+function flTouched(){
+  FL.dirty = true;
+  $$('[data-fl-undo]').forEach(b => b.disabled = !FL.undo.length);
+  $$('[data-fl-redo]').forEach(b => b.disabled = !FL.redo.length);
+  clearTimeout(flDraftTimer); flDraftTimer = setTimeout(flSaveDraft, 800);
+}
+function flUndoRedo(from, to){
+  if (!FL.edit || !from.length) return;
+  to.push(JSON.stringify(FL.edit.data));
+  FL.edit.data = JSON.parse(from.pop());
+  const d = FL.edit.data;
+  FL.selIds = new Set([...FL.selIds].filter(id => d.nodes.some(n => n.id === id) || d.edges.some(e => e.id === id)));
+  flTouched(); flDraw(); flRenderProps();
+}
+const flUndo = () => flUndoRedo(FL.undo, FL.redo), flRedo = () => flUndoRedo(FL.redo, FL.undo);
+function flStartEdit(f, draft){
+  FL.edit = clone(f || {id:'', title:'', description:'', tags:[], jobNos:[], data:{nodes:[{...flNewNode('start', 0, 0), text:'เริ่ม'}], edges:[]}, ...draft});
+  FL.dirty = !!draft; FL.undo = []; FL.redo = []; FL.selIds = new Set(); FL.hi = null; FL.reading = true;
+  if (!draft){
+    // a drawing left behind by a closed tab or a crash
+    let d; try { d = JSON.parse(localStorage.getItem(flDraftKey())); } catch(e){}
+    if (d?.flow){
+      const newer = f?.updatedAt && new Date(f.updatedAt) > new Date(d.at);
+      if (confirm(`พบร่างแผนผังที่ยังไม่ได้บันทึก (${fmtDateTime(d.at)})${newer ? `\n\n⚠️ แผนผังนี้ถูกแก้ไขอีกครั้งหลังจากร่างนี้ (${fmtDateTime(f.updatedAt)}) — ถ้ากู้ร่างแล้วบันทึก จะทับการแก้ไขนั้น` : ''}\n\nOK = กู้ร่างกลับมา\nCancel = ทิ้งร่าง`)){
+        FL.edit = {...d.flow, id:f?.id || '', updatedAt:f?.updatedAt || ''}; FL.dirty = true; FL.fitFor = '';
+      } else flDropDraft();
+    }
+  }
+  if (!f) FL.fitFor = '';
+  if (view === 'flow') render(); else go('flow');
+  if (!f && !draft) $('#flProps [data-fp="title"]')?.focus();
+}
+function flCanLeaveEdit(){
+  if (!FL.edit) return true;
+  if (FL.dirty && !confirm('ทิ้งแผนผังที่กำลังแก้ไข? สิ่งที่วาดไว้จะหายไป')) return false;
+  flDropDraft();
+  FL.edit = null; FL.dirty = false; FL.selIds = new Set();
+  return true;
+}
+const flCanLeave = () => view !== 'flow' || flCanLeaveEdit();
+function flCancel(){
+  if (!flCanLeaveEdit()) return;
+  if (!FL.sel) FL.reading = false;
+  FL.fitFor = '';
+  render();
+}
+async function flSave(){
+  const f = FL.edit;
+  if (!f || FL.saving) return;
+  $('.fl-inline')?.blur();
+  if (document.activeElement?.closest?.('#flProps')) document.activeElement.blur();
+  if (!f.title.trim()){
+    FL.selIds = new Set(); flDraw(); flRenderProps();
+    toast('ใส่ชื่อแผนผังก่อนบันทึก', 'alert');
+    $('#flProps [data-fp="title"]')?.focus();
+    return;
+  }
+  if (CLOUD && FL.loadError){ flSaveDraft(); toast('ยังบันทึกขึ้น Supabase ไม่ได้ (ต้องรัน schema v8) · เก็บร่างไว้ในเครื่องแล้ว', 'alert'); return; }
+  FL.saving = true;
+  const saved = await safe(() => flStore({...f, title:f.title.trim()}));
+  FL.saving = false;
+  if (!saved) return;
+  flDropDraft();
+  FL.edit = null; FL.dirty = false; FL.selIds = new Set(); FL.sel = saved.id; FL.fitFor = saved.id;
+  render();
+  toast(f.id ? 'บันทึกแผนผังแล้ว' : 'เพิ่มแผนผังแล้ว');
+}
+function flDeleteFlow(){
+  const f = db.flows.find(x => x.id === FL.edit?.id);
+  if (!f || !confirm(`ลบแผนผัง "${f.title}"?\nAPI ความรู้ และงานที่เชื่อมไว้ไม่ถูกลบ`)) return;
+  safe(async () => {
+    await apiDeleteFlow(f.id);
+    db.flows = db.flows.filter(x => x.id !== f.id);
+    persistLocal(); flDropDraft();
+    FL.edit = null; FL.dirty = false; FL.sel = ''; FL.reading = false;
+    render(); toast('ลบแผนผังแล้ว', 'trash');
+  });
+}
+function flAddNode(type, cx, cy){
+  if (!FL.edit || !FL_SHAPES[type]) return;
+  if (cx === undefined){
+    // centre of what is on screen, nudged so repeated clicks don't stack exactly
+    const st = $('#flStage'), k = FL.view.k, o = (FL.addN++ % 5) * 24;
+    cx = (st.clientWidth / 2 - FL.view.x) / k + o; cy = (st.clientHeight / 2 - FL.view.y) / k + o;
+  }
+  flSnap();
+  const n = flNewNode(type, cx, cy);
+  FL.edit.data.nodes.push(n);
+  FL.selIds = new Set([n.id]);
+  flTouched(); flDraw(); flRenderProps();
+  flInlineEdit(n.id);
+}
+function flDeleteSel(){
+  const ids = FL.selIds;
+  if (!FL.edit || !ids.size) return;
+  flSnap();
+  const d = FL.edit.data;
+  d.nodes = d.nodes.filter(n => !ids.has(n.id));
+  d.edges = d.edges.filter(e => !ids.has(e.id) && !ids.has(e.from) && !ids.has(e.to));
+  FL.selIds = new Set();
+  flTouched(); flDraw(); flRenderProps();
+}
+function flDuplicate(){
+  const d = FL.edit?.data, ids = FL.selIds;
+  if (!d || !ids.size) return;
+  const map = new Map();
+  for (const n of d.nodes) if (ids.has(n.id)) map.set(n.id, {...clone(n), id:flId('n'), x:n.x + 30, y:n.y + 30});
+  if (!map.size) return;
+  flSnap();
+  const edges = d.edges.filter(e => map.has(e.from) && map.has(e.to)).map(e => ({...clone(e), id:flId('e'), from:map.get(e.from).id, to:map.get(e.to).id}));
+  d.nodes.push(...map.values()); d.edges.push(...edges);
+  FL.selIds = new Set([...map.values()].map(n => n.id));
+  flTouched(); flDraw(); flRenderProps();
+}
+function flAlign(how){
+  const ns = flData().nodes.filter(n => FL.selIds.has(n.id) && n.type !== 'lane');
+  if (ns.length < 2) return;
+  flSnap();
+  const avg = f => ns.reduce((s, n) => s + f(n), 0) / ns.length;
+  if (how === 'left'){ const x = Math.min(...ns.map(n => n.x)); ns.forEach(n => n.x = x); }
+  if (how === 'top'){ const y = Math.min(...ns.map(n => n.y)); ns.forEach(n => n.y = y); }
+  if (how === 'hcenter'){ const c = avg(n => n.x + n.w / 2); ns.forEach(n => n.x = flSnapV(c - n.w / 2)); }
+  if (how === 'vcenter'){ const c = avg(n => n.y + n.h / 2); ns.forEach(n => n.y = flSnapV(c - n.h / 2)); }
+  flTouched(); flDraw();
+}
+// Left-to-right layers along the arrows; each column sorted by where its inputs sit so arrows cross less. Lanes stay put.
+function flLayout(d){
+  const ns = d.nodes.filter(n => n.type !== 'lane');
+  if (!ns.length) return;
+  const ids = new Set(ns.map(n => n.id)), all = d.edges.filter(e => ids.has(e.from) && ids.has(e.to) && e.from !== e.to);
+  // arrows that close a loop (A → B → A, "ไม่ผ่าน → ทำใหม่") point backwards; leave them out when choosing columns
+  const indeg = new Map(ns.map(n => [n.id, 0]));
+  all.forEach(e => indeg.set(e.to, indeg.get(e.to) + 1));
+  const state = new Map(), back = new Set();
+  const visit = id => {
+    state.set(id, 1);
+    for (const e of all) if (e.from === id){
+      if (state.get(e.to) === 1) back.add(e.id);
+      else if (!state.has(e.to)) visit(e.to);
+    }
+    state.set(id, 2);
+  };
+  [...ns.filter(n => !indeg.get(n.id)), ...ns].forEach(n => { if (!state.has(n.id)) visit(n.id); });
+  const es = all.filter(e => !back.has(e.id));
+  // column = longest path from a starting box (topological order, so each box is placed after everything feeding it)
+  const layer = new Map(ns.map(n => [n.id, 0])), left = new Map(ns.map(n => [n.id, 0]));
+  es.forEach(e => left.set(e.to, left.get(e.to) + 1));
+  const queue = ns.filter(n => !left.get(n.id)).map(n => n.id);
+  while (queue.length){
+    const id = queue.shift();
+    for (const e of es) if (e.from === id){
+      layer.set(e.to, Math.max(layer.get(e.to), layer.get(id) + 1));
+      left.set(e.to, left.get(e.to) - 1);
+      if (!left.get(e.to)) queue.push(e.to);
+    }
+  }
+  const cols = new Map();
+  ns.forEach((n, i) => { const l = layer.get(n.id); if (!cols.has(l)) cols.set(l, []); cols.get(l).push({n, i}); });
+  // wide gaps leave room for the labels on the arrows
+  const row = new Map(), GX = all.some(e => flEdgeLabel(e)) ? 160 : 90, GY = 50;
+  let x = 0;
+  for (const l of [...cols.keys()].sort((a, b) => a - b)){
+    const col = cols.get(l);
+    const score = ({n, i}) => { const ps = es.filter(e => e.to === n.id && row.has(e.from)).map(e => row.get(e.from)); return ps.length ? ps.reduce((s, v) => s + v, 0) / ps.length : 1e6 + i; };
+    col.sort((a, b) => score(a) - score(b));
+    col.forEach(({n}, r) => row.set(n.id, r));
+    const w = Math.max(...col.map(c => c.n.w));
+    let y = -(col.reduce((s, c) => s + c.n.h, 0) + GY * (col.length - 1)) / 2;
+    for (const {n} of col){ n.x = flSnapV(x + (w - n.w) / 2); n.y = flSnapV(y); y += n.h + GY; }
+    x += w + GX;
+  }
+}
+// One box per system named in the API registry, one arrow per source → target pair carrying all its APIs
+function flFromApis(){
+  const apis = db.apis.filter(a => a.status !== 'เลิกใช้' && a.source.trim() && a.target.trim());
+  if (!apis.length) return toast('ยังไม่มี API ที่ระบุระบบต้นทางและปลายทาง', 'alert');
+  if (view === 'flow' && !flCanLeave()) return;
+  const systems = new Map(), pairs = new Map();
+  const sys = name => {
+    const k = name.trim().toLowerCase();
+    if (!systems.has(k)) systems.set(k, {...flNewNode('system', 0, 0), text:name.trim()});
+    return systems.get(k).id;
+  };
+  for (const a of apis){
+    const s = sys(a.source), t = sys(a.target), k = s + '>' + t;
+    if (!pairs.has(k)) pairs.set(k, {id:flId('e'), from:s, to:t, label:'', style:'solid', arrow:'end', apiIds:[]});
+    pairs.get(k).apiIds.push(a.id);
+  }
+  const data = {nodes:[...systems.values()], edges:[...pairs.values()]};
+  flLayout(data);
+  flStartEdit(null, {title:'แผนผังระบบ (จากทะเบียน API)', description:`ระบบ ${systems.size} ระบบ เชื่อมกันด้วย ${apis.length} API (ไม่รวมที่เลิกใช้) — สร้างจากทะเบียน API เมื่อ ${fmtDate(today())} จัดตำแหน่งและเพิ่มคำอธิบายต่อได้`, data});
+}
+
+/* ---- side panel ---- */
+function flLinkOptions(kind){
+  return kind === 'api' ? db.apis.map(a => [`${a.method} ${a.name}`, a.id, a.source || a.target ? `${a.source || '?'} → ${a.target || '?'}` : ''])
+    : kind === 'note' ? db.notes.map(n => [n.title, n.id, n.category])
+    : kind === 'job' ? db.jobs.filter(j => j.jobNo).map(j => [j.jobNo, j.jobNo, displayTitle(j)])
+    : kind === 'flow' ? db.flows.filter(f => f.id !== FL.edit?.id).map(f => [f.title, f.id, '']) : [];
+}
+const flOptionsHtml = list => list.map(([v, , l]) => `<option value="${esc(v)}"${l ? ` label="${esc(l)}"` : ''}>`).join('');
+function flRenderProps(){
+  const box = $('#flProps');
+  if (!box || !FL.edit) return;
+  const f = FL.edit, ids = [...FL.selIds], n = ids.length === 1 ? flNode(ids[0]) : null, e = ids.length === 1 && !n ? flEdge(ids[0]) : null;
+  const opts = (list, v) => list.map(([k, l]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(l)}</option>`).join('');
+  const acts = extra => `<div class="fl-prop-acts">${extra}<button type="button" class="btn sm danger-text" data-fl-del>${icon('trash','sm')}ลบ${ids.length > 1 ? 'ที่เลือก' : ''}</button></div>`;
+  if (n){
+    const kind = n.link?.kind || '';
+    box.innerHTML = `<h4>กล่อง</h4>
+      <label class="field"><span>ข้อความ</span><textarea class="input" data-fn="text" rows="3">${esc(n.text)}</textarea></label>
+      <label class="field"><span>รูปทรง</span><select data-fn="type">${opts(Object.entries(FL_SHAPES).map(([k, [l]]) => [k, l]), n.type)}</select></label>
+      <div class="field"><span>สี</span><div class="fl-swatches">${FL_COLORS.map(([c, l]) => `<button type="button" class="fl-sw fl-c-${c === 'auto' ? FL_AUTO_COLOR[n.type] : c}${(n.color || 'auto') === c ? ' on' : ''}" data-fl-color="${c}" title="${esc(l)}">${c === 'auto' ? 'A' : ''}</button>`).join('')}</div></div>
+      <label class="field"><span>ลิงก์ไปที่ (ดับเบิลคลิกกล่องในหน้าดูเพื่อเปิด)</span><select data-fn="linkKind">${opts(FL_LINKS, kind)}</select></label>
+      ${kind ? `<label class="field"><span>เลือก${esc(FL_LINKS.find(x => x[0] === kind)[1])}</span><input class="input" data-fn="linkRef" list="dlFlLink" value="${esc(flLinkName(n.link))}" placeholder="พิมพ์เพื่อค้น แล้วเลือกจากรายการ" autocomplete="off"></label>` : ''}
+      ${acts(`<button type="button" class="btn sm" data-fl-dup>ทำสำเนา</button>`)}`;
+    if (kind) $('#dlFlLink').innerHTML = flOptionsHtml(flLinkOptions(kind));
+  } else if (e){
+    const apis = flEdgeApis(e);
+    box.innerHTML = `<h4>เส้นเชื่อม</h4><p class="muted fl-prop-sub">${esc(flNode(e.from)?.text || '?')} → ${esc(flNode(e.to)?.text || '?')}</p>
+      <label class="field"><span>ข้อความบนเส้น</span><input class="input" data-fe="label" value="${esc(e.label || '')}" placeholder="${esc(apis.length ? flEdgeLabel({...e, label:''}) : 'เช่น ส่งใบสั่งซื้อ, ทุกวัน 02:00')}" autocomplete="off"></label>
+      <label class="field"><span>เส้น</span><select data-fe="style">${opts([['solid', 'เส้นทึบ'], ['dashed', 'เส้นประ (ไม่บังคับ / ทำภายหลัง)']], e.style || 'solid')}</select></label>
+      <label class="field"><span>หัวลูกศร</span><select data-fe="arrow">${opts([['end', 'ไปทางเดียว →'], ['both', 'สองทาง ↔'], ['none', 'ไม่มี']], e.arrow || 'end')}</select></label>
+      <div class="field"><span>API ที่ใช้บนเส้นนี้</span>
+        <div class="fl-chips">${apis.map(a => `<span class="fl-chip">${methodBadge(a.method)}${esc(a.name)}<button type="button" class="icon-btn" data-fl-unapi="${esc(a.id)}" title="เอาออก">${icon('x','sm')}</button></span>`).join('') || '<span class="muted" style="font-size:12.5px">ยังไม่ได้เลือก</span>'}</div>
+        <input class="input" data-fe="addApi" list="dlFlApis" placeholder="พิมพ์ชื่อ API แล้วเลือกเพื่อเพิ่ม" autocomplete="off"></div>
+      ${acts(`<button type="button" class="btn sm" data-fl-flip>กลับทิศ</button>`)}`;
+    $('#dlFlApis').innerHTML = flOptionsHtml(flLinkOptions('api').filter(o => !(e.apiIds || []).includes(o[1])));
+  } else if (ids.length > 1){
+    box.innerHTML = `<h4>เลือก ${ids.length} ชิ้น</h4>
+      <div class="field"><span>จัดแนว</span><div class="fl-align">${[['left', 'ชิดซ้าย'], ['hcenter', 'กึ่งกลางแนวตั้ง'], ['top', 'ชิดบน'], ['vcenter', 'กึ่งกลางแนวนอน']].map(([k, l]) => `<button type="button" class="btn sm" data-fl-align="${k}">${l}</button>`).join('')}</div></div>
+      ${acts(`<button type="button" class="btn sm" data-fl-dup>ทำสำเนา</button>`)}`;
+  } else {
+    box.innerHTML = `<h4>แผนผัง</h4>
+      <label class="field"><span>ชื่อแผนผัง</span><input class="input" data-fp="title" value="${esc(f.title)}" placeholder="เช่น ขั้นตอนเปิด PO → รับของ → ตั้งหนี้" autocomplete="off"></label>
+      <label class="field"><span>รายละเอียด</span><textarea class="input" data-fp="description" rows="3" placeholder="ใช้ทำอะไร ใครเกี่ยวข้อง">${esc(f.description)}</textarea></label>
+      <label class="field"><span>Tags (คั่นด้วย ,)</span><input class="input" data-fp="tags" value="${esc(f.tags.join(', '))}" autocomplete="off"></label>
+      <label class="field"><span>ใช้ในงาน (Job No คั่นด้วย ,)</span><input class="input" data-fp="jobNos" list="dlJobNo" value="${esc(f.jobNos.join(', '))}" autocomplete="off"></label>
+      <ul class="fl-tips">
+        <li>ลากรูปทรงจากแถบด้านบนมาวาง หรือดับเบิลคลิกที่ว่าง</li>
+        <li>ชี้ที่กล่อง แล้วลากจุดที่ขอบไปปล่อยบนอีกกล่อง = เชื่อมเส้น · ปล่อยที่ว่าง = สร้างกล่องใหม่ต่อให้</li>
+        <li>ดับเบิลคลิกกล่อง = แก้ข้อความ · Shift+ลากที่ว่าง = เลือกหลายกล่อง</li>
+        <li>ลากที่ว่าง = เลื่อนจอ · Ctrl+ล้อเมาส์ = ซูม · ย้าย Lane = ย้ายกล่องข้างในไปด้วย</li>
+        <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> ย้อน · <kbd>Del</kbd> ลบ · <kbd>Ctrl</kbd>+<kbd>D</kbd> ทำสำเนา · ลูกศรบนคีย์บอร์ด = ขยับ · <kbd>Ctrl</kbd>+<kbd>S</kbd> บันทึก</li>
+      </ul>
+      ${f.id ? `<div class="fl-prop-acts"><button type="button" class="btn sm danger-text" data-fl-remove>${icon('trash','sm')}ลบแผนผังนี้</button></div>` : ''}`;
+    $('#dlJobNo').innerHTML = db.jobs.map(j => j.jobNo).filter(Boolean).sort().reverse().map(no => `<option value="${esc(no)}">`).join('');
+  }
+  if (box.dataset.bound) return;
+  box.dataset.bound = '1';
+  box.addEventListener('focusin', () => { FL.propSnap = JSON.stringify(FL.edit.data); FL.propUsed = false; });
+  box.addEventListener('input', flPropInput);
+  box.addEventListener('change', flPropChange);
+  box.addEventListener('click', flPropClick);
+}
+// one undo step per field edit, taken when the field got focus
+function flPropOnce(){ if (!FL.propUsed && FL.propSnap){ flPushUndo(FL.propSnap); FL.propUsed = true; } }
+function flPropInput(ev){
+  const t = ev.target, f = FL.edit, id = [...FL.selIds][0];
+  if (t.dataset.fp){
+    const k = t.dataset.fp;
+    f[k] = k === 'tags' ? uniq(t.value.split(',').map(x => x.trim())) : k === 'jobNos' ? uniq(t.value.split(/[,\s]+/).map(x => x.trim().toUpperCase())) : t.value;
+    if (k === 'title') $('.fl-title h2').textContent = t.value || 'แผนผังใหม่';
+    flTouched();
+  } else if (t.dataset.fn === 'text'){ const n = flNode(id); if (n){ flPropOnce(); n.text = t.value; flTouched(); flSchedule(); } }
+  else if (t.dataset.fe === 'label'){ const e = flEdge(id); if (e){ flPropOnce(); e.label = t.value; flTouched(); flSchedule(); } }
+}
+function flPropChange(ev){
+  const t = ev.target, id = [...FL.selIds][0], n = flNode(id), e = flEdge(id);
+  if (n && t.dataset.fn === 'type'){
+    flPropOnce();
+    const [, w, h] = FL_SHAPES[t.value];
+    if (t.value === 'lane' || n.type === 'lane'){ n.w = w; n.h = h; }
+    n.type = t.value;
+    flTouched(); flDraw(); flRenderProps();
+  } else if (n && t.dataset.fn === 'linkKind'){
+    flPropOnce();
+    n.link = t.value ? {kind:t.value, id:''} : null;
+    flTouched(); flDraw(); flRenderProps();
+    $('#flProps [data-fn="linkRef"]')?.focus();
+  } else if (n && t.dataset.fn === 'linkRef'){
+    const kind = n.link?.kind, ref = flLinkOptions(kind).find(o => o[0] === t.value.trim())?.[1] || '';
+    if (t.value.trim() && !ref) return toast('ไม่พบในรายการ — พิมพ์แล้วเลือกจากรายการที่ขึ้นมา', 'alert');
+    flPropOnce();
+    n.link = {kind, id:ref};
+    flTouched(); flDraw();
+  } else if (e && (t.dataset.fe === 'style' || t.dataset.fe === 'arrow')){
+    flPropOnce();
+    e[t.dataset.fe] = t.value;
+    flTouched(); flDraw();
+  } else if (e && t.dataset.fe === 'addApi'){
+    const a = flLinkOptions('api').find(o => o[0] === t.value.trim());
+    if (!a) return;
+    flPropOnce();
+    e.apiIds = uniq([...(e.apiIds || []), a[1]]);
+    flTouched(); flDraw(); flRenderProps();
+    $('#flProps [data-fe="addApi"]')?.focus();
+  }
+}
+function flPropClick(ev){
+  const b = ev.target.closest('button');
+  if (!b) return;
+  const id = [...FL.selIds][0], n = flNode(id), e = flEdge(id);
+  if (b.dataset.flColor && n){ flPropOnce(); n.color = b.dataset.flColor; flTouched(); flDraw(); flRenderProps(); }
+  else if (b.dataset.flUnapi && e){ flPropOnce(); e.apiIds = (e.apiIds || []).filter(x => x !== b.dataset.flUnapi); flTouched(); flDraw(); flRenderProps(); }
+  else if ('flFlip' in b.dataset && e){ flPropOnce(); [e.from, e.to] = [e.to, e.from]; flTouched(); flDraw(); flRenderProps(); }
+  else if ('flDup' in b.dataset) flDuplicate();
+  else if ('flDel' in b.dataset) flDeleteSel();
+  else if (b.dataset.flAlign) flAlign(b.dataset.flAlign);
+  else if ('flRemove' in b.dataset) flDeleteFlow();
+}
+
+/* ---- export: the drawing with its colours written in, since CSS variables don't travel with the file ---- */
+function flExportSvg(){
+  const d = flData(), b = flBounds(d);
+  if (!b) return '';
+  FL.exporting = true; flDraw();
+  const props = ['fill', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linecap', 'opacity', 'font-family', 'font-size', 'font-weight'];
+  const copy = el => {
+    const c = el.cloneNode(true), src = [el, ...el.querySelectorAll('*')], dst = [c, ...c.querySelectorAll('*')];
+    src.forEach((x, i) => { const cs = getComputedStyle(x); dst[i].setAttribute('style', props.map(p => `${p}:${cs.getPropertyValue(p)}`).join(';')); dst[i].removeAttribute('class'); });
+    return c;
+  };
+  const ser = new XMLSerializer(), defs = copy($('#flSvg defs')), vp = copy($('#flVp')), pad = 32;
+  vp.setAttribute('transform', `translate(${flR(pad - b.x)} ${flR(pad - b.y)})`);
+  const bg = getComputedStyle($('#flStage')).backgroundColor, W = Math.ceil(b.w + pad * 2), H = Math.ceil(b.h + pad * 2);
+  FL.exporting = false; flDraw();
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="100%" height="100%" fill="${bg}"/>${ser.serializeToString(defs)}${ser.serializeToString(vp)}</svg>`;
+}
+async function flExport(kind){
+  const svg = flExportSvg(), name = (flCur()?.title || 'แผนผัง').replace(/[\\/:*?"<>|]+/g, ' ').trim();
+  if (!svg) return toast('แผนผังนี้ยังว่าง', 'alert');
+  if (kind === 'svg'){ download(name + '.svg', svg, 'image/svg+xml'); return toast('ดาวน์โหลด SVG แล้ว', 'download'); }
+  const url = URL.createObjectURL(new Blob([svg], {type:'image/svg+xml'})), img = new Image();
+  try {
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('แปลงรูปไม่สำเร็จ')); img.src = url; });
+    const s = 2, cv = document.createElement('canvas');
+    cv.width = img.width * s; cv.height = img.height * s;
+    const ctx = cv.getContext('2d'); ctx.scale(s, s); ctx.drawImage(img, 0, 0);
+    const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+    download(name + '.png', blob, 'image/png');
+    toast('ดาวน์โหลด PNG แล้ว', 'download');
+  } catch(err){ toast(err.message, 'alert'); }
+  finally { URL.revokeObjectURL(url); }
+}
+
+function flClick(e){
+  const hit = s => e.target.closest(s);
+  let el;
+  if (hit('[data-fl-new]')){ if (view !== 'flow' || flCanLeave()) flStartEdit(null); return true; }
+  if (hit('[data-fl-gen]')){ flFromApis(); return true; }
+  if ((el = hit('[data-fl-goto]'))){
+    if (dlg.open && !jobTryClose()) return true;
+    FL.sel = el.dataset.flGoto; FL.reading = true; FL.hi = null; FL.fitFor = '';
+    if (view === 'flow') flShow(FL.sel); else go('flow');
+    return true;
+  }
+  if ((el = hit('[data-flsel]'))){ flShow(el.dataset.flsel); return true; }
+  if (hit('[data-fl-back]')){ FL.reading = false; FL.hi = null; $('#flPanes')?.classList.remove('reading'); return true; }
+  if (hit('[data-fl-edit]')){ const f = flSaved(); if (f) flStartEdit(f); return true; }
+  if (hit('[data-fl-save]')){ flSave(); return true; }
+  if (hit('[data-fl-cancel]')){ flCancel(); return true; }
+  if (hit('[data-fl-undo]')){ flUndo(); return true; }
+  if (hit('[data-fl-redo]')){ flRedo(); return true; }
+  if (hit('[data-fl-layout]')){ if (FL.edit){ flSnap(); flLayout(FL.edit.data); flTouched(); flFit(); flDraw(); } return true; }
+  if ((el = hit('[data-fl-zoom]'))){
+    const z = +el.dataset.flZoom, st = $('#flStage');
+    z ? flZoomAt(FL.view.k * (z > 0 ? 1.25 : .8), st.clientWidth / 2, st.clientHeight / 2) : flFit();
+    return true;
+  }
+  if ((el = hit('[data-fl-export]'))){ flExport(el.dataset.flExport); return true; }
+  if ((el = hit('[data-fl-add]'))){ flAddNode(el.dataset.flAdd); return true; }
+  if ((el = hit('[data-fl-open]'))){ const i = el.dataset.flOpen.indexOf(':'); flOpenLink({kind:el.dataset.flOpen.slice(0, i), id:el.dataset.flOpen.slice(i + 1)}); return true; }
+  if (hit('[data-fl-unhi]')){ FL.hi = null; flDraw(); flRenderInfo(); return true; }
+  return false;
+}
+document.addEventListener('keydown', e => {
+  if (view !== 'flow' || $('#app').hidden || $('dialog[open]')) return;
+  const mod = (e.ctrlKey || e.metaKey) && !e.altKey, k = e.key.toLowerCase();
+  if (FL.edit && mod && k === 's'){ e.preventDefault(); flSave(); return; }
+  if (e.target.closest('input,textarea,select')) return;
+  if (!FL.edit){ if (e.key === 'Escape' && FL.hi){ FL.hi = null; flDraw(); flRenderInfo(); } return; }
+  const sel = [...FL.selIds];
+  if (mod && k === 'z'){ e.preventDefault(); e.shiftKey ? flRedo() : flUndo(); }
+  else if (mod && k === 'y'){ e.preventDefault(); flRedo(); }
+  else if (mod && k === 'd'){ e.preventDefault(); flDuplicate(); }
+  else if (mod && k === 'a'){ e.preventDefault(); FL.selIds = new Set(flData().nodes.map(n => n.id)); flDraw(); flRenderProps(); }
+  else if ((e.key === 'Delete' || e.key === 'Backspace') && sel.length){ e.preventDefault(); flDeleteSel(); }
+  else if (e.key === 'Escape' && sel.length){ FL.selIds = new Set(); flDraw(); flRenderProps(); }
+  else if (e.key === 'Enter' && sel.length === 1 && flNode(sel[0])){ e.preventDefault(); flInlineEdit(sel[0]); }
+  else if (/^Arrow/.test(e.key) && sel.some(id => flNode(id))){
+    e.preventDefault();
+    const s = e.shiftKey ? 1 : FL_GRID, dx = e.key === 'ArrowLeft' ? -s : e.key === 'ArrowRight' ? s : 0, dy = e.key === 'ArrowUp' ? -s : e.key === 'ArrowDown' ? s : 0;
+    flSnap();
+    sel.forEach(id => { const n = flNode(id); if (n){ n.x += dx; n.y += dy; } });
+    flTouched(); flDraw();
+  }
+});
+// closing the tab mid-drawing: keep a draft and let the browser ask first
+addEventListener('beforeunload', e => { if (FL.edit && FL.dirty){ flSaveDraft(); e.preventDefault(); e.returnValue = ''; } });
+
 function showApp(){ $('#loginScreen').hidden = true; $('#app').hidden = false; renderUserBox(); }
 async function enterApp(user){
   currentUser = user;
