@@ -486,7 +486,9 @@ dialog.modal.job{width:min(860px,calc(100vw - 24px));height:calc(100vh - 48px)}
 .kb-body{line-height:1.7}
 .kb-body p{margin:0 0 12px;max-width:75ch;overflow-wrap:anywhere}
 .kb-body h3{font-size:15px;margin:22px 0 8px}
-.kb-body ul{margin:0 0 12px;padding-left:20px;max-width:75ch}
+.kb-body ul,.kb-body ol{margin:0 0 12px;padding-left:22px;max-width:75ch}
+.kb-body li > ul,.kb-body li > ol{margin:2px 0 4px}
+.kb-body ol > li::marker{font-weight:600;color:var(--text-2)}
 .kb-body code.inl{font:12.5px "IBM Plex Mono",monospace;background:var(--surface-3);padding:1px 5px;border-radius:5px}
 .kb-code{margin:0 0 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);overflow:hidden}
 .kb-code-head{display:flex;align-items:center;gap:8px;padding:5px 6px 5px 14px;border-bottom:1px solid var(--border);font:11.5px "IBM Plex Mono",monospace;color:var(--muted)}
@@ -500,7 +502,7 @@ dialog.modal.job{width:min(860px,calc(100vw - 24px));height:calc(100vh - 48px)}
 .kb-code .hljs-title,.kb-code .hljs-attr,.kb-code .hljs-name,.kb-code .hljs-section,.kb-code .hljs-selector-class,.kb-code .hljs-selector-id,.kb-code .hljs-property{color:var(--code-fn)}
 .kb-code .hljs-number,.kb-code .hljs-meta,.kb-code .hljs-variable,.kb-code .hljs-attribute{color:var(--code-num)}
 .kb-code .hljs-tag{color:var(--muted)}
-.kb-edit-tools select{height:32px;padding:0 8px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-size:13px}
+.kb-edit-tools select{width:auto;height:32px;padding:0 8px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);font-size:13px}
 .kb-fig{margin:0 0 16px}
 .kb-fig img{display:block;max-width:100%;height:auto;min-height:48px;border:1px solid var(--border);border-radius:10px;cursor:zoom-in;background:var(--surface-2)}
 .kb-fig figcaption{font-size:12.5px;color:var(--muted);margin-top:6px}
@@ -557,7 +559,17 @@ dialog.modal.job{width:min(860px,calc(100vw - 24px));height:calc(100vh - 48px)}
 dialog.lb{background:transparent;box-shadow:none;max-width:96vw;max-height:94vh;padding:0;cursor:zoom-out}
 dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
 .kb-edit-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-.kb-edit-tools .hint{flex:1;min-width:220px;font-size:12px;color:var(--muted)}
+.kb-edit-tools .hint{flex-basis:100%;font-size:12px;color:var(--muted)}
+.kb-fmt,.kb-code-tools{display:inline-flex;gap:4px;align-items:center}
+.kb-fmt .btn{min-width:32px;justify-content:center;padding:0 9px}
+.kb-vars{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 16px;padding:10px 14px;border:1px dashed var(--border-strong);border-radius:10px;background:var(--surface-2);font-size:12.5px}
+.kb-vars > .muted{flex:1;min-width:200px}
+.kb-vars label{display:inline-flex;align-items:center;gap:6px;max-width:100%;font:12px "IBM Plex Mono",monospace;color:var(--text-2)}
+.kb-vars input{height:30px;width:190px;min-width:0;padding:0 8px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text);font:12.5px "IBM Plex Mono",monospace}
+.kb-vars input:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring)}
+.kb-var{border-radius:4px;padding:0 2px;background:var(--accent-soft);color:var(--accent-soft-text);font-weight:500}
+.kb-var.empty{box-shadow:inset 0 0 0 1px var(--accent)}
+@media (max-width:640px){.kb-edit-tools .hint{display:none}}   /* keyboard tips; phones have no Ctrl / Tab */
 #kbBody{min-height:320px;font:12.8px/1.6 "IBM Plex Mono",monospace;tab-size:4}
 #kbBody.drop{border-color:var(--accent);box-shadow:var(--ring);background:var(--accent-soft)}
 #kbPreview{min-height:320px;max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:14px 16px}
@@ -907,10 +919,16 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
       <div class="field">
         <div class="kb-edit-tools">
           <div class="segmented" id="kbMode"><button type="button" data-kbmode="write">เขียน</button><button type="button" data-kbmode="preview">ดูตัวอย่าง</button></div>
+          <div class="kb-fmt" id="kbFmt">
+            <button type="button" class="btn sm" data-kb-fmt="bold" title="ตัวหนา (Ctrl+B)"><b>B</b></button>
+            <button type="button" class="btn sm" data-kb-fmt="h" title="หัวข้อย่อย (###)">H</button>
+            <button type="button" class="btn sm" data-kb-fmt="ul" title="รายการแบบจุด (-) · Tab = ย่อหน้าเป็นข้อย่อย">• ลิสต์</button>
+            <button type="button" class="btn sm" data-kb-fmt="ol" title="ขั้นตอนแบบตัวเลข (1.) · Tab = ย่อหน้าเป็นข้อย่อย">1. ขั้นตอน</button>
+          </div>
           <button type="button" class="btn sm" id="kbPick"><svg class="i sm"><use href="#i-image"/></svg>แนบรูป</button>
-          <select id="kbLang" title="ภาษาของโค้ด"></select>
-          <button type="button" class="btn sm" id="kbCodeBtn" title="ไม่ได้เลือกข้อความ = แทรกกล่องโค้ดใหม่ · เลือกข้อความ = ทำเป็นกล่องโค้ดและจัดรูปแบบ · เคอร์เซอร์อยู่ในกล่องโค้ด = จัดรูปแบบ / เปลี่ยนภาษา">{ } โค้ด / จัดรูปแบบ</button>
-          <span class="hint">วางรูป: กด Win+Shift+S แล้ว Ctrl+V ในช่องเนื้อหา หรือลากไฟล์มาวาง · โค้ด: เลือกข้อความแล้วกด <b>{ } โค้ด</b> · หัวข้อย่อย: <code>###</code> · bullet: <code>-</code></span>
+          <span class="kb-code-tools"><select id="kbLang" title="ภาษาของโค้ด"></select>
+          <button type="button" class="btn sm" id="kbCodeBtn" title="ไม่ได้เลือกข้อความ = แทรกกล่องโค้ดใหม่ · เลือกข้อความ = ทำเป็นกล่องโค้ดและจัดรูปแบบ · เคอร์เซอร์อยู่ในกล่องโค้ด = จัดรูปแบบ / เปลี่ยนภาษา">{ } โค้ด / จัดรูปแบบ</button></span>
+          <span class="hint">วางรูป: Win+Shift+S แล้ว Ctrl+V · โค้ด: เลือกข้อความแล้วกด <b>{ } โค้ด</b> · ค่าที่เปลี่ยนทุกครั้งในโค้ด เขียนเป็น <code>{{version}}</code> = มีช่องให้กรอกก่อนคัดลอก · <kbd>Ctrl</kbd>+<kbd>S</kbd> บันทึก · <kbd>Tab</kbd> ย่อหน้า</span>
         </div>
         <textarea id="kbBody" name="body" class="input" spellcheck="false" placeholder="อธิบายสั้น ๆ ว่าใช้ตอนไหน แล้ววางโค้ดหรือรูปหน้าจอ"></textarea>
         <div id="kbPreview" class="kb-body" hidden></div>
@@ -2797,32 +2815,73 @@ function kbSyncLang(){
 const kbInline = s => esc(s)
   .replace(/`([^`\n]+)`/g, '<code class="inl">$1</code>')
   .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
+  .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
   .replace(/(^|[\s(])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+// "- " / "* " bullets and "1. " steps; an item indented under another nests inside it.
+// <ol start> keeps the numbering when steps are split by a code block (5. … ```cmd``` … 6.)
+function kbListHtml(items){
+  let html = '';
+  const stack = [];
+  const open = it => { stack.push(it); html += `<${it.tag}${it.tag === 'ol' && it.n !== 1 ? ` start="${it.n}"` : ''}><li>`; };
+  const close = () => { html += `</li></${stack.pop().tag}>`; };
+  for (const it of items){
+    while (stack.length && stack.at(-1).indent > it.indent) close();
+    const top = stack.at(-1);
+    if (top && top.indent === it.indent && top.tag !== it.tag) close();
+    if (stack.at(-1)?.indent === it.indent) html += '</li><li>'; else open(it);
+    html += it.text.split('\n').map(kbInline).join('<br>');
+  }
+  while (stack.length) close();
+  return html;
+}
+const KB_LIST_RE = /^(\s*)(?:[-*]|(\d+)[.)])\s+(.*)$/;
 function kbRenderText(text){
   let html = '', list = [], para = [];
-  const flushList = () => { if (list.length){ html += `<ul>${list.map(l => `<li>${kbInline(l)}</li>`).join('')}</ul>`; list = []; } };
+  const flushList = () => { if (list.length){ html += kbListHtml(list); list = []; } };
   const flushPara = () => { if (para.length){ html += `<p>${para.map(kbInline).join('<br>')}</p>`; para = []; } };
   for (const raw of text.split('\n')){
     const line = raw.trimEnd();
     const img = line.trim().match(/^!\[([^\]\n]*)\]\(kb:([\w\/.-]+)\)$/);
+    let m;
     if (!line.trim()){ flushList(); flushPara(); }
     else if (img){ flushList(); flushPara(); html += `<figure class="kb-fig"><img data-kb="${esc(img[2])}" alt="${esc(img[1])}" data-zoom>${img[1] ? `<figcaption>${esc(img[1])}</figcaption>` : ''}</figure>`; }
     else if (/^#{1,3}\s/.test(line)){ flushList(); flushPara(); html += `<h3>${kbInline(line.replace(/^#+\s*/, ''))}</h3>`; }
-    else if (/^\s*[-*]\s/.test(line)){ flushPara(); list.push(line.replace(/^\s*[-*]\s+/, '')); }
+    else if ((m = line.match(KB_LIST_RE))){ flushPara(); list.push({indent:m[1].replace(/\t/g, '    ').length, tag:m[2] ? 'ol' : 'ul', n:+m[2] || 1, text:m[3]}); }
+    else if (list.length && /^\s/.test(line)) list.at(-1).text += '\n' + line.trim();   // indented line continues the item above
     else { flushList(); para.push(line); }
   }
   flushList(); flushPara();
   return html;
 }
-function kbRenderBody(src){
+// {{name}} in a note's code = a value to fill in before copying (version, server, path …).
+// Values live in memory for this session only: they may be server names or passwords.
+const KB_VAR_RE = /\{\{\s*([\p{L}\p{N}_.-]+)\s*\}\}/gu;
+const KB_VARS = new Map();
+const kbVarSecret = n => /pass|pwd|secret|รหัส/i.test(n);
+const kbVarShown = (n, v) => !v ? `{{${n}}}` : kbVarSecret(n) ? '••••••••' : v;
+const kbVarSpan = n => { const v = KB_VARS.get(n); return `<span class="kb-var${v ? '' : ' empty'}" data-var="${esc(n)}">${esc(kbVarShown(n, v))}</span>`; };
+// code as it should be copied: variables filled in (secrets too, though they show masked)
+function kbCodeText(pre){
+  const c = pre.cloneNode(true);
+  c.querySelectorAll('.kb-var').forEach(s => { s.textContent = KB_VARS.get(s.dataset.var) || `{{${s.dataset.var}}}`; });
+  return c.textContent;
+}
+// opts.vars: render {{name}} as fillable (note reader, preview, job drawer); API docs keep Postman-style {{…}} as text
+function kbRenderBody(src, opts = {}){
   kbEnsureHljs();
   const parts = String(src || '').replace(/\r\n/g, '\n').split(KB_FENCE);
   let html = '';
+  const vars = [];
   for (let i = 0; i < parts.length; i += 4){
-    html += kbRenderText(parts[i]);
+    // the same {{name}} in the steps around the code shows the value too
+    html += opts.vars ? kbRenderText(parts[i]).replace(KB_VAR_RE, (m, n) => { vars.push(n); return kbVarSpan(n); }) : kbRenderText(parts[i]);
     if (parts[i + 3] === undefined) continue;
     const code = parts[i + 3].replace(/\n$/, ''), lang = (parts[i + 2] || '').toLowerCase();
-    const hl = kbHL(code, lang), nm = kbCodeName(code, lang), md = kbLangInfo(lang)?.[0] === 'md';
+    const md = kbLangInfo(lang)?.[0] === 'md', names = [];
+    // swap each {{name}} for a plain identifier so the highlighter leaves it whole, then put a live span back
+    const plain = opts.vars && !md ? code.replace(KB_VAR_RE, (m, n) => `KBVAR${names.push(n) - 1}Z`) : code;
+    const hl = kbHL(plain, lang), nm = kbCodeName(code, lang);
+    if (names.length){ hl.html = hl.html.replace(/KBVAR(\d+)Z/g, (m, k) => kbVarSpan(names[k])); vars.push(...names); }
     // Markdown blocks show rendered (kbHydrateMd fills .kb-md) with a toggle back to the source
     html += `<div class="kb-code${md ? ' is-md' : ''}" data-name="${esc(nm.title)}" data-methods="${esc(nm.methods.join(','))}"><div class="kb-code-head">
       <button type="button" class="kb-fold" data-kb-fold title="ย่อ / ขยาย">${icon('right','sm')}</button>
@@ -2831,8 +2890,19 @@ function kbRenderBody(src){
       ${md ? `<button type="button" class="btn sm" data-kb-md>${icon('file','sm')}<span>ดูต้นฉบับ</span></button>` : ''}
       <button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div>${md ? '<div class="kb-md"></div>' : ''}<pre>${hl.html}</pre></div>`;
   }
-  return html;
+  if (!vars.length) return html;
+  return `<div class="kb-vars"><b>ตัวแปรในโค้ด</b><span class="muted">กรอกค่าแล้วกด คัดลอก จะได้โค้ดที่แทนค่าแล้ว</span>
+    ${uniq(vars).map(n => `<label><span>${esc(n)}</span><input ${kbVarSecret(n) ? 'type="password" ' : ''}data-kb-var="${esc(n)}" value="${esc(KB_VARS.get(n) || '')}" placeholder="{{${esc(n)}}}" autocomplete="off" spellcheck="false"></label>`).join('')}</div>` + html;
 }
+// typing a value updates that variable everywhere it is shown
+document.addEventListener('input', e => {
+  const inp = e.target.closest?.('[data-kb-var]');
+  if (!inp) return;
+  const n = inp.dataset.kbVar, v = inp.value, sel = CSS.escape(n);
+  v ? KB_VARS.set(n, v) : KB_VARS.delete(n);
+  $$(`.kb-var[data-var="${sel}"]`).forEach(s => { s.textContent = kbVarShown(n, v); s.classList.toggle('empty', !v); });
+  $$(`[data-kb-var="${sel}"]`).forEach(x => { if (x !== inp) x.value = v; });
+});
 // Render Markdown blocks inside `root` (marked + DOMPurify, loaded on first use). On failure the source stays visible.
 async function kbHydrateMd(root){
   const blocks = $$('.kb-code.is-md:not(.md-ready)', root);
@@ -2896,7 +2966,7 @@ function kbCodeName(code, lang){
   return {title:'', methods:[]};
 }
 const kbSnippet = body => String(body || '').replace(/\r\n/g, '\n').split(KB_FENCE).map((p, i) => i % 4 === 0 ? p : i % 4 === 3 ? ' [โค้ด] ' : '').join('')
-  .replace(KB_IMG_RE, ' [รูป] ').replace(/^#+\s*/gm, '').replace(/^\s*[-*]\s+/gm, '').replace(/[`*]/g, '').replace(/\s+/g, ' ').trim().slice(0, 220);
+  .replace(KB_IMG_RE, ' [รูป] ').replace(/^#+\s*/gm, '').replace(/^\s*(?:[-*]|\d+[.)])\s+/gm, '').replace(/\[([^\]\n]+)\]\(https?:[^)\s]+\)/g, '$1').replace(/[`*]/g, '').replace(/\s+/g, ' ').trim().slice(0, 220);
 function kbColor(c){ let h = 0; for (const ch of c || '') h = (h * 31 + ch.codePointAt(0)) % 360; return `hsl(${h} 60% 50%)`; }
 const kbBadge = c => c ? `<span class="kb-badge"><span class="cdot" style="--c:${kbColor(c)}"></span>${esc(c)}</span>` : '';
 function kbFiltered(){
@@ -2966,7 +3036,7 @@ function kbRenderReader(){
     </div>
     <div class="kb-meta"><span>แก้ไขล่าสุด ${n.updatedAt ? fmtDateTime(n.updatedAt) : '-'}${n.updatedByEmail ? ' · ' + esc(n.updatedByEmail) : ''}</span>${n.tags.length ? `<span>${tagsHtml(n.tags)}</span>` : ''}</div>
     ${(() => { const s = kbFindSecrets(n.body).length; return s ? `<div class="sys-alert warn" style="margin-bottom:16px">${icon('alert')}<div class="msg"><b>เรื่องนี้น่าจะมีรหัสผ่าน ${s} จุด</b><small>ทุกคนในทีมเห็นคลังความรู้ — แทนที่ด้วย &lt;password&gt; แล้วเก็บรหัสจริงใน password manager</small></div><button type="button" class="btn sm" data-sec-fix="${esc(n.id)}">แทนที่เป็น &lt;password&gt;</button></div>` : ''; })()}
-    <div class="kb-body">${kbRenderBody(n.body) || '<p class="muted">ยังไม่มีเนื้อหา</p>'}</div>
+    <div class="kb-body">${kbRenderBody(n.body, {vars:true}) || '<p class="muted">ยังไม่มีเนื้อหา</p>'}</div>
     ${jobs.length ? `<div class="kb-panel"><h4>ใช้ในงาน</h4><div class="kb-links">${jobs.map(([no, j]) =>
       `<button type="button" class="kb-link" data-kb-job="${esc(no)}"><span class="mono">${esc(no)}</span>${j ? esc(displayTitle(j)) : '<span class="muted">ไม่พบงานนี้</span>'}</button>`).join('')}</div></div>` : ''}
     ${n.sourceUrl ? `<div class="kb-panel"><h4>แหล่งที่มา</h4><a href="${esc(n.sourceUrl)}" target="_blank" rel="noopener" style="word-break:break-all">${esc(n.sourceUrl)}</a></div>` : ''}
@@ -3081,7 +3151,7 @@ function renderJobKb(){
     const body = d.querySelector('.jkb-body');
     if (!d.open || body.dataset.done) return;
     body.dataset.done = '1';
-    body.innerHTML = kbRenderBody(db.notes.find(n => n.id === d.dataset.jkb)?.body) || '<p class="muted">ไม่มีเนื้อหา</p>';
+    body.innerHTML = kbRenderBody(db.notes.find(n => n.id === d.dataset.jkb)?.body, {vars:true}) || '<p class="muted">ไม่มีเนื้อหา</p>';
     kbHydrate(body);
   }));
   if (!jobKbPick) return;
@@ -3158,16 +3228,114 @@ function openKbEditor(note, draft){
   $('#kbErr').textContent = '';
   kbSetMode('write');
   kbSnapshot = kbFormState();
+  kbOfferDraft();
+  clearInterval(kbDraftTimer); kbDraftTimer = setInterval(kbSaveDraft, 2000);
   kbDlg.showModal();
   kbDlg.querySelector('.body').scrollTop = 0;
   (note ? kf('body') : kf('title')).focus();
 }
+// Unsaved edits survive a closed tab, F5 or a crash: a draft per note stays in this browser until saved or discarded
+let kbDraftTimer = 0;
+const kbDraftKey = () => `${LS_KEY}.kbDraft.${kbEditing?.id || 'new'}`;
+function kbSaveDraft(){
+  if (!kbDlg.open || kbSaved) return;
+  try {
+    if (kbDirty()) localStorage.setItem(kbDraftKey(), JSON.stringify({at:new Date().toISOString(), state:kbFormState(), uploads:kbUploads}));
+    else localStorage.removeItem(kbDraftKey());
+  } catch(e){}
+}
+function kbOfferDraft(){
+  let d; try { d = JSON.parse(localStorage.getItem(kbDraftKey())); } catch(e){}
+  if (!d?.state) return;
+  try { localStorage.removeItem(kbDraftKey()); } catch(e){}
+  if (d.state === kbSnapshot) return;
+  const keep = new Set(kbImagesOf(kbEditing.body)), extra = (d.uploads || []).filter(p => !keep.has(p));
+  const newer = kbEditing.updatedAt && new Date(kbEditing.updatedAt) > new Date(d.at);
+  if (!confirm(`พบร่างที่ยังไม่ได้บันทึก (${fmtDateTime(d.at)})${newer ? `\n\n⚠️ เรื่องนี้ถูกแก้ไขอีกครั้งหลังจากร่างนี้ (${fmtDateTime(kbEditing.updatedAt)}) — ถ้ากู้ร่างแล้วบันทึก จะทับการแก้ไขนั้น` : ''}\n\nOK = กู้ร่างกลับมา\nCancel = ทิ้งร่าง`)){
+    kbRemoveImages(extra);
+    return;
+  }
+  const [title, category, tags, jobNos, sourceUrl, body, pinned] = JSON.parse(d.state);
+  Object.entries({title, category, tags, jobNos, sourceUrl, body}).forEach(([k, v]) => { kf(k).value = v; });
+  kf('pinned').checked = pinned;
+  kbUploads = extra;   // still removed if this edit is discarded again
+  toast('กู้ร่างแล้ว · กดบันทึกเพื่อเก็บถาวร', 'checkcircle');
+}
+// closing the tab with unsaved edits: keep a draft, and let the browser ask first
+addEventListener('beforeunload', e => {
+  const kbOpen = kbDlg.open && kbDirty(), jobOpen = dlg.open && jobFormState() !== jobSnap;
+  if (kbOpen) kbSaveDraft();
+  if (kbOpen || jobOpen){ e.preventDefault(); e.returnValue = ''; }
+});
+
+/* body shortcuts: B / H / lists, Tab indent, Ctrl+S */
+// replace text through the browser's editing so Ctrl+Z can undo it
+function kbReplace(ta, text, a, b){
+  ta.focus(); ta.setSelectionRange(a, b);
+  if (!document.execCommand('insertText', false, text)) ta.setRangeText(text, a, b, 'end');
+}
+// the whole lines touched by the selection
+function kbLines(ta){
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  const a = v.lastIndexOf('\n', s - 1) + 1, nl = v.indexOf('\n', e > s && v[e - 1] === '\n' ? e - 1 : e);
+  const b = nl < 0 ? v.length : nl;
+  return {a, b, lines:v.slice(a, b).split('\n')};
+}
+function kbFmt(kind){
+  const ta = kf('body');
+  if (ta.hidden) kbSetMode('write');
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  if (kind === 'bold'){
+    if (v.slice(s - 2, s) === '**' && v.slice(e, e + 2) === '**'){ kbReplace(ta, v.slice(s, e), s - 2, e + 2); ta.setSelectionRange(s - 2, e - 2); return; }
+    const sel = v.slice(s, e) || 'ตัวหนา';
+    kbReplace(ta, `**${sel}**`, s, e);
+    ta.setSelectionRange(s + 2, s + 2 + sel.length);
+    return;
+  }
+  // H / bullets / steps: prefix every touched line; press again to take the prefix off
+  const {a, b, lines} = kbLines(ta);
+  const mark = /^(\s*)(?:#{1,6}|[-*]|\d+[.)])\s+/, used = lines.filter(l => l.trim());
+  const re = {h:/^\s*#{1,6}\s+/, ul:/^\s*[-*]\s+/, ol:/^\s*\d+[.)]\s+/}[kind];
+  const off = used.length && used.every(l => re.test(l));
+  let n = 0;
+  const out = lines.map(l => {
+    if (!l.trim()) return l;
+    const ind = kind === 'h' ? '' : l.match(/^\s*/)[0], text = l.replace(mark, '$1').trimStart();
+    if (off) return ind + text;
+    return ind + (kind === 'h' ? '### ' : kind === 'ul' ? '- ' : `${++n}. `) + text;
+  }).join('\n');
+  kbReplace(ta, out, a, b);
+  if (s === e) ta.setSelectionRange(a + out.split('\n')[0].length, a + out.split('\n')[0].length);
+  else ta.setSelectionRange(a, a + out.length);
+}
+$('#kbFmt').onclick = e => { const b = e.target.closest('[data-kb-fmt]'); if (b) kbFmt(b.dataset.kbFmt); };
+// Tab indents inside code blocks and lists (or a multi-line selection); elsewhere it still moves focus
+function kbTab(shift){
+  const ta = kf('body'), v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  const inCode = !!kbFenceAt(v, s), {a, b, lines} = kbLines(ta);
+  const isList = KB_LIST_RE.test(lines[0]);
+  if (!inCode && !isList && !v.slice(s, e).includes('\n')) return false;
+  const unit = inCode ? '    ' : '   ';   // 3 spaces nests under "1. " as well as "- "
+  if (inCode && !shift && s === e){ kbReplace(ta, unit, s, e); return true; }
+  const out = lines.map(l => shift ? l.replace(new RegExp(`^(?: {1,${unit.length}}|\\t)`), '') : l ? unit + l : l).join('\n');
+  kbReplace(ta, out, a, b);
+  if (s === e){ const p = Math.max(a, s + out.split('\n')[0].length - lines[0].length); ta.setSelectionRange(p, p); }
+  else ta.setSelectionRange(a, a + out.length);
+  return true;
+}
+kbDlg.addEventListener('keydown', e => {
+  const mod = (e.ctrlKey || e.metaKey) && !e.altKey, k = e.key.toLowerCase();
+  if (mod && k === 's'){ e.preventDefault(); if (!kbForm.querySelector('[type=submit]').disabled) kbForm.requestSubmit(); return; }
+  if (e.target !== kf('body')) return;
+  if (mod && k === 'b'){ e.preventDefault(); kbFmt('bold'); }
+  else if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey && kbTab(e.shiftKey)) e.preventDefault();
+});
 function kbSetMode(mode){
   $$('[data-kbmode]').forEach(b => b.classList.toggle('active', b.dataset.kbmode === mode));
   const pv = $('#kbPreview');
   kf('body').hidden = mode === 'preview';
   pv.hidden = mode !== 'preview';
-  if (mode === 'preview'){ pv.innerHTML = kbRenderBody(kf('body').value) || '<p class="muted">ยังไม่มีเนื้อหา</p>'; kbHydrate(pv); }
+  if (mode === 'preview'){ pv.innerHTML = kbRenderBody(kf('body').value, {vars:true}) || '<p class="muted">ยังไม่มีเนื้อหา</p>'; kbHydrate(pv); }
 }
 const kbDirty = () => kbUploads.length > 0 || kbFormState() !== kbSnapshot;
 function kbTryClose(){
@@ -3183,6 +3351,9 @@ kbDlg.addEventListener('close', () => {
     kbRemoveImages(kbUploads.filter(p => !keep.has(p)));
   }
   kbUploads = [];
+  // saved or knowingly discarded: the draft is no longer needed
+  clearInterval(kbDraftTimer);
+  try { localStorage.removeItem(kbDraftKey()); } catch(e){}
 });
 async function kbAddImages(files){
   files = [...files].filter(f => f && f.type.startsWith('image/'));
@@ -3308,7 +3479,8 @@ function kbClick(e){
   }
   if ((el = hit('[data-kb-copy]'))){
     const pre = el.closest('.kb-code').querySelector('pre');
-    navigator.clipboard.writeText(pre.textContent).then(() => toast('คัดลอกโค้ดแล้ว', 'copy'), () => {
+    const blank = uniq([...pre.querySelectorAll('.kb-var.empty')].map(s => s.dataset.var));
+    navigator.clipboard.writeText(kbCodeText(pre)).then(() => toast(blank.length ? `คัดลอกแล้ว · ยังไม่ได้กรอก ${blank.join(', ')}` : 'คัดลอกโค้ดแล้ว', blank.length ? 'alert' : 'copy'), () => {
       const r = document.createRange(); r.selectNodeContents(pre);
       getSelection().removeAllRanges(); getSelection().addRange(r);
       toast('เลือกโค้ดแล้ว กด Ctrl+C เพื่อคัดลอก', 'copy');
