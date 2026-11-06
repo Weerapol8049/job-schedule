@@ -414,6 +414,12 @@ dialog.modal.job{width:min(860px,calc(100vw - 24px));height:calc(100vh - 48px)}
 .kb-cat{height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .kb-cat:hover{border-color:var(--border-strong);color:var(--text)}
 .kb-cat.active{background:var(--accent-soft);border-color:transparent;color:var(--accent-soft-text)}
+.kb-cat.ghost{border-style:dashed;color:var(--muted)}
+.kb-catrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.kb-catname{display:flex;align-items:center;gap:8px;min-width:0}
+.kb-catname b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb-catname .muted{font-size:12px;white-space:nowrap}
+@media (max-width:640px){.kb-catrow{grid-template-columns:minmax(0,1fr) auto}.kb-catname{grid-column:1 / -1}}
 .kb-cat .n{color:var(--muted);font-size:11.5px}
 .cdot{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
 .kb{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);height:calc(100vh - 200px);min-height:460px;overflow:hidden}
@@ -1021,6 +1027,18 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
     <header><h2>ตรวจรหัสผ่านในคลังความรู้</h2><span class="chip-no" id="kbSecCount"></span><button type="button" class="icon-btn" data-close title="ปิด"><svg class="i"><use href="#i-x"/></svg></button></header>
     <div class="body"><p class="muted" id="kbSecInfo" style="margin:14px 0 12px"></p><div id="kbSecList"></div></div>
     <footer><span class="muted" style="font-size:12.5px">ตรวจได้เฉพาะข้อความ — รูปหน้าจอที่มีรหัสผ่านต้องดูเอง</span><span class="spacer"></span><button type="button" class="btn" data-close>ปิด</button><button type="button" class="btn primary" id="kbSecAll">แทนที่ทั้งหมดเป็น &lt;password&gt;</button></footer>
+  </div>
+</dialog>
+<!-- Categories: rename / merge -->
+<dialog id="kbCatDialog" class="modal" style="width:min(720px,calc(100vw - 24px))">
+  <div class="dlg">
+    <header><h2>จัดการหมวด</h2><button type="button" class="icon-btn" data-close title="ปิด"><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="body">
+      <p class="muted" style="margin:14px 0 10px;font-size:13px">พิมพ์ชื่อใหม่ = เปลี่ยนชื่อหมวด · เลือกชื่อหมวดที่มีอยู่แล้ว = รวมสองหมวดเข้าด้วยกัน · เนื้อหาของแต่ละเรื่องไม่เปลี่ยน</p>
+      <label class="rn-check" style="margin-bottom:6px"><input type="checkbox" id="kbCatKeepTag" checked> เก็บชื่อหมวดเดิมไว้เป็น Tag (ยังกรองและค้นหาด้วยชื่อเดิมได้)</label>
+      <div id="kbCatList"></div>
+    </div>
+    <footer><span class="muted" id="kbCatMsg" style="font-size:12.5px"></span><span class="spacer"></span><button type="button" class="btn" data-close>ปิด</button></footer>
   </div>
 </dialog>
 <input type="file" id="kbFile" accept="image/*" multiple hidden>
@@ -2584,6 +2602,54 @@ function kbRenderSecrets(){
     </div>`).join('');
 }
 
+/* ---------- categories: rename / merge ---------- */
+let kbCatBusy = false;
+function kbRenderCats(){
+  const cats = uniq(db.notes.map(n => n.category)).sort((a, b) => a.localeCompare(b, 'th'));
+  const count = c => db.notes.filter(n => n.category === c).length;
+  $('#dlKbCat').innerHTML = uniq([...db.settings.kbCategories, ...cats]).map(c => `<option value="${esc(c)}">`).join('');
+  $('#kbCatList').innerHTML = cats.map(c => `<div class="kb-catrow">
+      <span class="kb-catname"><span class="cdot" style="--c:${kbColor(c)}"></span><b>${esc(c)}</b><span class="muted">${count(c)} เรื่อง</span></span>
+      <input class="input" data-kb-catto="${esc(c)}" list="dlKbCat" placeholder="ชื่อใหม่ หรือหมวดที่จะรวม" autocomplete="off" ${kbCatBusy ? 'disabled' : ''}>
+      <button type="button" class="btn sm" data-kb-catmove="${esc(c)}" ${kbCatBusy ? 'disabled' : ''}>ย้าย</button>
+    </div>`).join('') || '<p class="muted">ยังไม่มีหมวด</p>';
+}
+async function kbMoveCategory(from, to){
+  to = to.trim();
+  if (!to || to === from){ toast('พิมพ์ชื่อหมวดใหม่ หรือเลือกหมวดที่จะรวม', 'alert'); return; }
+  const notes = db.notes.filter(n => n.category === from), into = db.notes.filter(n => n.category === to).length;
+  const keepTag = $('#kbCatKeepTag').checked;
+  if (!notes.length || !confirm(`ย้าย ${notes.length} เรื่องจากหมวด "${from}" ไปหมวด "${to}"?\n\n`
+    + (into ? `หมวด "${to}" มีอยู่แล้ว ${into} เรื่อง → รวมเป็น ${into + notes.length} เรื่อง` : `เป็นการเปลี่ยนชื่อหมวด`)
+    + (keepTag ? `\nชื่อเดิม "${from}" จะถูกเพิ่มเป็น Tag ของทุกเรื่องที่ย้าย` : '')
+    + `\nเนื้อหา รูป และการเชื่อมกับงานไม่เปลี่ยน`)) return;
+  kbCatBusy = true; kbRenderCats();
+  let done = 0;
+  await safe(async () => {
+    for (const n of notes){
+      $('#kbCatMsg').textContent = `กำลังย้าย ${done + 1} / ${notes.length}…`;
+      const cur = db.notes.find(x => x.id === n.id) || n;
+      const tags = keepTag && !cur.tags.some(t => t.toLowerCase() === from.toLowerCase()) ? [...cur.tags, from] : cur.tags;
+      if (await kbSave({...cur, category:to, tags})) done++;
+    }
+    // the preset list in Settings follows the rename
+    if (db.settings.kbCategories.includes(from)){
+      const settings = {...db.settings, kbCategories:uniq(db.settings.kbCategories.map(c => c === from ? to : c))};
+      await apiSaveSettings(settings);
+      db.settings = settings; persistLocal();
+    }
+  });
+  kbCatBusy = false;
+  if (KB.cat === from) KB.cat = to;
+  $('#kbCatMsg').textContent = done < notes.length ? `ย้ายได้ ${done} จาก ${notes.length} เรื่อง — กดย้ายอีกครั้งเพื่อย้ายที่เหลือ` : '';
+  if (done) toast(`ย้าย ${done} เรื่องไปหมวด "${to}" แล้ว`, 'checkcircle');
+  kbRenderCats(); render();
+}
+$('#kbCatList').onkeydown = e => {
+  const inp = e.target.closest('[data-kb-catto]');
+  if (inp && e.key === 'Enter'){ e.preventDefault(); kbMoveCategory(inp.dataset.kbCatto, inp.value); }
+};
+
 /* ---------- images ---------- */
 const kbImagesOf = body => [...String(body || '').matchAll(KB_IMG_RE)].map(m => m[2]);
 const fmtBytes = b => b >= 1073741824 ? (b / 1073741824).toFixed(2) + ' GB' : b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
@@ -2992,7 +3058,7 @@ function renderKnowledge(){
       <small>ผู้ดูแลระบบต้องรัน supabase/schema.sql (v4) ใน SQL Editor ก่อน · ${esc(KB.loadError)}</small></div></div>` : ''}
     <div class="kb-tools">
       <div class="search-box"><svg class="i"><use href="#i-search"/></svg><input id="kbq" type="search" placeholder="ค้นหัวข้อ, โค้ด, tag, Job No…" autocomplete="off" value="${esc(KB.q)}"><kbd>/</kbd></div>
-      <div class="kb-cats">${['', ...cats].map(c => `<button type="button" class="kb-cat ${KB.cat === c ? 'active' : ''}" data-kbcat="${esc(c)}">${c ? `<span class="cdot" style="--c:${kbColor(c)}"></span>${esc(c)}` : 'ทั้งหมด'}<span class="n">${c ? count(c) : db.notes.length}</span></button>`).join('')}</div>
+      <div class="kb-cats">${['', ...cats].map(c => `<button type="button" class="kb-cat ${KB.cat === c ? 'active' : ''}" data-kbcat="${esc(c)}">${c ? `<span class="cdot" style="--c:${kbColor(c)}"></span>${esc(c)}` : 'ทั้งหมด'}<span class="n">${c ? count(c) : db.notes.length}</span></button>`).join('')}${cats.length ? `<button type="button" class="kb-cat ghost" data-kb-cats title="เปลี่ยนชื่อหมวด หรือรวมหมวดที่ซ้ำกัน">${icon('sliders','sm')}จัดการหมวด</button>` : ''}</div>
       <span class="result-count" id="kbCount"></span>
     </div>
     <div class="card kb ${KB.reading ? 'reading' : ''}" id="kbPanes"><div class="kb-list" id="kbList"></div><div class="kb-reader" id="kbReader"></div></div>`;
@@ -3441,6 +3507,11 @@ function kbClick(e){
   if (hit('[data-kb-new]')){ openKbEditor(); return true; }
   if (hit('[data-kb-import]')){ $('#kbImportFile').click(); return true; }
   if (hit('[data-kb-secrets]')){ kbRenderSecrets(); $('#kbSecretDialog').showModal(); return true; }
+  if (hit('[data-kb-cats]')){ $('#kbCatMsg').textContent = ''; kbRenderCats(); $('#kbCatDialog').showModal(); return true; }
+  if ((el = hit('[data-kb-catmove]'))){
+    if (!kbCatBusy) kbMoveCategory(el.dataset.kbCatmove, el.parentElement.querySelector('[data-kb-catto]').value);
+    return true;
+  }
   if ((el = hit('[data-sec-fix]'))){
     const n = db.notes.find(x => x.id === el.dataset.secFix);
     if (n){
