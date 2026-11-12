@@ -18,6 +18,9 @@ The UI and every reply to the user are in **Thai**; code and comments are in Eng
 - External scripts come from cdnjs / jsdelivr with an **exact version**.
   Heavy libraries are never in `<head>`: load them through `loadLib('xlsx' | 'chart' | 'hljs' | 'md' | 'purify')` when the feature needs them.
   Only `supabase-js` loads up front.
+- Every CDN script is pinned with SRI: add its sha384 to `SRI` in index.html (loaded through `cdnScript()`, which `loadLib` and
+  `kbLoadScript` use) or an `integrity` attribute on a `<script>` tag. A new host or outside service must also be added to the CSP in
+  `vercel.json`, or the browser blocks it. Test under the real headers (serve the built page with `vercel.json`'s headers) and check for CSP violations.
 - Push to `main` deploys to Vercel straight away. `.vercelignore` keeps `SETUP.md`, `supabase/`, `.github/` and `.claude/` off the site.
 
 ## 2. Code conventions (index.html)

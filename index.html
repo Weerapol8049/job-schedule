@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- SheetJS, Chart.js and highlight.js load on demand (see loadLib) to keep the first paint fast -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <style>
 :root{
@@ -598,6 +598,31 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
 .login p{color:var(--muted);margin:0 0 20px}
 .login form{display:flex;flex-direction:column;gap:14px}
 .login .btn{height:40px}
+dialog.lock{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:16px;box-shadow:none;background:radial-gradient(900px 500px at 15% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent),var(--bg)}
+dialog.lock[open]{display:grid;place-items:center}
+dialog.lock::backdrop{background:var(--bg);backdrop-filter:none}
+.lock form{width:min(400px,100%);padding:28px;display:flex;flex-direction:column;gap:14px}
+.lock h1{font-size:21px;margin:4px 0 0}
+.lock p{margin:0;color:var(--text-2)}
+.lock .btn{height:40px;justify-content:center}
+.lock input[readonly]{background:var(--surface-2);color:var(--text-2)}
+/* sign-in history (ข้อมูล & ตั้งค่า) */
+.sec-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.sec-tools select{height:34px;padding:0 8px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;font-size:13px;max-width:100%}
+.sec-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+.sec-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.sec-tbl th,.sec-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;white-space:nowrap}
+.sec-tbl th{background:var(--surface-2);font-weight:600;color:var(--text-2);font-size:12.5px}
+.sec-tbl tr:last-child td{border-bottom:0}
+.sec-tbl .mono{font:12.5px "IBM Plex Mono",monospace}
+.sec-ev{display:inline-flex;align-items:center;gap:6px}
+.sec-ev i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.sec-new{margin-left:6px;padding:1px 6px;border-radius:5px;background:var(--warn-soft);color:var(--warn);font-size:11px;font-weight:600}
+@media (max-width:640px){
+  .sec-tbl thead{display:none}
+  .sec-tbl tr{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 12px;border-bottom:1px solid var(--border)}
+  .sec-tbl td{padding:0;border:0;white-space:normal}
+}
 .userbox{display:flex;align-items:center;gap:8px;font-size:12.5px;min-width:0}
 .userbox .email{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)}
 .mode{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
@@ -825,6 +850,21 @@ dialog.lb img{display:block;max-width:96vw;max-height:94vh;border-radius:8px}
     </form>
   </div>
 </div>
+
+<!-- Lock screen: signed out (idle, another tab, expired session) but the open work stays in place behind it -->
+<dialog id="lockDialog" class="lock">
+  <form class="card" id="lockForm">
+    <div class="logo-mark"><svg class="i"><use href="#i-calcheck"/></svg></div>
+    <h1>ล็อกหน้าจอแล้ว</h1>
+    <p id="lockMsg"></p>
+    <p class="muted" style="margin-top:-12px">งานที่เปิดค้างไว้ยังอยู่ ใส่รหัสผ่านเพื่อใช้งานต่อ</p>
+    <label class="field"><span>อีเมล</span><input type="email" id="lockEmail" autocomplete="username" readonly></label>
+    <label class="field"><span>รหัสผ่าน</span><input type="password" id="lockPassword" autocomplete="current-password" required></label>
+    <span class="err" id="lockErr"></span>
+    <button class="btn primary" type="submit" id="lockBtn">ใช้งานต่อ</button>
+    <button class="btn ghost" type="button" id="lockSwitch">เข้าด้วยบัญชีอื่น</button>
+  </form>
+</dialog>
 
 <div class="app" id="app" hidden>
   <aside class="sidebar">
@@ -1274,11 +1314,32 @@ const LIBS = {
   md:    ['https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js', 'marked'],
   purify:['https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js', 'DOMPurify'],
 };
+// Every CDN script is pinned by its hash (Subresource Integrity): if the file on the CDN is ever changed, the browser refuses to run it.
+// A new library needs its hash here (openssl dgst -sha384 -binary file | openssl base64 -A) and its host in the CSP in vercel.json.
+const SRI = {
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js': 'sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js': 'sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG',
+  'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js': 'sha384-F/bZzf7p3Joyp5psL90p/p89AZJsndkSoGwRpXcZhleCWhd8SnRuoYo4d0yirjJp',
+  'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js': 'sha384-LWJZQx0dgGhEK7snfNYrQs5K+QKD1sOmE02sOQCz4br9UmqSJDvPLoUVFaUyFnjq',
+  'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dos.min.js': 'sha384-6+/BHm9a7L7KFZE/myAKBddEjwfPovVtBzDrEu/6VqocfSqvRMyM+Lf3k9n89yGH',
+  'https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js': 'sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi',
+  'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js': 'sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a',
+  'https://cdn.jsdelivr.net/npm/sql-formatter@15.3.1/dist/sql-formatter.min.js': 'sha384-z28Fqjos/IM9TapgqClAq8gaOIuw7sRigTxOdIT9YRlrR3aDd8KdL6eCQeoxZtq8',
+  'https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify.min.js': 'sha384-KDFWMN6ZABhcMaACFKV7HP4D0Eqzn0SujQnlv05qo1yS61A/vAQxClSdH8mobTn/',
+  'https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-html.min.js': 'sha384-EhDs1rq5YpojkjwQGOSyqWZM5GI0BtOfs8OqoSS4NM/tNDSoqsshG8YYza2eBUJX',
+  'https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-css.min.js': 'sha384-hLSGh4xWwjFAFwevg4XHWcoUQfqYNeEkqXQ0+defmwZqVW6MdiUmLsCODtJ1zneO',
+};
+function cdnScript(url){
+  const s = document.createElement('script');
+  s.src = url; s.crossOrigin = 'anonymous';
+  if (SRI[url]) s.integrity = SRI[url]; else console.warn('no SRI hash for', url);
+  return s;
+}
 const libLoads = {};
 function loadLib(name){
   return libLoads[name] ||= new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = LIBS[name][0]; s.onload = res;
+    const s = cdnScript(LIBS[name][0]);
+    s.onload = res;
     s.onerror = () => { delete libLoads[name]; s.remove(); rej(new Error(`โหลด ${LIBS[name][1]} ไม่ได้ (ออฟไลน์?)`)); };
     document.head.append(s);
   });
@@ -2223,6 +2284,7 @@ function renderSettings(){
     <div class="card-body"><label class="field"><textarea id="set_${key}" spellcheck="false">${esc(val)}</textarea></label>${extra}</div></div>`;
   $('#view').innerHTML = `
     ${healthCardHtml()}
+    ${secLogCardHtml()}
     <div class="card" style="margin-bottom:14px">
       <div class="card-head">${icon('database','sm')}<h3>ข้อมูล</h3><span class="sub">${db.jobs.length} งาน · ${CLOUD ? 'เก็บบน Supabase (ซิงก์ realtime ทั้งทีม)' : 'เก็บใน browser นี้ (localStorage)'}</span></div>
       <div class="card-body"><div class="tiles">
@@ -2250,6 +2312,9 @@ function renderSettings(){
     </div>
     <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn primary" id="saveSettings">${icon('check','sm')}บันทึกการตั้งค่า</button><button class="btn" id="resetSettings">คืนค่าเริ่มต้น</button></div>`;
 
+  // the sign-in history loads only when opened
+  $('#secLog').addEventListener('toggle', e => { if (e.target.open && !SEC.rows) secLoad(); });
+  if (SEC.rows) secRender();
   $('#saveSettings').onclick = () => {
     const lines = k => $('#set_' + k).value.split('\n').map(x => x.trim()).filter(Boolean);
     const statuses = lines('statuses').map(l => { const [name, color, done] = l.split('|').map(x => (x || '').trim()); return {name, color: /^#[0-9a-f]{3,8}$/i.test(color) ? color : '#64748b', done: done === 'done'}; });
@@ -2920,8 +2985,8 @@ const KB_FMT_LIBS = {
 const kbScripts = {};
 function kbLoadScript(url){
   return kbScripts[url] ||= new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = url; s.onload = res;
+    const s = cdnScript(url);
+    s.onload = res;
     s.onerror = () => { delete kbScripts[url]; rej(new Error('โหลดตัวจัดรูปแบบไม่ได้ (ตรวจอินเทอร์เน็ต)')); };
     document.head.append(s);
   });
@@ -4032,7 +4097,7 @@ document.addEventListener('click', e => {
   const close = e.target.closest('[data-close]'); if (close){ const d = close.closest('dialog'); return d === dlg ? jobTryClose() : d.close(); }
   // backdrop click (not for the knowledge editor: a stray click would throw away a long note)
   if (e.target === dlg) return jobTryClose();
-  if (e.target.tagName === 'DIALOG' && e.target.id !== 'kbDialog') e.target.close();
+  if (e.target.tagName === 'DIALOG' && e.target.id !== 'kbDialog' && e.target.id !== 'lockDialog') e.target.close();
   const cp = $('.colpicker[open]'); if (cp && !cp.contains(e.target)) cp.open = false;
 });
 for (const [id, k] of Object.entries(FILTER_INPUTS)){
@@ -4623,7 +4688,7 @@ function renderUserBox(){
   $('#userBox').innerHTML = CLOUD
     ? `${person(email, false)}<span class="email" title="${esc(email)}">${esc(email)}</span><button class="icon-btn" id="logoutBtn" title="ออกจากระบบ">${icon('logout','sm')}</button>`
     : `<span class="mode" title="ข้อมูลเก็บใน browser นี้เท่านั้น — กรอก config.js เพื่อใช้ Supabase"><i style="background:var(--warn)"></i>โหมดเก็บในเครื่อง</span>`;
-  if (CLOUD) $('#logoutBtn').onclick = () => sb.auth.signOut();
+  if (CLOUD) $('#logoutBtn').onclick = async () => { SEC.loggingOut = true; await logAuth('logout'); sb.auth.signOut(); };
 }
 /* ================= Flow diagrams — แผนผังระบบ (schema v8) ================= */
 // Boxes and arrows drawn by the team, one JSON document per diagram: {nodes:[{id,type,x,y,w,h,text,color,link}], edges:[{id,from,to,label,style,arrow,apiIds}]}.
@@ -5558,11 +5623,154 @@ document.addEventListener('keydown', e => {
 // closing the tab mid-drawing: keep a draft and let the browser ask first
 addEventListener('beforeunload', e => { if (FL.edit && FL.dirty){ flSaveDraft(); e.preventDefault(); e.returnValue = ''; } });
 
+/* ================= Security: sign-in history + idle sign-out (schema v9) ================= */
+// Sign-ins, app opens and sign-outs go into login_log through log_auth_event(): the database stamps who, when, IP and browser,
+// and no one can edit or delete a row afterwards, so the history can be trusted when looking back.
+const SEC = {rows:null, error:'', user:'', event:'', more:false, loading:false, loggingOut:false, lockReason:''};
+const SEC_EVENTS = {login:['เข้าสู่ระบบ', 'var(--ok)'], open:['เปิดแอป (ยังล็อกอินค้างไว้)', 'var(--accent)'], logout:['ออกจากระบบ', 'var(--muted)'], idle_logout:['ออกอัตโนมัติ (ไม่ได้ใช้งาน)', 'var(--warn)']};
+async function logAuth(event){
+  if (!CLOUD) return null;
+  try {
+    const {data, error} = await sb.rpc('log_auth_event', {p_event:event, p_page:location.pathname.replace(/^\//, '') || 'index.html'});
+    if (error) throw error;
+    return data;
+  } catch(err){ console.warn('sign-in log:', err.message || err); return null; }
+}
+function uaName(ua = ''){
+  const b = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'เบราว์เซอร์อื่น';
+  const os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Mac OS X/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : '';
+  return os ? `${b} บน ${os}` : b;
+}
+// after a password sign-in: show where this account was last used, so a stranger's use stands out
+function secShowPrev(res){
+  const p = res?.prev;
+  if (p) toast(`เข้าระบบครั้งก่อน ${fmtDateTime(p.at)} · ${uaName(p.user_agent)}${p.ip ? ' · IP ' + p.ip : ''}`, 'clock');
+}
+function secLogCardHtml(){
+  return `<details class="card" id="secLog" style="margin-bottom:14px" ${SEC.rows ? 'open' : ''}>
+    <summary class="card-head" style="cursor:pointer">${icon('clock','sm')}<h3>ประวัติการเข้าใช้ระบบ</h3><span class="sub">ใคร เข้า / ออก เมื่อไหร่ จาก IP และเครื่องไหน · แก้หรือลบย้อนหลังไม่ได้</span></summary>
+    <div class="card-body" id="secLogBody"></div></details>`;
+}
+async function secLoad(more = false){
+  const box = $('#secLogBody');
+  if (!box) return;
+  if (!CLOUD){ box.innerHTML = '<p class="muted" style="margin:0">ใช้ได้เมื่อเชื่อม Supabase (โหมดเก็บในเครื่องไม่มีการ login)</p>'; return; }
+  if (SEC.loading) return;
+  SEC.loading = true;
+  if (!more) SEC.rows = null;
+  secRender();
+  try {
+    let q = sb.from('login_log').select('*').order('at', {ascending:false});
+    if (SEC.user) q = q.eq('email', SEC.user);
+    if (SEC.event) q = q.eq('event', SEC.event);
+    const from = more ? SEC.rows.length : 0, {data, error} = await q.range(from, from + 99);
+    if (error) throw error;
+    SEC.rows = [...(more ? SEC.rows : []), ...data]; SEC.more = data.length === 100; SEC.error = '';
+  } catch(err){
+    SEC.error = /PGRST205|login_log/.test(err.code + err.message) ? 'ยังไม่มีตารางประวัติ — ผู้ดูแลระบบต้องรัน supabase/schema.sql (v9) ใน SQL Editor ก่อน' : (err.message || String(err));
+    SEC.rows = SEC.rows || [];
+  }
+  SEC.loading = false;
+  secRender();
+}
+function secRender(){
+  const box = $('#secLogBody');
+  if (!box) return;
+  if (SEC.error){ box.innerHTML = `<div class="sys-alert warn">${icon('alert')}<div class="msg"><b>เปิดประวัติไม่ได้</b><small>${esc(SEC.error)}</small></div></div>`; return; }
+  if (!SEC.rows){ box.innerHTML = '<div class="loading" style="padding:24px"><div class="spinner"></div>กำลังโหลด…</div>'; return; }
+  const users = uniq([SEC.user, currentUser?.email, ...SEC.rows.map(r => r.email)]).sort();
+  // "IP ใหม่": the first time this account shows up from an address, among the rows loaded
+  const seen = new Map(), fresh = new Set();
+  for (const r of [...SEC.rows].reverse()){
+    if (!r.ip) continue;
+    const s = seen.get(r.email) || new Set();
+    if (s.size && !s.has(r.ip)) fresh.add(r.id);
+    s.add(r.ip); seen.set(r.email, s);
+  }
+  box.innerHTML = `<div class="sec-tools">
+      <select id="secUser"><option value="">ทุกคน</option>${users.map(u => `<option ${u === SEC.user ? 'selected' : ''}>${esc(u)}</option>`).join('')}</select>
+      <select id="secEvent"><option value="">ทุกเหตุการณ์</option>${Object.entries(SEC_EVENTS).map(([k, [l]]) => `<option value="${k}" ${k === SEC.event ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+      <button type="button" class="btn sm" id="secReload">${icon('restore','sm')}โหลดใหม่</button>
+      <span class="muted" style="font-size:12.5px">${SEC.rows.length} รายการ${SEC.more ? '+' : ''}</span></div>
+    ${SEC.rows.length ? `<div class="sec-wrap"><table class="sec-tbl"><thead><tr><th>เวลา</th><th>ผู้ใช้</th><th>เหตุการณ์</th><th>IP</th><th>เครื่อง / เบราว์เซอร์</th></tr></thead><tbody>${SEC.rows.map(r => {
+      const [label, c] = SEC_EVENTS[r.event] || [r.event, 'var(--muted)'];
+      return `<tr><td>${fmtDateTime(r.at)}</td><td>${esc(r.email)}</td><td><span class="sec-ev" style="--c:${c}"><i></i>${esc(label)}</span></td>
+        <td class="mono">${esc(r.ip || '-')}${fresh.has(r.id) ? '<span class="sec-new" title="บัญชีนี้ไม่เคยใช้ IP นี้ในรายการที่โหลดมา">IP ใหม่</span>' : ''}</td><td title="${esc(r.user_agent)}">${esc(uaName(r.user_agent))}${r.page && r.page !== 'index.html' ? ` <span class="muted">· ${esc(r.page)}</span>` : ''}</td></tr>`;
+    }).join('')}</tbody></table></div>` : '<p class="muted" style="margin:0">ยังไม่มีรายการ</p>'}
+    ${SEC.more ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="secMore">โหลดเพิ่ม</button></div>` : ''}`;
+  $('#secUser').onchange = e => { SEC.user = e.target.value; secLoad(); };
+  $('#secEvent').onchange = e => { SEC.event = e.target.value; secLoad(); };
+  $('#secReload').onclick = () => secLoad();
+  if ($('#secMore')) $('#secMore').onclick = () => secLoad(true);
+}
+
+// Idle sign-out: no mouse / keyboard in any tab for IDLE_MS signs this browser out. The open work stays on screen behind a lock
+// (notes and diagrams also keep a draft), so signing back in carries on where it was.
+const IDLE_MS = (+CFG.IDLE_MINUTES || 30) * 60000, IDLE_KEY = LS_KEY + '.lastActive';
+let idleLast = Date.now(), idleWarned = false, idleBusy = false;
+function idleMark(){ idleLast = Date.now(); idleWarned = false; try { localStorage.setItem(IDLE_KEY, String(idleLast)); } catch(e){} }
+// shared through localStorage so working in one tab keeps the others signed in; written at most every 10 s
+const idleTouch = () => { if (Date.now() - idleLast > 10000) idleMark(); };
+function idleSince(){ let s = 0; try { s = +localStorage.getItem(IDLE_KEY) || 0; } catch(e){} return Date.now() - Math.max(idleLast, s); }
+async function idleCheck(){
+  if (!CLOUD || !currentUser || idleBusy || $('#lockDialog').open) return;
+  const idle = idleSince();
+  if (idle >= IDLE_MS){
+    idleBusy = true;
+    if (kbDlg.open) kbSaveDraft();
+    if (FL.edit) flSaveDraft();
+    await logAuth('idle_logout');
+    SEC.lockReason = 'idle';
+    await sb.auth.signOut({scope:'local'}).catch(() => {});
+    idleBusy = false;
+  } else if (idle >= IDLE_MS - 60000 && !idleWarned){
+    idleWarned = true;
+    toast('จะออกจากระบบใน 1 นาที เพราะไม่ได้ใช้งาน · ขยับเมาส์หรือกดแป้นใดก็ได้เพื่อใช้งานต่อ', 'clock');
+  }
+}
+['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, idleTouch, {passive:true, capture:true}));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) idleCheck(); });
+setInterval(idleCheck, 15000);
+
+function showLock(){
+  const d = $('#lockDialog');
+  if (d.open) return;
+  $('#lockEmail').value = currentUser?.email || '';
+  $('#lockPassword').value = ''; $('#lockErr').textContent = '';
+  $('#lockMsg').textContent = SEC.lockReason === 'idle' ? `ออกจากระบบอัตโนมัติ เพราะไม่ได้ใช้งาน ${IDLE_MS / 60000} นาที` : 'ออกจากระบบแล้ว (จากแท็บอื่น หรือ session หมดอายุ)';
+  SEC.lockReason = '';
+  d.showModal();
+  $('#lockPassword').focus();
+}
+$('#lockDialog').addEventListener('cancel', e => e.preventDefault());
+$('#lockSwitch').onclick = () => location.reload();
+$('#lockForm').onsubmit = async e => {
+  e.preventDefault();
+  const btn = $('#lockBtn');
+  btn.disabled = true; $('#lockErr').textContent = '';
+  const {data, error} = await sb.auth.signInWithPassword({email:$('#lockEmail').value.trim(), password:$('#lockPassword').value});
+  btn.disabled = false;
+  if (error){ $('#lockErr').textContent = /invalid/i.test(error.message) ? 'รหัสผ่านไม่ถูกต้อง' : error.message; return; }
+  if (data.user.id !== currentUser?.id) return location.reload();
+  currentUser = data.user;
+  idleMark();
+  $('#lockDialog').close();
+  logAuth('login');
+  // catch up on what the team changed while the screen was locked; forms and drawings that are open keep their own copy
+  try { Object.assign(db, await apiLoad()); } catch(err){ console.error(err); }
+  await sb.removeAllChannels().catch(() => {});
+  subscribeRealtime();
+  render();
+  toast('ใช้งานต่อได้แล้ว');
+};
+
 function showApp(){ $('#loginScreen').hidden = true; $('#app').hidden = false; renderUserBox(); }
-async function enterApp(user){
+async function enterApp(user, how = 'open'){
   currentUser = user;
+  idleMark();
   showApp();
   $('#view').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลดข้อมูล…</div>';
+  logAuth(how).then(res => { if (how === 'login') secShowPrev(res); });
   try { db = await apiLoad(); HEALTH.loadError = ''; }
   catch(err){ HEALTH.loadError = err.message || String(err); toast('โหลดข้อมูลไม่สำเร็จ: ' + HEALTH.loadError, 'alert'); }
   render();
@@ -5577,7 +5785,7 @@ $('#loginForm').onsubmit = async e => {
   const {data, error} = await sb.auth.signInWithPassword({email:$('#loginEmail').value.trim(), password:$('#loginPassword').value});
   btn.disabled = false;
   if (error){ $('#loginErr').textContent = /invalid/i.test(error.message) ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' : error.message; return; }
-  enterApp(data.user);
+  enterApp(data.user, 'login');
 };
 async function boot(){
   if (CLOUD_CONFIGURED && !CLOUD){
@@ -5586,8 +5794,18 @@ async function boot(){
     return;
   }
   if (!CLOUD){ db = readLocal(); showApp(); render(); return; }
-  sb.auth.onAuthStateChange(event => { if (event === 'SIGNED_OUT') location.reload(); });
-  const {data:{session}} = await sb.auth.getSession();
+  let {data:{session}} = await sb.auth.getSession();
+  // closing the tab doesn't escape the idle rule: a session left unused longer than IDLE_MS is signed out on the next open
+  let expired = false;
+  try { const last = +localStorage.getItem(IDLE_KEY) || 0; expired = !!session && last > 0 && Date.now() - last >= IDLE_MS; } catch(e){}
+  if (expired){
+    await logAuth('idle_logout');
+    await sb.auth.signOut({scope:'local'}).catch(() => {});
+    session = null;
+    $('#loginScreen .card > p').textContent = `ออกจากระบบอัตโนมัติ เพราะไม่ได้ใช้งานเกิน ${IDLE_MS / 60000} นาที กรุณาเข้าสู่ระบบอีกครั้ง`;
+  }
+  // "ออกจากระบบ" starts clean · anything else (idle, another tab, expired session) locks the screen and keeps the work behind it
+  sb.auth.onAuthStateChange(event => { if (event === 'SIGNED_OUT'){ if (SEC.loggingOut || !currentUser) location.reload(); else showLock(); } });
   if (session) enterApp(session.user);
   else { $('#loginScreen').hidden = false; $('#loginEmail').focus(); }
 }

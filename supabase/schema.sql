@@ -426,3 +426,48 @@ begin
     alter publication supabase_realtime add table public.flows;
   end if;
 end $$;
+
+-- ---------- v9: ประวัติการเข้าใช้ระบบ (login_log) — ข้อมูล & ตั้งค่า → ประวัติการเข้าใช้ระบบ ----------
+-- one row per sign-in / app open / sign-out / idle sign-out, written only by log_auth_event() below:
+-- the database fills in who, when, IP and browser itself, and there is no insert / update / delete right on the table,
+-- so a row can't be faked, changed or removed from the app afterwards
+create table if not exists public.login_log (
+  id         bigint generated always as identity primary key,
+  at         timestamptz not null default now(),
+  user_id    uuid,
+  email      text not null default '',
+  event      text not null,                 -- login / open / logout / idle_logout
+  ip         text not null default '',
+  user_agent text not null default '',
+  page       text not null default ''
+);
+create index if not exists login_log_at_idx   on public.login_log (at desc);
+create index if not exists login_log_user_idx on public.login_log (user_id, at desc);
+
+alter table public.login_log enable row level security;
+revoke all on public.login_log from anon, authenticated;
+grant select on public.login_log to authenticated;
+drop policy if exists "team can read login log" on public.login_log;
+create policy "team can read login log" on public.login_log for select to authenticated using (true);
+
+create or replace function public.log_auth_event(p_event text, p_page text default '') returns json
+language plpgsql security definer set search_path = public as $$
+declare
+  h    json := coalesce(nullif(current_setting('request.headers', true), '')::json, '{}'::json);
+  uid  uuid := auth.uid();
+  prev json;
+begin
+  if uid is null then raise exception 'not signed in'; end if;
+  if p_event not in ('login', 'open', 'logout', 'idle_logout') then raise exception 'unknown event: %', p_event; end if;
+  -- the previous sign-in, so the app can show "เข้าระบบครั้งก่อน …"
+  select json_build_object('at', at, 'ip', ip, 'user_agent', user_agent) into prev
+    from public.login_log where user_id = uid and event in ('login', 'open') order by at desc limit 1;
+  insert into public.login_log (user_id, email, event, ip, user_agent, page)
+  values (uid, coalesce(auth.jwt() ->> 'email', ''), p_event,
+          left(coalesce(nullif(h ->> 'cf-connecting-ip', ''), trim(split_part(coalesce(h ->> 'x-forwarded-for', ''), ',', 1))), 64),
+          left(coalesce(h ->> 'user-agent', ''), 300),
+          left(coalesce(p_page, ''), 60));
+  return json_build_object('prev', prev);
+end $$;
+revoke all on function public.log_auth_event(text, text) from public, anon;
+grant execute on function public.log_auth_event(text, text) to authenticated;

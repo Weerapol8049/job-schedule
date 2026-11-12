@@ -70,9 +70,14 @@ jobs:
             echo "::warning::อ่านตาราง flows ไม่ได้ — รัน supabase/schema.sql (v8) ใน SQL Editor ก่อน"
             echo '[]' > flows.json
           fi
+          # ประวัติการเข้าใช้ระบบ (schema v9)
+          if ! fetch login_log at.asc; then
+            echo "::warning::อ่านตาราง login_log ไม่ได้ — รัน supabase/schema.sql (v9) ใน SQL Editor ก่อน"
+            echo '[]' > login_log.json
+          fi
           STAMP=$(TZ=Asia/Bangkok date +%F)
-          jq -n --slurpfile jobs jobs.json --slurpfile s app_settings.json --slurpfile notes knowledge.json --slurpfile resumes resumes.json --slurpfile apis apis.json --slurpfile flows flows.json --arg at "$(date -u +%FT%TZ)" \
-            '{source:"github-actions", exported_at:$at, jobs:$jobs[0], settings:($s[0][0].data // {}), notes:$notes[0], resumes:$resumes[0], apis:$apis[0], flows:$flows[0]}' > "job-schedule-backup-$STAMP.json"
+          jq -n --slurpfile jobs jobs.json --slurpfile s app_settings.json --slurpfile notes knowledge.json --slurpfile resumes resumes.json --slurpfile apis apis.json --slurpfile flows flows.json --slurpfile logins login_log.json --arg at "$(date -u +%FT%TZ)" \
+            '{source:"github-actions", exported_at:$at, jobs:$jobs[0], settings:($s[0][0].data // {}), notes:$notes[0], resumes:$resumes[0], apis:$apis[0], flows:$flows[0], login_log:$logins[0]}' > "job-schedule-backup-$STAMP.json"
           echo "jobs: $(jq length jobs.json) · notes: $(jq length knowledge.json)"
           # รูปที่เนื้อหาอ้างถึง ![…](kb:<path>) → images/<path>
           mkdir -p images
@@ -97,7 +102,7 @@ jobs:
             gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
               --symmetric --cipher-algo AES256 -o "job-schedule-images-$STAMP.tar.gpg" images.tar
           fi
-          rm -rf pages images images.tar images.txt jobs.json app_settings.json knowledge.json resumes.json apis.json flows.json "job-schedule-backup-$STAMP.json"
+          rm -rf pages images images.tar images.txt jobs.json app_settings.json knowledge.json resumes.json apis.json flows.json login_log.json "job-schedule-backup-$STAMP.json"
 
       - uses: actions/upload-artifact@v4
         with:
