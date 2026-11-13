@@ -6,3 +6,9 @@ job-schedule-secrets/
 
 # local exports / backups (may contain customer data and passwords)
 backup/
+
+# third-party Claude skill (Archify v3.2.0, github.com/tt-a1i/archify @ e378488): reinstall from GitHub, do not commit
+.claude/skills/archify/
+.claude/settings.local.json
+# generated diagrams (system internals): keep local, publish through the knowledge base
+diagrams/

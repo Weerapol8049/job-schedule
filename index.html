@@ -2742,9 +2742,20 @@ const KB_SECRET_RULES = [
 ];
 // values that are placeholders or code, not a real secret
 const KB_NOT_SECRET = /^(?:<[^>]*>|\*+|x+|•+|\.{3}|none|null|true|false)$|^(?:_|self\.|this\.|fields\.|request\.|args\b|\$|%|\{\{|new\s|ดู|see\b)/i;
+// <script> and <style> inside a whole HTML page block are the page's own machinery (minified code, font hashes,
+// commit ids): long hex there is not a password, and masking it would break the page
+function kbPageCodeRanges(body){
+  const out = [];
+  for (const m of body.matchAll(KB_FENCE_G)){
+    if (!kbIsPage(m[3], (m[2] || '').toLowerCase())) continue;
+    const at = m.index + m[0].indexOf(m[3]);
+    for (const t of m[3].matchAll(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi)) out.push([at + t.index, at + t.index + t[0].length]);
+  }
+  return out;
+}
 function kbFindSecrets(body){
   body = String(body || '');
-  const found = [];
+  const found = [], skip = /<!doctype html|<html[\s>]/i.test(body) ? kbPageCodeRanges(body) : [];
   for (const [kind, re] of KB_SECRET_RULES){
     re.lastIndex = 0;
     let m;
@@ -2760,8 +2771,12 @@ function kbFindSecrets(body){
       // "API KEY : host : value" → only the last part is the secret
       const lastSep = v.lastIndexOf(' : ');
       if (lastSep >= 0){ start += lastSep + 3; v = body.slice(start, end); }
+      // inside HTML the value ends at the next tag: "<p>password: x</p>" → x, so masking keeps the markup whole
+      const tag = v.search(/<\/?[a-z]/i);
+      if (tag > 0){ end = start + tag; v = body.slice(start, end).replace(/[\s"'`,;]+$/, ''); end = start + v.length; }
       if (!v || v.length < 3 || KB_NOT_SECRET.test(v) || /\(|<password>/i.test(v)) continue;
       if (/!\[[^\]]*\]\(kb:/.test(body.slice(body.lastIndexOf('\n', start) + 1, start))) continue; // inside an image token
+      if (skip.some(([a, b]) => start >= a && end <= b)) continue;
       found.push({kind, start, end});
     }
   }
@@ -3142,7 +3157,8 @@ function kbRenderBody(src, opts = {}){
     const md = kbLangInfo(lang)?.[0] === 'md', page = kbIsPage(code, lang), names = [];
     // swap each {{name}} for a plain identifier so the highlighter leaves it whole, then put a live span back
     const plain = opts.vars && !md && !page ? code.replace(KB_VAR_RE, (m, n) => `KBVAR${names.push(n) - 1}Z`) : code;
-    const hl = kbHL(plain, lang), nm = kbCodeName(code, lang);
+    // a big page's source is hidden behind "ดูต้นฉบับ": highlighting ~1 MB of it would stall opening the note
+    const hl = page && code.length > 60000 ? {html:esc(code), label:'HTML'} : kbHL(plain, lang), nm = kbCodeName(code, lang);
     if (names.length){ hl.html = hl.html.replace(/KBVAR(\d+)Z/g, (m, k) => kbVarSpan(names[k])); vars.push(...names); }
     // Markdown blocks (kbHydrateMd) and whole HTML pages (kbHydratePages) show rendered in .kb-md, with a toggle back to the source
     html += `<div class="kb-code${md ? ' is-md' : page ? ' is-page' : ''}" data-name="${esc(nm.title)}" data-methods="${esc(nm.methods.join(','))}"><div class="kb-code-head">

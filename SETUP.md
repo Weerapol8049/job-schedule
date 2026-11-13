@@ -145,6 +145,7 @@
 | ดูข้อมูลดิบ | Supabase → Table Editor → `jobs` |
 | สำรองข้อมูล | อัตโนมัติทุกวัน (GitHub Actions) · หรือในแอป: ข้อมูล & ตั้งค่า → Backup JSON / Export Excel |
 | แจ้ง deploy | ตาราง → เลือกงาน → **Release note** → Copy ไปวางในกลุ่ม → **ติ๊ก LIVE ให้ N งาน** |
+| วาดแผนผังระบบจากโค้ด | Claude Code + skill **Archify** v3.2.0 (Apache-2.0) ที่ `.claude/skills/archify/` — ติดตั้งในเครื่องเท่านั้น ไม่ commit (ดาวน์โหลดจาก github.com/tt-a1i/archify, ต้องใช้ Node 18+) · ผลลัพธ์ไว้ที่ `diagrams/` (ไม่ commit) → เปิดไฟล์ HTML คัดลอกทั้งไฟล์ไปวางในคลังความรู้เป็นโค้ดภาษา **HTML / XML** |
 
 ---
 
