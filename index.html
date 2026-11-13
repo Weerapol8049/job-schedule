@@ -464,6 +464,8 @@ dialog.modal.job{width:min(860px,calc(100vw - 24px));height:calc(100vh - 48px)}
 .kb-code-head [data-kb-md]~[data-kb-copy]{margin-left:0}
 .kb-code:not(.md-ready) [data-kb-md],.kb-code:not(.md-ready)>.kb-md{display:none}
 .kb-code.md-ready:not(.src)>pre,.kb-code.md-ready.src>.kb-md,.kb-code.folded>.kb-md{display:none}
+.kb-md.kb-page{padding:0}
+.kb-frame{display:block;width:100%;height:480px;border:0;background:var(--surface)}
 .kb-md{padding:14px 20px 4px;background:var(--surface);font:14px/1.7 "IBM Plex Sans Thai",system-ui,sans-serif;color:var(--text);overflow-wrap:anywhere}
 .kb-md h1,.kb-md h2,.kb-md h3,.kb-md h4{margin:18px 0 8px;line-height:1.35}
 .kb-md h1{font-size:20px}.kb-md h2{font-size:17px;padding-bottom:4px;border-bottom:1px solid var(--border)}.kb-md h3{font-size:15px}.kb-md h4{font-size:14px}
@@ -3126,18 +3128,18 @@ function kbRenderBody(src, opts = {}){
     html += opts.vars ? kbRenderText(parts[i]).replace(KB_VAR_RE, (m, n) => { vars.push(n); return kbVarSpan(n); }) : kbRenderText(parts[i]);
     if (parts[i + 3] === undefined) continue;
     const code = parts[i + 3].replace(/\n$/, ''), lang = (parts[i + 2] || '').toLowerCase();
-    const md = kbLangInfo(lang)?.[0] === 'md', names = [];
+    const md = kbLangInfo(lang)?.[0] === 'md', page = kbIsPage(code, lang), names = [];
     // swap each {{name}} for a plain identifier so the highlighter leaves it whole, then put a live span back
-    const plain = opts.vars && !md ? code.replace(KB_VAR_RE, (m, n) => `KBVAR${names.push(n) - 1}Z`) : code;
+    const plain = opts.vars && !md && !page ? code.replace(KB_VAR_RE, (m, n) => `KBVAR${names.push(n) - 1}Z`) : code;
     const hl = kbHL(plain, lang), nm = kbCodeName(code, lang);
     if (names.length){ hl.html = hl.html.replace(/KBVAR(\d+)Z/g, (m, k) => kbVarSpan(names[k])); vars.push(...names); }
-    // Markdown blocks show rendered (kbHydrateMd fills .kb-md) with a toggle back to the source
-    html += `<div class="kb-code${md ? ' is-md' : ''}" data-name="${esc(nm.title)}" data-methods="${esc(nm.methods.join(','))}"><div class="kb-code-head">
+    // Markdown blocks (kbHydrateMd) and whole HTML pages (kbHydratePages) show rendered in .kb-md, with a toggle back to the source
+    html += `<div class="kb-code${md ? ' is-md' : page ? ' is-page' : ''}" data-name="${esc(nm.title)}" data-methods="${esc(nm.methods.join(','))}"><div class="kb-code-head">
       <button type="button" class="kb-fold" data-kb-fold title="ย่อ / ขยาย">${icon('right','sm')}</button>
-      <span class="kb-code-lang">${esc(hl.label)}</span>${nm.title ? `<b class="kb-code-name">${esc(nm.title)}</b>` : ''}
+      <span class="kb-code-lang">${esc(page ? 'หน้าเว็บ HTML' : hl.label)}</span>${nm.title ? `<b class="kb-code-name">${esc(nm.title)}</b>` : ''}
       <span class="kb-code-lines">${code.split('\n').length} บรรทัด</span>
-      ${md ? `<button type="button" class="btn sm" data-kb-md>${icon('file','sm')}<span>ดูต้นฉบับ</span></button>` : ''}
-      <button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div>${md ? '<div class="kb-md"></div>' : ''}<pre>${hl.html}</pre></div>`;
+      ${md || page ? `<button type="button" class="btn sm" data-kb-md>${icon('file','sm')}<span>ดูต้นฉบับ</span></button>` : ''}
+      <button type="button" class="btn sm" data-kb-copy>${icon('copy','sm')}คัดลอก</button></div>${md || page ? `<div class="kb-md${page ? ' kb-page' : ''}"></div>` : ''}<pre>${hl.html}</pre></div>`;
   }
   if (!vars.length) return html;
   return `<div class="kb-vars"><b>ตัวแปรในโค้ด</b><span class="muted">กรอกค่าแล้วกด คัดลอก จะได้โค้ดที่แทนค่าแล้ว</span>
@@ -3169,13 +3171,46 @@ async function kbHydrateMd(root){
     b.classList.add('md-ready');
   }
 }
+// A whole HTML page in a ```html block (starts with <!DOCTYPE html> or <html>) shows as the page itself, in a sandboxed frame.
+// No allow-same-origin: its scripts run in an opaque origin, so they can't read the app, its session or its data.
+const kbIsPage = (code, lang) => kbLangInfo(lang)?.[0] === 'html' && /^\s*(<!doctype html|<html[\s>])/i.test(code);
+// injected first: in the sandbox localStorage throws, so pages that save their own state (checklists …) get one in memory instead
+const KB_FRAME_HEAD = `<script>(()=>{try{localStorage.length}catch(e){const m=new Map(),s={getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>{m.set(k,String(v))},removeItem:k=>{m.delete(k)},clear:()=>m.clear(),key:i=>[...m.keys()][i]??null,get length(){return m.size}};for(const n of['localStorage','sessionStorage'])try{Object.defineProperty(window,n,{value:s,configurable:true})}catch(e){}}})()<\/script>`;
+// injected last: report the page's height so the frame fits it without its own scrollbar
+const KB_FRAME_TAIL = `<script>(()=>{const s=()=>parent.postMessage({kbFrameH:Math.ceil(document.documentElement.scrollHeight)},'*');new ResizeObserver(s).observe(document.documentElement);addEventListener('load',s);s()})()<\/script>`;
+function kbHydratePages(root){
+  for (const b of $$('.kb-code.is-page:not(.md-ready)', root)){
+    const src = b.querySelector('pre').textContent, f = document.createElement('iframe');
+    f.className = 'kb-frame';
+    f.title = b.dataset.name || 'หน้าเว็บ HTML';
+    f.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox');
+    f.setAttribute('referrerpolicy', 'no-referrer');
+    const head = /<head[^>]*>/i.test(src) ? src.replace(/<head[^>]*>/i, m => m + KB_FRAME_HEAD) : KB_FRAME_HEAD + src;
+    f.srcdoc = /<\/body>/i.test(head) ? head.replace(/<\/body>(?![\s\S]*<\/body>)/i, KB_FRAME_TAIL + '</body>') : head + KB_FRAME_TAIL;
+    b.querySelector('.kb-md').append(f);
+    b.classList.add('md-ready');
+  }
+}
+addEventListener('message', e => {
+  const h = e.data?.kbFrameH;
+  if (typeof h !== 'number' || !isFinite(h)) return;
+  const f = $$('iframe.kb-frame').find(x => x.contentWindow === e.source);
+  if (!f) return;
+  const d = h - f.offsetHeight, now = Date.now();
+  if (Math.abs(d) <= 4) return;
+  // a page sized to the frame (100vh + margin) grows by the same step every time it is resized: stop there instead of growing forever
+  if (d > 0 && f._step && Math.abs(d - f._step) <= 2 && now - f._at < 600) return;
+  f._step = d > 0 ? d : 0; f._at = now;
+  f.style.height = Math.min(Math.max(h, 80), 20000) + 'px';
+});
 // everything a rendered note body needs after it is in the DOM
-function kbHydrate(root){ hydrateKbImages(root); kbHydrateMd(root); }
+function kbHydrate(root){ hydrateKbImages(root); kbHydrateMd(root); kbHydratePages(root); }
 // Name a code block after what it defines, so a note with many blocks can be scanned and indexed:
 // "class StmGenPrFromOdoo", "createVendor()", "PROCEDURE dbo.x", or '' when nothing is recognisable.
 const KB_NOT_METHOD = new Set('if while for foreach switch catch return new select using else throw case lock sizeof typeof nameof base this super await'.split(' '));
 function kbCodeName(code, lang){
   if (kbLangInfo(lang)?.[0] === 'md'){ const h = code.match(/^#{1,6}\s+(.+)$/m); return {title:h ? h[1].trim() : '', methods:[]}; }
+  if (kbIsPage(code, lang)){ const t = code.match(/<title[^>]*>([^<]*)<\/title>/i) || code.match(/<h1[^>]*>([^<]*)</i); return {title:t ? t[1].trim() : '', methods:[]}; }
   // PowerShell: named after its functions (Verb-Noun), else the first cmdlet it runs
   if (kbLangInfo(lang)?.[0] === 'ps1'){
     const src = code.replace(/<#[\s\S]*?#>/g, '').replace(/#[^\n]*/g, '');
